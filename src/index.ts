@@ -45,8 +45,8 @@ const finalConfig = {
 	...(readYAMLFile(targetDir, 'config') as Record<string, string>),
 };
 // process.stdin.setRawMode(true);
-app.use(express.static(path.join(__dirname, '/snapshot/super-terminal-ui/dist')));
-app.use('*', express.static(path.join(__dirname, 'node_modules/super-terminal-ui/dist/index.html')));
+app.use(express.static(path.join(__dirname, '../../node_modules/super-terminal-ui/dist')));
+app.use('*', express.static(path.join(__dirname, '../../node_modules/super-terminal-ui/dist/index.html')));
 let server: Server;
 if (finalConfig.KEY && finalConfig.CERT) {
 	server = https.createServer(
@@ -204,7 +204,6 @@ AppDataSource.initialize()
 				};
 				const processObject = ptyProcesses[terminalId];
 				if (!processObject) console.error('Process not found with id', terminalId);
-				console.log('WRIGINT', command);
 				processObject.process.write(command);
 				// null means dont send response
 				res.status(null).send('OK');
