@@ -45,11 +45,16 @@
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
 		"ts-node": "10.7.0",
-		"typescript": "4.5.2",
-		"@lytejs/ws": "0.0.0-development"
+		"typescript": "4.5.2"
 	},
 	"pkg": {
-		"assets": ["node_modules/super-terminal-ui/dist", "node_modules/node-pty", "node_modules/sqlite3", "../node_modules/node-pty", "../node_modules/sqlite3"]
+		"assets": [
+			"node_modules/super-terminal-ui/dist",
+			"node_modules/node-pty",
+			"node_modules/sqlite3",
+			"../node_modules/node-pty",
+			"../node_modules/sqlite3"
+		]
 	},
 	"files": [
 		"dist",
@@ -62,6 +67,7 @@
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.17.9",
+		"@lytejs/ws": "^1.0.3-alpha.1",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
 		"express": "^4.18.1",
 		"js-yaml": "^4.1.0",
