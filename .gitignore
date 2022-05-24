@@ -8,3 +8,4 @@ temp/
 *.sqlite
 /super-terminal-*
 dist/
+*.zip
