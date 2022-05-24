@@ -1,0 +1,6 @@
+{
+	"PORT": 7001,
+	"CERT": "/Users/ankit.gautam/pthing/super-terminal-backend/fk.ngrok.io.pem",
+	"KEY": "/Users/ankit.gautam/pthing/super-terminal-backend/fk.ngrok.io-key.pem",
+	"UI": "/Users/ankit.gautam/pthing/super-terminal-ui/dist"
+}

@@ -1,0 +1,11 @@
+{
+	"dependencies": {
+		"@lytejs/ws": {
+			"type": "npm"
+		},
+		"super-terminal-ui": {
+			"type": "github-release",
+			"target": "git@github.com:super-terminal/ui.git"
+		}
+	}
+}
