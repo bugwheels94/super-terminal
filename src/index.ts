@@ -40,9 +40,9 @@ const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
 console.log(
 	__dirname,
-	path.join(__dirname, '../..'),
-	fs.readdirSync(path.join(__dirname, '../..')),
-	fs.readdirSync(path.join(__dirname, '../../node_modules'))
+	path.join(__dirname, '../..')
+	// fs.readdirSync(path.join(__dirname, '../..')),
+	// fs.readdirSync(path.join(__dirname, '../../node_modules'))
 );
 // const config = readJSONFile(__dirname, 'config.json')
 const finalConfig = {
@@ -50,8 +50,8 @@ const finalConfig = {
 	...(readYAMLFile(targetDir, 'config') as Record<string, string>),
 };
 // process.stdin.setRawMode(true);
-app.use(express.static(path.join(__dirname, '../../node_modules/super-terminal-ui/dist')));
-app.use('*', express.static(path.join(__dirname, '../../node_modules/super-terminal-ui/dist/index.html')));
+app.use(express.static(path.join(__dirname, '../node_modules/super-terminal-ui/dist')));
+app.use('*', express.static(path.join(__dirname, '../node_modules/super-terminal-ui/dist/index.html')));
 let server: Server;
 if (finalConfig.KEY && finalConfig.CERT) {
 	server = https.createServer(
