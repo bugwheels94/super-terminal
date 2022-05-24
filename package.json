@@ -55,7 +55,8 @@
 			"node_modules/node-pty",
 			"node_modules/sqlite3",
 			"../node_modules/node-pty",
-			"../node_modules/sqlite3"
+			"../node_modules/sqlite3",
+			"../node_modules/super-terminal-ui/dist"
 		]
 	},
 	"files": [

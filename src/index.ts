@@ -38,7 +38,12 @@ export const readJSONFile = (...fileName: string[]) => {
 };
 const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
-
+console.log(
+	__dirname,
+	path.join(__dirname, '../..'),
+	fs.readdirSync(path.join(__dirname, '../..')),
+	fs.readdirSync(path.join(__dirname, '../../node_modules'))
+);
 // const config = readJSONFile(__dirname, 'config.json')
 const finalConfig = {
 	...config,
