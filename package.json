@@ -2,7 +2,7 @@
 	"name": "super-terminal",
 	"version": "0.0.0-development",
 	"description": "Terminal Manager",
-	"repository": "https://github.com/bugwheels94/super-terminal",
+	"repository": "https://github.com/super-terminal/super-terminal",
 	"license": "MIT",
 	"keywords": [],
 	"main": "dist/index.js",
