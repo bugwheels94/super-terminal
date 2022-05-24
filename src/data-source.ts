@@ -8,6 +8,7 @@ import { Project } from './entity/Project';
 import { Terminal } from './entity/Terminal';
 import { TerminalLog } from './entity/TerminalLog';
 import { TerminalSetting } from './entity/TerminalSetting';
+import 'sqlite3';
 const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
 export const AppDataSource = new DataSource({

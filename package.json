@@ -49,7 +49,8 @@
 		"@lytejs/ws": "0.0.0-development"
 	},
 	"pkg": {
-		"assets": "node_modules/super-terminal-ui/dist"
+		"assets": ["node_modules/super-terminal-ui/dist", "node_modules/node-pty", "node_modules/sqlite3", "../node_modules/node-pty", "../node_modules/sqlite3"],
+      "targets": ["node16-macos-x64"]
 	},
 	"files": [
 		"dist",
