@@ -9,6 +9,15 @@
 				"assets": [
 					{
 						"path": "dist.zip"
+					},
+					{
+						"path": "super-terminal-macos"
+					},
+					{
+						"path": "super-terminal-linux"
+					},
+					{
+						"path": "super-terminal-win.exe"
 					}
 				]
 			}
