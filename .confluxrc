@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"@lytejs/ws": {
+		"restify-websocket": {
 			"type": "npm"
 		},
 		"super-terminal-ui": {
