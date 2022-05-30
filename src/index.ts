@@ -4,7 +4,7 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 
-import { MessageData, WebSocketPlus } from '@lytejs/ws';
+import { MessageData, RestifyWebSocket } from 'restify-websocket';
 import express from 'express';
 import yaml from 'js-yaml';
 import { throttle } from 'lodash';
@@ -164,7 +164,7 @@ AppDataSource.initialize()
 				}
 			}
 			console.log('Connection made');
-			const { client, router } = new WebSocketPlus(ws);
+			const { client, router } = new RestifyWebSocket(ws);
 
 			router.get('/projects', async (req, res) => {
 				const p = await getProjects();
