@@ -38,20 +38,15 @@ export const readJSONFile = (...fileName: string[]) => {
 };
 const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
-console.log(
-	__dirname,
-	path.join(__dirname, '../..')
-	// fs.readdirSync(path.join(__dirname, '../..')),
-	// fs.readdirSync(path.join(__dirname, '../../node_modules'))
-);
 // const config = readJSONFile(__dirname, 'config.json')
 const finalConfig = {
 	...config,
 	...(readYAMLFile(targetDir, 'config') as Record<string, string>),
 };
 // process.stdin.setRawMode(true);
-app.use(express.static(path.join(__dirname, '../node_modules/super-terminal-ui/dist')));
-app.use('*', express.static(path.join(__dirname, '../node_modules/super-terminal-ui/dist/index.html')));
+const p = require.resolve('super-terminal-ui').split('/dummy')[0];
+app.use(express.static(p));
+app.use('*', express.static(path.join(p, 'index.html')));
 let server: Server;
 if (finalConfig.KEY && finalConfig.CERT) {
 	server = https.createServer(
@@ -268,20 +263,24 @@ AppDataSource.initialize()
 			});
 
 			router.get('/terminals', async (req, res) => {
-				const slug = req.body as string;
-				const data = (await getTerminals({ slug })) as Terminal[];
-				// Create Old Terminals that were lost somehow from the data present in the disk DB
-				data.forEach((terminal) => {
-					if (ptyProcesses[terminal.id] !== undefined) {
-						connectTerminalToSocket({
-							terminal,
-							ptyProcess: ptyProcesses[terminal.id].process,
-						});
-						return;
-					}
-					createTerminal({ terminal });
-				});
-				res.status(200).send(data as unknown as MessageData);
+				try {
+					const slug = req.body as string;
+					const data = (await getTerminals({ slug })) as Terminal[];
+					// Create Old Terminals that were lost somehow from the data present in the disk DB
+					data.forEach((terminal) => {
+						if (ptyProcesses[terminal.id] !== undefined) {
+							connectTerminalToSocket({
+								terminal,
+								ptyProcess: ptyProcesses[terminal.id].process,
+							});
+							return;
+						}
+						createTerminal({ terminal });
+					});
+					res.status(200).send(data as unknown as MessageData);
+				} catch (e) {
+					console.log('E', e);
+				}
 			});
 		});
 	})

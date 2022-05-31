@@ -10,7 +10,7 @@ const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
-const bundlePackages = ['@lytejs/ws', 'isomorphic-ws'];
+const bundlePackages = ['restify-websocket', 'isomorphic-ws'];
 const neverBundlePackages = ['node-pty', '@babel/runtime', 'ws'];
 const shouldBundleLocalFilesTogether = false;
 const isPackageDependency = (pkg, path, importer) => {
