@@ -72,7 +72,7 @@
 		"lodash": "^4.17.21",
 		"node-pty": "^0.10.1",
 		"sqlite3": "^4.0.3",
-		"super-terminal-ui": "^1.0.3",
+		"super-terminal-ui": "0.0.0-development",
 		"typeorm": "0.3.6",
 		"ws": "^8.5.0"
 	},
