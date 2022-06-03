@@ -3,7 +3,7 @@ import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import babel from '@rollup/plugin-babel';
 import json from '@rollup/plugin-json';
 import commonjs from '@rollup/plugin-commonjs';
-
+import replace from '@rollup/plugin-replace';
 import globby from 'fast-glob';
 import path from 'path';
 const extensions = ['.js', '.ts'];
@@ -13,8 +13,15 @@ const bundleNpmWorkspacePackages = ['ws'];
 const bundlePackages = ['restify-websocket', 'isomorphic-ws'];
 const neverBundlePackages = ['node-pty', '@babel/runtime', 'ws'];
 const shouldBundleLocalFilesTogether = false;
-const isPackageDependency = (pkg, path, importer) => {
-	return path.includes('node_modules/' + pkg) || importer.includes('node_modules/' + pkg) || path === pkg;
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'undefined';
+const isProduction = process.env.NODE_ENV === 'production';
+console.log('??', isDevelopment, isProduction);
+const isPackageDependency = (pkg, path, importer = '') => {
+	return (
+		path.includes('node_modules/' + pkg) ||
+		(importer.includes('node_modules/' + pkg) && (console.log('???', path, importer), path.startsWith('.'))) ||
+		path === pkg
+	);
 };
 const getRollupConfig =
 	({ isBrowser = false } = {}) =>
@@ -33,7 +40,8 @@ const getRollupConfig =
 				if (sanitizedId.endsWith(input.replace('./', '/'))) {
 					return false;
 				}
-				if (neverBundlePackages.find((pkg) => isPackageDependency(pkg, id, second))) {
+				// No need to pass second because the entry will be stopped
+				if (neverBundlePackages.find((pkg) => isPackageDependency(pkg, id))) {
 					return true;
 				}
 				if (bundlePackages.find((pkg) => isPackageDependency(pkg, id, second))) {
@@ -54,6 +62,11 @@ const getRollupConfig =
 				return !shouldBundleLocalFilesTogether;
 			},
 			plugins: [
+				replace({
+					preventAssignment: true,
+
+					'process.env.NODE_ENV': `'${process.env.NODE_ENV}'`,
+				}),
 				json(),
 				resolve({
 					extensions,
@@ -64,7 +77,7 @@ const getRollupConfig =
 					babelHelpers: 'runtime',
 					include: babelIncludes,
 				}),
-				// peerDepsExternal(),
+				peerDepsExternal(),
 			],
 		};
 	};
