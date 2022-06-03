@@ -114,7 +114,6 @@ AppDataSource.initialize()
 				const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 				let env = process.env as Record<string, string>;
-				console.log(env);
 				try {
 					const doc = yaml.load(terminal.startupEnvironmentVariables, {
 						schema: yaml.JSON_SCHEMA,
