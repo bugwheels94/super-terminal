@@ -23,7 +23,7 @@ jobs:
       - run: npm i
       - run: npm run build
       - run: pkg package.json
-      - run: mesh npm generate-bundle
+      - run: mesh npm zip-npm-files
       - run: npx semantic-release
         env:
           HUSKY: 0
