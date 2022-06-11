@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Terminal } from './Terminal';
 @Entity()
@@ -6,6 +6,7 @@ export class TerminalLog {
 	@PrimaryGeneratedColumn()
 	id: number;
 
+	@Index()
 	@Column()
 	terminalId: number;
 
