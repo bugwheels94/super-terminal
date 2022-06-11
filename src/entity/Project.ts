@@ -13,5 +13,8 @@ export class Project {
 	terminals: Terminal[];
 
 	@Column({ nullable: true })
-	fontSize: number;
+	fontSize?: number;
+
+	@Column({ nullable: true, type: 'simple-json' })
+	terminalTheme?: any;
 }
