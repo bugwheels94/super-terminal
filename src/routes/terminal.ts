@@ -43,6 +43,21 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 		createPtyTerminal({ terminal, client, terminalConnectionStore });
 		res.status(200).send(terminal);
 	});
+	router.post('/terminals/:id/copies', async (req, res) => {
+		const oldTerminal = await TerminalRepository.findOneOrFail({
+			where: {
+				id: req.params.id as number,
+			},
+		});
+		const insertResult = await TerminalRepository.insert({ ...oldTerminal, id: undefined });
+		const terminal = await TerminalRepository.findOneOrFail({
+			where: {
+				id: insertResult.raw,
+			},
+		});
+		createPtyTerminal({ terminal, client, terminalConnectionStore });
+		res.status(200).send(terminal);
+	});
 	router.patch('/terminals/:id', async (req, res) => {
 		const { meta, restart, ...terminal } = req.body as PutTerminalRequest;
 		const id = req.params.id as number;
