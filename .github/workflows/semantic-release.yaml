@@ -20,7 +20,7 @@ jobs:
           node-version: 16
           cache-dependency-path: 'package.json'
       - run: npm i -g @lytejs/mesh@alpha pkg && mesh sync dependencies
-      - run: npm i
+      - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: pkg package.json
       - run: mesh npm zip-npm-files
