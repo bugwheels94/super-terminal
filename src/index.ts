@@ -58,8 +58,8 @@ if (finalConfig.KEY && finalConfig.CERT) {
 } else {
 	server = http.createServer(app);
 }
-server.listen(finalConfig.PORT, function listening() {
-	console.log('listening on ', finalConfig.PORT);
+server.listen(finalConfig.PORT, finalConfig.HOST_NAME, function listening() {
+	console.log('Running on Port', finalConfig.PORT);
 });
 
 AppDataSource.initialize()
