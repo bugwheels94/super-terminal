@@ -67,13 +67,13 @@ AppDataSource.initialize()
 		const wss = new WebSocket.Server({ server });
 
 		wss.on('connection', function connection(ws) {
-			const { client, router } = new RestifyWebSocket(ws);
+			const { client, router, socket } = new RestifyWebSocket(ws);
 			client.put('/fresh-connection');
 
 			// whatever comes to below route should be passed to pty process
 
 			addProjectRoutes(router);
-			addTerminalRoutes(router, client);
+			addTerminalRoutes(router, client, socket);
 		});
 	})
 	.catch((error) => console.log(error));
