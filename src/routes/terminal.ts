@@ -6,8 +6,9 @@ import yaml from 'js-yaml';
 import { IPty, spawn } from 'node-pty';
 import { throttle } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
-const ptyProcesses: Record<number, { process: IPty }> = {};
-type TerminalConnectionStore = Record<number, boolean>;
+import WebSocket from 'isomorphic-ws';
+type ProcessObject = { process: IPty; clients: Set<Client> };
+const ptyProcesses: Record<number, ProcessObject> = {};
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -26,9 +27,12 @@ type PutTerminalRequest = {
 	startupCommands?: string;
 	startupEnvironmentVariables?: string;
 };
-export const addTerminalRoutes = (router: Router, client: Client) => {
-	const terminalConnectionStore: TerminalConnectionStore = {};
-
+export const addTerminalRoutes = (router: Router, client: Client, socket: WebSocket) => {
+	socket.on('close', () => {
+		Object.values(ptyProcesses).forEach((ptyProcess) => {
+			ptyProcess.clients.delete(client);
+		});
+	});
 	router.post('/terminals', async (req, res) => {
 		const { projectSlug } = req.body as {
 			projectSlug: string;
@@ -40,7 +44,7 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 		const terminal = new Terminal();
 		terminal.project = project;
 		await AppDataSource.manager.save(terminal);
-		createPtyTerminal({ terminal, client, terminalConnectionStore });
+		createPtyTerminal({ terminal, client });
 		res.status(200).send(terminal);
 	});
 	router.post('/terminals/:id/copies', async (req, res) => {
@@ -55,21 +59,20 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 				id: insertResult.raw,
 			},
 		});
-		createPtyTerminal({ terminal, client, terminalConnectionStore });
+		createPtyTerminal({ terminal, client });
 		res.status(200).send(terminal);
 	});
 	router.patch('/terminals/:id', async (req, res) => {
 		const { meta, restart, ...terminal } = req.body as PutTerminalRequest;
 		const id = req.params.id as number;
 		if (restart) {
-			killPtyProcess(id, terminalConnectionStore);
+			killPtyProcess(id);
 			const terminalRecord = await TerminalRepository.findOne({
 				where: { id },
 			});
 			if (terminalRecord)
 				createPtyTerminal({
 					terminal: terminalRecord,
-					terminalConnectionStore,
 					client,
 				});
 			res.send('OK');
@@ -99,7 +102,7 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 	});
 	router.delete('/terminals/:id', async (req, res) => {
 		const id = req.params.id as number;
-		killPtyProcess(id, terminalConnectionStore);
+		killPtyProcess(id);
 		await TerminalRepository.delete(id);
 		res.status(200).send('OK');
 	});
@@ -112,14 +115,12 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 		project.terminals.forEach((terminal) => {
 			if (ptyProcesses[terminal.id] !== undefined) {
 				connectTerminalToSocket({
-					terminal,
-					ptyProcess: ptyProcesses[terminal.id].process,
+					ptyProcessObject: ptyProcesses[terminal.id],
 					client,
-					terminalConnectionStore,
 				});
 				return;
 			}
-			createPtyTerminal({ terminal, terminalConnectionStore, client });
+			createPtyTerminal({ terminal, client });
 		});
 		res.status(200).send(
 			await Promise.all(
@@ -152,15 +153,7 @@ export const addTerminalRoutes = (router: Router, client: Client) => {
 		res.status(null).send('OK');
 	});
 };
-async function createPtyTerminal({
-	terminal,
-	client,
-	terminalConnectionStore,
-}: {
-	terminal: Terminal;
-	client: Client;
-	terminalConnectionStore: TerminalConnectionStore;
-}) {
+async function createPtyTerminal({ terminal, client }: { terminal: Terminal; client: Client }) {
 	const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
@@ -179,14 +172,25 @@ async function createPtyTerminal({
 		cwd: terminal.cwd || process.env.HOME,
 		env,
 	});
-
-	ptyProcesses[terminal.id] = {
+	const ptyProcessObject = {
 		process: ptyProcess,
+		clients: new Set<Client>(),
 	};
+	ptyProcessObject.clients.add(client);
+	ptyProcess.onData((data) => {
+		ptyProcessObject.clients.forEach((c) => {
+			c.post('/terminal-data', {
+				body: {
+					terminalId: terminal.id,
+					data,
+				},
+				forget: true,
+			});
+		});
+	});
+	ptyProcesses[terminal.id] = ptyProcessObject;
 	connectTerminalToSocket({
-		terminal,
-		ptyProcess,
-		terminalConnectionStore,
+		ptyProcessObject,
 		client,
 	});
 	let chunk = '';
@@ -214,33 +218,18 @@ async function createPtyTerminal({
 	}
 }
 async function connectTerminalToSocket({
-	terminal,
-	ptyProcess,
-	terminalConnectionStore,
+	ptyProcessObject,
 	client,
 }: {
-	terminal: Terminal;
-	ptyProcess: IPty;
-	terminalConnectionStore: TerminalConnectionStore;
+	ptyProcessObject: ProcessObject;
 	client: Client;
 }) {
-	if (terminalConnectionStore[terminal.id]) return;
-	ptyProcess.onData((data) => {
-		client.post('/terminal-data', {
-			body: {
-				terminalId: terminal.id,
-				data,
-			},
-			forget: true,
-		});
-	});
-	terminalConnectionStore[terminal.id] = true;
+	ptyProcessObject.clients.add(client);
 }
-function killPtyProcess(terminalId: number, terminalConnectionStore: TerminalConnectionStore) {
+function killPtyProcess(terminalId: number) {
 	const ptyProcess = ptyProcesses[terminalId];
 	if (ptyProcess) {
 		ptyProcess.process.kill();
 	}
 	delete ptyProcesses[terminalId];
-	delete terminalConnectionStore[terminalId];
 }
