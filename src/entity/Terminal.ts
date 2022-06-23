@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Project } from './Project';
 import { TerminalLog } from './TerminalLog';
@@ -7,6 +7,10 @@ import { TerminalSetting } from './TerminalSetting';
 export class Terminal {
 	@PrimaryGeneratedColumn()
 	id: number;
+
+	@Index()
+	@Column({ nullable: true })
+	projectId: number;
 
 	@ManyToOne(() => Project, (project) => project.terminals, {
 		onDelete: 'CASCADE',

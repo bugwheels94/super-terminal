@@ -14,16 +14,16 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          cache: npm
-          node-version: 16
-          cache-dependency-path: 'package.json'
+      # - uses: actions/setup-node@v2
+      #   with:
+      #     cache: npm
+      #     node-version: 16
+      #     cache-dependency-path: 'package.json'
       - run: npm i -g @lytejs/mesh@alpha pkg && mesh sync dependencies
-      - run: npm i
+      - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: pkg package.json
-      - run: mesh npm generate-bundle
+      - run: mesh npm zip-npm-files
       - run: npx semantic-release
         env:
           HUSKY: 0
