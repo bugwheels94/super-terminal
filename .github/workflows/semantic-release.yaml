@@ -23,7 +23,7 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: rm -rf node_modules
-      - run: npm i --production
+      - run: npm i --production --legacy-peer-deps
       - run: pkg package.json
       - run: npm i --legacy-peer-deps
       - run: mesh npm zip-npm-files
