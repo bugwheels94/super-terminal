@@ -47,7 +47,6 @@
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
 		"define-lazy-prop": "^3.0.0",
-		"express": "^4.18.1",
 		"fast-glob": "^3.2.11",
 		"husky": "^8.0.1",
 		"is-docker": "^3.0.0",
@@ -62,7 +61,6 @@
 		"rollup": "^2.70.2",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
-		"sqlite3": "^4.0.3",
 		"strip-ansi": "^7.0.1",
 		"ts-node": "10.7.0",
 		"typeorm": "0.3.6",
@@ -85,10 +83,11 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@babel/runtime": "^7.17.9",
 		"node-pty": "^0.10.1",
 		"super-terminal-ui": "^0.0.0-development",
 		"tcp-port-used": "^1.0.2",
+		"express": "^4.18.1",
+		"sqlite3": "^4.0.3",
 		"ws": "^8.5.0"
 	},
 	"prettier": {
