@@ -8,7 +8,7 @@ import globby from 'fast-glob';
 import path from 'path';
 const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
-const configs = globby.sync(['./src/index.ts', '!./src/**.json']);
+const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
 const bundlePackages = [
 	'restify-websocket',
