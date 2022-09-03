@@ -23,9 +23,9 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: rm -rf node_modules
-      - run: npm i --only=prod
+      - run: npm i --omit=dev
       - run: pkg package.json
-      - run: npm i --only=dev
+      - run: npm i --legacy-peer-deps
       - run: mesh npm zip-npm-files
       - run: npx semantic-release
         env:
