@@ -10,7 +10,15 @@ const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
-const bundlePackages = ['restify-websocket', 'isomorphic-ws', 'strip-ansi', 'ansi-regex'];
+const bundlePackages = [
+	'restify-websocket',
+	'isomorphic-ws',
+	'strip-ansi',
+	'ansi-regex',
+	'is-wsl',
+	'is-docker',
+	'define-lazy-prop',
+];
 const neverBundlePackages = ['node-pty', '@babel/runtime', 'ws'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
