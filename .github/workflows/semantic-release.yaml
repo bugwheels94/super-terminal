@@ -22,10 +22,7 @@ jobs:
       - run: npm i -g @lytejs/mesh@beta pkg && mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
-      - run: rm -rf node_modules
-      - run: npm i --production --legacy-peer-deps
       - run: pkg package.json
-      - run: npm i --legacy-peer-deps
       - run: mesh npm zip-npm-files
       - run: npx semantic-release
         env:
