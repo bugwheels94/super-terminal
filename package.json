@@ -1,115 +1,115 @@
 {
-  "name": "super-terminal",
-  "version": "0.0.0-development",
-  "description": "Terminal Manager",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/super-terminal/super-terminal.git"
-  },
-  "license": "MIT",
-  "keywords": [],
-  "main": "dist/index.js",
-  "bin": {
-    "super-terminal": "dist/index.js"
-  },
-  "scripts": {
-    "build": "rollup -c --environment NODE_ENV:production",
-    "build:watch": "rollup -c -w --environment NODE_ENV:development",
-    "nodemon-server": "nodemon --watch 'dist/**/*' dist/index.js",
-    "test": "run-s build test:*",
-    "start:watch": "run-p build:watch nodemon-server",
-    "typeorm": "typeorm-ts-node-commonjs",
-    "prepare": "husky install"
-  },
-  "engines": {
-    "node": ">=10"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.18.0",
-    "@babel/plugin-proposal-class-properties": "^7.17.12",
-    "@babel/plugin-proposal-decorators": "^7.17.9",
-    "@babel/plugin-transform-regenerator": "^7.18.0",
-    "@babel/plugin-transform-runtime": "^7.18.0",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/preset-typescript": "^7.16.7",
-    "@rollup/plugin-babel": "^5.3.1",
-    "@rollup/plugin-commonjs": "^22.0.0",
-    "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^13.2.1",
-    "@rollup/plugin-replace": "^4.0.0",
-    "@semantic-release/github": "^8.0.4",
-    "@semantic-release/npm": "^9.0.1",
-    "@types/js-yaml": "^4.0.5",
-    "@types/lodash": "^4.14.182",
-    "@types/node": "^16.11.10",
-    "@types/sqlite3": "^3.1.8",
-    "@types/tcp-port-used": "^1.0.1",
-    "babel-plugin-const-enum": "^1.2.0",
-    "babel-plugin-transform-typescript-metadata": "^0.3.2",
-    "express": "^4.18.1",
-    "fast-glob": "^3.2.11",
-    "husky": "^8.0.1",
-    "js-yaml": "^4.1.0",
-    "lodash": "^4.17.21",
-    "node-pre-gyp": "^0.11.0",
-    "nodemon": "^2.0.16",
-    "npm-run-all": "^4.1.5",
-    "reflect-metadata": "^0.1.13",
-    "restify-websocket": "0.0.0-development",
-    "rollup": "^2.70.2",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "semantic-release": "^19.0.2",
-    "sqlite3": "^4.0.3",
-    "strip-ansi": "^7.0.1",
-    "ts-node": "10.7.0",
-    "typeorm": "0.3.6",
-    "typescript": "4.5.2",
-    "define-lazy-prop": "^3.0.0",
-    "is-docker": "^3.0.0",
-    "is-wsl": "^2.2.0"
-  },
-  "pkg": {
-    "assets": [
-      "node_modules/super-terminal-ui/dist",
-      "node_modules/node-pty",
-      "node_modules/sqlite3"
-    ]
-  },
-  "files": [
-    "dist",
-    "CHANGELOG.md",
-    "LICENSE",
-    "README.md"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "@babel/runtime": "^7.17.9",
-    "node-pty": "^0.10.1",
-    "super-terminal-ui": "0.0.0-development",
-    "tcp-port-used": "^1.0.2",
-    "ws": "^8.5.0"
-  },
-  "prettier": {
-    "singleQuote": true,
-    "printWidth": 120,
-    "useTabs": true
-  },
-  "lint-staged": {
-    "**/*": "prettier --write --ignore-unknown"
-  },
-  "syncWorkspaceDependencies": {
-    "restify-websocket": {
-      "type": "npm"
-    },
-    "super-terminal-ui": {
-      "type": "npm"
-    }
-  },
-  "bugs": {
-    "url": "https://github.com/super-terminal/super-terminal/issues"
-  },
-  "homepage": "https://github.com/super-terminal/super-terminal#readme",
-  "author": ""
+	"name": "super-terminal",
+	"version": "0.0.0-development",
+	"description": "Terminal Manager",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/super-terminal/super-terminal.git"
+	},
+	"license": "MIT",
+	"keywords": [],
+	"main": "dist/index.js",
+	"bin": {
+		"super-terminal": "dist/index.js"
+	},
+	"scripts": {
+		"build": "rollup -c --environment NODE_ENV:production",
+		"build:watch": "rollup -c -w --environment NODE_ENV:development",
+		"nodemon-server": "nodemon --watch 'dist/**/*' dist/index.js",
+		"test": "run-s build test:*",
+		"start:watch": "run-p build:watch nodemon-server",
+		"typeorm": "typeorm-ts-node-commonjs",
+		"prepare": "husky install"
+	},
+	"engines": {
+		"node": ">=10"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.18.0",
+		"@babel/plugin-proposal-class-properties": "^7.17.12",
+		"@babel/plugin-proposal-decorators": "^7.17.9",
+		"@babel/plugin-transform-regenerator": "^7.18.0",
+		"@babel/plugin-transform-runtime": "^7.18.0",
+		"@babel/preset-env": "^7.16.11",
+		"@babel/preset-typescript": "^7.16.7",
+		"@rollup/plugin-babel": "^5.3.1",
+		"@rollup/plugin-commonjs": "^22.0.0",
+		"@rollup/plugin-json": "^4.1.0",
+		"@rollup/plugin-node-resolve": "^13.2.1",
+		"@rollup/plugin-replace": "^4.0.0",
+		"@semantic-release/github": "^8.0.4",
+		"@semantic-release/npm": "^9.0.1",
+		"@types/js-yaml": "^4.0.5",
+		"@types/lodash": "^4.14.182",
+		"@types/node": "^16.11.10",
+		"@types/sqlite3": "^3.1.8",
+		"@types/tcp-port-used": "^1.0.1",
+		"babel-plugin-const-enum": "^1.2.0",
+		"babel-plugin-transform-typescript-metadata": "^0.3.2",
+		"define-lazy-prop": "^3.0.0",
+		"express": "^4.18.1",
+		"fast-glob": "^3.2.11",
+		"husky": "^8.0.1",
+		"is-docker": "^3.0.0",
+		"is-wsl": "^2.2.0",
+		"js-yaml": "^4.1.0",
+		"lodash": "^4.17.21",
+		"node-pre-gyp": "^0.11.0",
+		"nodemon": "^2.0.16",
+		"npm-run-all": "^4.1.5",
+		"reflect-metadata": "^0.1.13",
+		"restify-websocket": "^0.0.0-development",
+		"rollup": "^2.70.2",
+		"rollup-plugin-peer-deps-external": "^2.2.4",
+		"semantic-release": "^19.0.2",
+		"sqlite3": "^4.0.3",
+		"strip-ansi": "^7.0.1",
+		"ts-node": "10.7.0",
+		"typeorm": "0.3.6",
+		"typescript": "4.5.2"
+	},
+	"pkg": {
+		"assets": [
+			"node_modules/super-terminal-ui/dist",
+			"node_modules/node-pty",
+			"node_modules/sqlite3"
+		]
+	},
+	"files": [
+		"dist",
+		"CHANGELOG.md",
+		"LICENSE",
+		"README.md"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"dependencies": {
+		"@babel/runtime": "^7.17.9",
+		"node-pty": "^0.10.1",
+		"super-terminal-ui": "^0.0.0-development",
+		"tcp-port-used": "^1.0.2",
+		"ws": "^8.5.0"
+	},
+	"prettier": {
+		"singleQuote": true,
+		"printWidth": 120,
+		"useTabs": true
+	},
+	"lint-staged": {
+		"**/*": "prettier --write --ignore-unknown"
+	},
+	"syncWorkspaceDependencies": {
+		"restify-websocket": {
+			"type": "npm"
+		},
+		"super-terminal-ui": {
+			"type": "npm"
+		}
+	},
+	"bugs": {
+		"url": "https://github.com/super-terminal/super-terminal/issues"
+	},
+	"homepage": "https://github.com/super-terminal/super-terminal#readme",
+	"author": ""
 }

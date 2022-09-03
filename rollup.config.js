@@ -63,7 +63,7 @@ const getRollupConfig =
 				}
 
 				if (isNodeModule) {
-					return true;
+					return false;
 				}
 
 				return !shouldBundleLocalFilesTogether;
