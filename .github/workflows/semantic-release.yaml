@@ -23,6 +23,7 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: pkg package.json
+      - run: chmod +x super-terminal-macos
       - run: mesh npm zip-npm-files
       - run: npx semantic-release
         env:

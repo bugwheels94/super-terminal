@@ -36,18 +36,21 @@ export const readJSONFile = (...fileName: string[]) => {
 		return {};
 	}
 };
+function getConfig() {
+	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
+	fs.mkdirSync(targetDir, { recursive: true });
+	const finalConfig = {
+		...config,
+		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
+	};
+	return finalConfig;
+}
 function main() {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
 
-	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
-	fs.mkdirSync(targetDir, { recursive: true });
-	// const config = readJSONFile(__dirname, 'config.json')
-	const finalConfig = {
-		...config,
-		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
-	};
+	const finalConfig = getConfig();
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
@@ -142,6 +145,8 @@ const browsersMap = {
 	firefox: open.apps.firefox,
 };
 function init() {
+	const finalConfig = getConfig();
+
 	tcpPortUsed.check(7001).then(
 		function (inUse) {
 			if (!inUse) {
@@ -149,14 +154,14 @@ function init() {
 			}
 			tcpPortUsed.waitUntilUsed(7001).then(
 				async function () {
-					const browser = ['edge', 'chrome', 'firefox'].includes(config.BROWSER) ? config.BROWSER : 'chrome';
+					const browser = ['edge', 'chrome', 'firefox'].includes(finalConfig.BROWSER) ? finalConfig.BROWSER : 'chrome';
 
 					await open.openApp(
 						// @ts-ignore
 						browsersMap[browser],
 						{
 							newInstance: true,
-							arguments: ['--app=http://' + config.REMOTE_ADDRESS + ':7001', '--new-window'],
+							arguments: ['--app=http://' + finalConfig.REMOTE_ADDRESS + ':7001', '--new-window'],
 						}
 					);
 				},
