@@ -83,6 +83,9 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.17.9",
+    "define-lazy-prop": "^3.0.0",
+    "is-docker": "^3.0.0",
+    "is-wsl": "^2.2.0",
     "node-pty": "^0.10.1",
     "super-terminal-ui": "0.0.0-development",
     "tcp-port-used": "^1.0.2",
