@@ -5,8 +5,13 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 import tcpPortUsed from 'tcp-port-used';
+import express from 'express';
 import open from './utils/open';
 import config from './config.json';
+import { AppDataSource } from './data-source';
+import { addProjectRoutes } from './routes/project';
+import { addTerminalRoutes } from './routes/terminal';
+import { TerminalLog } from './entity/TerminalLog';
 
 export const readYAMLFile = (...fileName: string[]) => {
 	const yaml = require('js-yaml');
@@ -33,12 +38,7 @@ export const readJSONFile = (...fileName: string[]) => {
 };
 function main() {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
-	const express = require('express');
 
-	const { AppDataSource } = require('./data-source');
-	const { addProjectRoutes } = require('./routes/project');
-	const { addTerminalRoutes } = require('./routes/terminal');
-	const { TerminalLog } = require('./entity/TerminalLog');
 	const app = express();
 
 	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');

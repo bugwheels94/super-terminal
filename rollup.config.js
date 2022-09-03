@@ -8,7 +8,7 @@ import globby from 'fast-glob';
 import path from 'path';
 const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
-const configs = globby.sync(['./src/**', '!./src/**.json']);
+const configs = globby.sync(['./src/index.ts', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
 const bundlePackages = [
 	'restify-websocket',
@@ -19,7 +19,7 @@ const bundlePackages = [
 	'is-docker',
 	'define-lazy-prop',
 ];
-const neverBundlePackages = ['node-pty', '@babel/runtime', 'ws'];
+const neverBundlePackages = ['node-pty', 'ws', 'sqlite3', 'tcp-port-used', 'express'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
 const isProduction = !isDevelopment;
@@ -41,8 +41,10 @@ const getRollupConfig =
 				banner: input.endsWith('index.ts') ? '#!/usr/bin/env node' : undefined,
 			},
 			external(id, second = '') {
+				console.log(id);
 				const sanitizedId = id.split('?')[0];
 				const isNodeModule = id.includes('node_modules');
+				const isLocalModule = id.startsWith('.') || (id.startsWith('/') && !isNodeModule);
 				if (id.endsWith('.json')) return false;
 				if (sanitizedId.endsWith(input.replace('./', '/'))) {
 					return false;
@@ -62,11 +64,10 @@ const getRollupConfig =
 					return false;
 				}
 
-				if (isNodeModule) {
-					return false;
+				if (isLocalModule) {
+					return !shouldBundleLocalFilesTogether;
 				}
-
-				return !shouldBundleLocalFilesTogether;
+				return false;
 			},
 			plugins: [
 				replace({
