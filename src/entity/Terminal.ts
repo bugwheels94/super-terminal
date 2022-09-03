@@ -1,6 +1,7 @@
 import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Project } from './Project';
+import { TerminalCommand } from './TerminalCommand';
 import { TerminalLog } from './TerminalLog';
 import { TerminalSetting } from './TerminalSetting';
 @Entity()
@@ -37,8 +38,12 @@ export class Terminal {
 		cascade: true,
 	})
 	settings: TerminalSetting[];
+
 	@OneToMany(() => TerminalLog, (logs) => logs.terminal, { cascade: true })
 	logs: TerminalLog[];
+
+	@OneToMany(() => TerminalCommand, (logs) => logs.terminal, { cascade: true })
+	commands: TerminalCommand[];
 
 	@Column({ nullable: true })
 	mainCommand: string;

@@ -10,16 +10,15 @@ const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
-const bundlePackages = ['restify-websocket', 'isomorphic-ws'];
+const bundlePackages = ['restify-websocket', 'isomorphic-ws', 'strip-ansi', 'ansi-regex'];
 const neverBundlePackages = ['node-pty', '@babel/runtime', 'ws'];
 const shouldBundleLocalFilesTogether = false;
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'undefined';
-const isProduction = process.env.NODE_ENV === 'production';
-console.log('??', isDevelopment, isProduction);
+const isDevelopment = !!process.env.ROLLUP_WATCH;
+const isProduction = !isDevelopment;
 const isPackageDependency = (pkg, path, importer = '') => {
 	return (
 		path.includes('node_modules/' + pkg) ||
-		(importer.includes('node_modules/' + pkg) && (console.log('???', path, importer), path.startsWith('.'))) ||
+		(importer.includes('node_modules/' + pkg) && path.startsWith('.')) ||
 		path === pkg
 	);
 };
@@ -74,7 +73,7 @@ const getRollupConfig =
 				commonjs(),
 				babel({
 					extensions,
-					babelHelpers: 'runtime',
+					// babelHelpers: 'runtime',
 					include: babelIncludes,
 				}),
 				peerDepsExternal(),
