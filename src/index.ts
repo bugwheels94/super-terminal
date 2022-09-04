@@ -45,7 +45,7 @@ function getConfig() {
 	};
 	return finalConfig;
 }
-function main() {
+export function main() {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
@@ -175,4 +175,4 @@ function init() {
 		}
 	);
 }
-init();
+main();
