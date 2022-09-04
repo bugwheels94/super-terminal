@@ -5,7 +5,6 @@ const util = require('util');
 const { main } = require('super-terminal');
 const createWindow = () => {
 	// Create the browser window.
-	main();
 	const mainWindow = new BrowserWindow({
 		width: 800,
 		height: 600,
@@ -15,7 +14,8 @@ const createWindow = () => {
 	});
 
 	// and load the index.html of the app.
-	mainWindow.loadURL('http://localhost:7001');
+	// mainWindow.loadURL('http://localhost:7001');
+	mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
 
 	// Open the DevTools.
 	mainWindow.webContents.openDevTools();

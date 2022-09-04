@@ -6,7 +6,6 @@ import os from 'os';
 import path from 'path';
 import tcpPortUsed from 'tcp-port-used';
 import express from 'express';
-import open from './utils/open';
 import config from './config.json';
 import { AppDataSource } from './data-source';
 import { addProjectRoutes } from './routes/project';
@@ -135,44 +134,5 @@ export function main() {
 		})
 		.catch((error) => console.log(error));
 }
-const browsersMap = {
-	// @ts-ignore
 
-	chrome: open.apps.chrome,
-	// @ts-ignore
-	edge: open.apps.edge,
-	// @ts-ignore
-	firefox: open.apps.firefox,
-};
-function init() {
-	const finalConfig = getConfig();
-
-	tcpPortUsed.check(7001).then(
-		function (inUse) {
-			if (!inUse) {
-				main();
-			}
-			tcpPortUsed.waitUntilUsed(7001).then(
-				async function () {
-					const browser = ['edge', 'chrome', 'firefox'].includes(finalConfig.BROWSER) ? finalConfig.BROWSER : 'chrome';
-
-					await open.openApp(
-						// @ts-ignore
-						browsersMap[browser],
-						{
-							newInstance: true,
-							arguments: ['--app=http://' + finalConfig.REMOTE_ADDRESS + ':7001', '--new-window'],
-						}
-					);
-				},
-				function (err) {
-					console.log('Error:', err.message);
-				}
-			);
-		},
-		function (err) {
-			console.log('Error:', err.message);
-		}
-	);
-}
 main();

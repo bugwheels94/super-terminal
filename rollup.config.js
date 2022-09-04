@@ -19,7 +19,7 @@ const bundlePackages = [
 	'is-docker',
 	'define-lazy-prop',
 ];
-const neverBundlePackages = ['node-pty', 'ws', 'sqlite3', 'tcp-port-used', 'express'];
+const neverBundlePackages = ['node-pty', 'ws', 'sqlite3', 'tcp-port-used', 'express', 'typeorm'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
 const isProduction = !isDevelopment;
@@ -41,7 +41,6 @@ const getRollupConfig =
 				banner: input.endsWith('index.ts') ? '#!/usr/bin/env node' : undefined,
 			},
 			external(id, second = '') {
-				console.log(id);
 				const sanitizedId = id.split('?')[0];
 				const isNodeModule = id.includes('node_modules');
 				const isLocalModule = id.startsWith('.') || (id.startsWith('/') && !isNodeModule);
@@ -65,6 +64,7 @@ const getRollupConfig =
 				}
 
 				if (isLocalModule) {
+					console.log(id, second);
 					return !shouldBundleLocalFilesTogether;
 				}
 				return false;
