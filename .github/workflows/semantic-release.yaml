@@ -22,7 +22,7 @@ jobs:
         with:
           path: |
             *
-          key: ${{ GITHUB_RUN_ID }}
+          key: ${{ env.GITHUB_RUN_ID }}
   windows:
     name: release-windows
     runs-on: windows-2022
@@ -32,7 +32,7 @@ jobs:
         with:
           path: |
             *
-          key: ${{ GITHUB_RUN_ID }}
+          key: ${{ env.GITHUB_RUN_ID }}
       - run: ls
       - run: npm i --legacy-peer-deps
       - run: npm run build:electron
