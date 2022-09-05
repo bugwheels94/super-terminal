@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedCol
 
 import { Terminal } from './Terminal';
 @Entity()
-export class TerminalLog {
+export class TerminalCommand {
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -10,7 +10,7 @@ export class TerminalLog {
 	@Column()
 	terminalId: number;
 
-	@ManyToOne(() => Terminal, (terminal) => terminal.logs, {
+	@ManyToOne(() => Terminal, (terminal) => terminal.commands, {
 		onDelete: 'CASCADE',
 	})
 	terminal: Terminal;
@@ -21,5 +21,5 @@ export class TerminalLog {
 
 	// row,cols are not used because winbox decides xterm size and the end effect will be same
 	@Column()
-	log: string;
+	command: string;
 }

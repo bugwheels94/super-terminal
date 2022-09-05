@@ -28,13 +28,13 @@ module.exports = {
 			},
 		],
 		cjs && ['@babel/transform-modules-commonjs', { loose }],
-		[
-			'@babel/transform-runtime',
-			{
-				// useESModules: !cjs, @babe
-				// eslint-disable-next-line @typescript-eslint/no-var-requires
-				// version: require('./package.json').dependencies['@babel/runtime'].replace(/^[^0-9]*/, ''),
-			},
-		],
+		// [
+		// 	'@babel/transform-runtime',
+		// 	{
+		// useESModules: !cjs, @babe
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		// version: require('./package.json').dependencies['@babel/runtime'].replace(/^[^0-9]*/, ''),
+		// 	},
+		// ],
 	].filter(Boolean),
 };
