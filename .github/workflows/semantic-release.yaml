@@ -20,9 +20,13 @@ jobs:
       - run: npm run build
       - run: npm run build:electron
       - run: tree out /f | more
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-out
+          path: out
   mac:
     name: release-mac
-    runs-on: macos-12/Users/ankit.gautam/pthing/packages/super-terminal-backend/.github/workflows
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
@@ -31,6 +35,10 @@ jobs:
       - run: npm run build:electron
       - run: npm run build:electron:dmg
       - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-out
+          path: out
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
@@ -41,6 +49,10 @@ jobs:
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-out
+          path: out
       # - run: npx semantic-release
       #   env:
       #     HUSKY: 0
