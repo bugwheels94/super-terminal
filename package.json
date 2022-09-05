@@ -20,10 +20,10 @@
 		"start:watch": "run-p build:watch nodemon-server",
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
-		"start": "electron-forge start",
+		"start:electron": "electron-forge start",
 		"package": "electron-forge package",
-		"make": "electron-forge make",
-		"make-dmg": "npx appdmg dmg.json \"Super Terminal.dmg\""
+		"build:electron": "electron-forge make",
+		"build:electron:dmg": "npx appdmg dmg.json \"Super Terminal.dmg\""
 	},
 	"engines": {
 		"node": ">=10"

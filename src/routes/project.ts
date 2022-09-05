@@ -34,6 +34,7 @@ export const addProjectRoutes = (router: Router) => {
 	router.put<{ projectSlug: string }>('/projects/:projectSlug', async ({ body, params }, res) => {
 		const project = new Project();
 		project.slug = params.projectSlug;
+		project.fontSize = 14;
 		project.terminalTheme = defaultTheme;
 		try {
 			await AppDataSource.manager.save(project);

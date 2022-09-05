@@ -16,7 +16,9 @@ const createWindow = () => {
 	// and load the index.html of the app.
 	mainWindow.loadURL('http://localhost:7001');
 	// mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
-
+	mainWindow.once('ready-to-show', () => {
+		mainWindow.maximize();
+	});
 	// Open the DevTools.
 	mainWindow.webContents.openDevTools();
 };

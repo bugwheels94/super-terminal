@@ -14,16 +14,18 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
-      # - uses: actions/setup-node@v2
-      #   with:
-      #     cache: npm
-      #     node-version: 16
-      #     cache-dependency-path: 'package.json'
+      - uses: actions/setup-node@v2
+        with:
+          cache: npm
+          node-version: 16
+          cache-dependency-path: 'package.json'
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
+      - run: npm run build:electron
       - run: npx semantic-release
         env:
           HUSKY: 0
           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: find . -type f
