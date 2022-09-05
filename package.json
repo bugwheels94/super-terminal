@@ -126,7 +126,8 @@
 	"config": {
 		"forge": {
 			"packagerConfig": {
-				"name": "Super Terminal"
+				"name": "Super Terminal",
+				"executableName": "super-terminal"
 			},
 			"makers": [
 				{
