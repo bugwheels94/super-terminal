@@ -8,7 +8,7 @@
 	},
 	"license": "MIT",
 	"keywords": [],
-	"main": "dist/index.js",
+	"main": "main.js",
 	"bin": {
 		"super-terminal": "dist/index.js"
 	},
@@ -19,7 +19,11 @@
 		"test": "run-s build test:*",
 		"start:watch": "run-p build:watch nodemon-server",
 		"typeorm": "typeorm-ts-node-commonjs",
-		"prepare": "husky install"
+		"prepare": "husky install",
+		"start": "electron-forge start",
+		"package": "electron-forge package",
+		"make": "electron-forge make",
+		"make-dmg": "npx appdmg dmg.json \"Super Terminal.dmg\""
 	},
 	"engines": {
 		"node": ">=10"
@@ -32,11 +36,17 @@
 		"@babel/plugin-transform-runtime": "^7.18.0",
 		"@babel/preset-env": "^7.16.11",
 		"@babel/preset-typescript": "^7.16.7",
+		"@electron-forge/cli": "^6.0.0-beta.65",
+		"@electron-forge/maker-deb": "^6.0.0-beta.65",
+		"@electron-forge/maker-rpm": "^6.0.0-beta.65",
+		"@electron-forge/maker-squirrel": "^6.0.0-beta.65",
+		"@electron-forge/maker-zip": "^6.0.0-beta.65",
 		"@rollup/plugin-babel": "^5.3.1",
 		"@rollup/plugin-commonjs": "^22.0.0",
 		"@rollup/plugin-json": "^4.1.0",
 		"@rollup/plugin-node-resolve": "^13.2.1",
 		"@rollup/plugin-replace": "^4.0.0",
+		"@semantic-release/exec": "^6.0.3",
 		"@semantic-release/github": "^8.0.4",
 		"@semantic-release/npm": "^9.0.1",
 		"@types/js-yaml": "^4.0.5",
@@ -44,9 +54,11 @@
 		"@types/node": "^16.11.10",
 		"@types/sqlite3": "^3.1.8",
 		"@types/tcp-port-used": "^1.0.1",
+		"appdmg": "^0.6.4",
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
 		"define-lazy-prop": "^3.0.0",
+		"electron": "^17.4.11",
 		"fast-glob": "^3.2.11",
 		"husky": "^8.0.1",
 		"is-docker": "^3.0.0",
@@ -57,7 +69,7 @@
 		"nodemon": "^2.0.16",
 		"npm-run-all": "^4.1.5",
 		"reflect-metadata": "^0.1.13",
-		"restify-websocket": "^0.0.0-development",
+		"restify-websocket": "^1.2.0-beta.2",
 		"rollup": "^2.70.2",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
@@ -82,13 +94,14 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"node-pty": "^0.10.1",
-    "super-terminal-ui": "^1.0.0",
-		"tcp-port-used": "^1.0.2",
+		"electron-squirrel-startup": "^1.0.0",
 		"express": "^4.18.1",
+		"node-pty": "^0.10.1",
 		"sqlite3": "^4.0.3",
-		"ws": "^8.5.0",
-		"typeorm": "0.3.6"
+		"super-terminal-ui": "^1.1.0-beta.1",
+		"tcp-port-used": "^1.0.2",
+		"typeorm": "0.3.6",
+		"ws": "^8.5.0"
 	},
 	"prettier": {
 		"singleQuote": true,
@@ -110,5 +123,31 @@
 		"url": "https://github.com/super-terminal/super-terminal/issues"
 	},
 	"homepage": "https://github.com/super-terminal/super-terminal#readme",
-	"author": ""
+	"author": "bugwheels94",
+	"config": {
+		"forge": {
+			"packagerConfig": {
+				"name": "Super Terminal"
+			},
+			"makers": [
+				{
+					"name": "@electron-forge/maker-squirrel",
+					"config": {
+						"name": "super_terminal_app"
+					}
+				},
+				{
+					"name": "@electron-forge/maker-zip"
+				},
+				{
+					"name": "@electron-forge/maker-deb",
+					"config": {}
+				},
+				{
+					"name": "@electron-forge/maker-rpm",
+					"config": {}
+				}
+			]
+		}
+	}
 }

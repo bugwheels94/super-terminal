@@ -10,4 +10,5 @@ temp/
 dist/
 *.zip
 .DS_Store
-/electron/out
+/out
+*.dmg

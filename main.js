@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
-const { main } = require('super-terminal');
+const { main } = require('./dist/index');
 const createWindow = () => {
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
@@ -14,8 +14,8 @@ const createWindow = () => {
 	});
 
 	// and load the index.html of the app.
-	// mainWindow.loadURL('http://localhost:7001');
-	mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
+	mainWindow.loadURL('http://localhost:7001');
+	// mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
 
 	// Open the DevTools.
 	mainWindow.webContents.openDevTools();
@@ -29,14 +29,9 @@ const dockMenu = Menu.buildFromTemplate([
 	{
 		label: 'New Window',
 		click() {
-			console.log('New Window');
+			createWindow();
 		},
 	},
-	{
-		label: 'New Window with Settings',
-		submenu: [{ label: 'Basic' }, { label: 'Pro' }],
-	},
-	{ label: 'New Command...' },
 ]);
 
 app
@@ -64,12 +59,12 @@ app.on('window-all-closed', () => {
 });
 
 // use a fixed path, to ensure log shows outside Electron dist
-const logPath = `/Users/ankit.gautam/chutiya.log`;
-const logFile = fs.createWriteStream(logPath, { flags: 'w' });
-const logStdout = process.stdout;
+// const logPath = `/Users/ankit.gautam/chutiya.log`;
+// const logFile = fs.createWriteStream(logPath, { flags: 'w' });
+// const logStdout = process.stdout;
 
-console.log = function (...args) {
-	logFile.write(util.format.apply(null, args) + '\n');
-	logStdout.write(util.format.apply(null, args) + '\n');
-};
-console.error = console.log;
+// console.log = function (...args) {
+// 	logFile.write(util.format.apply(null, args) + '\n');
+// 	logStdout.write(util.format.apply(null, args) + '\n');
+// };
+// console.error = console.log;

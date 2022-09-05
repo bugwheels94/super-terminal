@@ -4,20 +4,23 @@
 		"@semantic-release/release-notes-generator",
 		"@semantic-release/npm",
 		[
+			"@semantic-release/exec",
+			{
+				"publishCmd": "npm run make && npm run make-dmg"
+			}
+		],
+		[
 			"@semantic-release/github",
 			{
 				"assets": [
 					{
-						"path": "dist.zip"
+						"path": "out/**/*.zip"
 					},
 					{
-						"path": "super-terminal-macos"
+						"path": "*.dmg"
 					},
 					{
-						"path": "super-terminal-linux"
-					},
-					{
-						"path": "super-terminal-win.exe"
+						"path": "out/**/*.exe"
 					}
 				]
 			}
