@@ -14,20 +14,22 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
   mac:
     name: release-mac
-    runs-on: macos-12
+    runs-on: macos-12/Users/ankit.gautam/pthing/packages/super-terminal-backend/.github/workflows
     steps:
       - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
+      - run: npm run build:electron:dmg
       - run: find out -type f
   ubuntu:
     name: release-ubuntu
