@@ -23,7 +23,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: windows-out
-          path: | 
+          path: |
             out/make/zip/**/*.zip
             out/make/squirrel.windows/**/*.exe
   mac:
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: mac-out
-          path: | 
+          path: |
             out/make/zip/**/*.zip
             *.dmg
   ubuntu:
@@ -56,12 +56,33 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ubuntu-out
-          path: | 
+          path: |
             out/make/zip/**/*.zip
             out/make/rpm/**/*.rpm
             out/make/deb/**/*.deb
-      # - run: npx semantic-release
-      #   env:
-      #     HUSKY: 0
-      #     NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  semantic-release:
+    name: semantic-release
+    runs-on: ubuntu-22.04
+    needs: [mac, ubuntu, windows]
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-out
+          path: windows-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-out
+          path: mac-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-out
+          path: ubuntu-out
+      - run: npx semantic-release
+        env:
+          HUSKY: 0
+          NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
