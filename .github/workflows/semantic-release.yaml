@@ -14,11 +14,6 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          cache: npm
-          node-version: 16
-          cache-dependency-path: 'package.json'
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
@@ -27,27 +22,16 @@ jobs:
     name: release-windows
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          cache: npm
-          node-version: 16
-          cache-dependency-path: 'package.json'
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: ls
       - run: npm i --legacy-peer-deps
       - run: npm run build:electron
+    needs: mac
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          cache: npm
-          node-version: 16
-          cache-dependency-path: 'package.json'
+      - run: ls
       - run: npm i --legacy-peer-deps
-      - run: npm run build
       - run: npm run build:electron
       - run: cd out && find . -type f
       - run: npx semantic-release
@@ -55,3 +39,4 @@ jobs:
           HUSKY: 0
           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    needs: [windows, mac]
