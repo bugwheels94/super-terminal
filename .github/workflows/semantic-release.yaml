@@ -9,23 +9,23 @@ name: Release
       - beta
       - '*.x'
 jobs:
-  windows:
-    name: release-windows
-    runs-on: windows-2019
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta
-      - run: mesh sync dependencies
-      - run: npm i --legacy-peer-deps
-      - run: npm run build
-      - run: npm run build:electron
-      - run: tree out /f | more
-      - uses: actions/upload-artifact@v3
-        with:
-          name: windows-out
-          path: |
-            out/make/zip/**/*.zip
-            out/make/squirrel.windows/**/*.exe
+  # windows:
+  #   name: release-windows
+  #   runs-on: windows-2019
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: npm i -g @lytejs/mesh@beta
+  #     - run: mesh sync dependencies
+  #     - run: npm i --legacy-peer-deps
+  #     - run: npm run build
+  #     - run: npm run build:electron
+  #     - run: tree out /f | more
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: windows-out
+  #         path: |
+  #           out/make/zip/**/*.zip
+  #           out/make/squirrel.windows/**/*.exe
   mac:
     name: release-mac
     runs-on: macos-12
@@ -63,7 +63,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, ubuntu, windows]
+    needs: [mac, ubuntu]
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
