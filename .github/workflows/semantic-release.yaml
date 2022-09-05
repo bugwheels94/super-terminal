@@ -23,7 +23,9 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: windows-out
-          path: out
+          path: | 
+            out/make/zip/**/*.zip
+            out/make/squirrel.windows/**/*.exe
   mac:
     name: release-mac
     runs-on: macos-12
@@ -38,7 +40,9 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: mac-out
-          path: out
+          path: | 
+            out/make/zip/**/*.zip
+            *.dmg
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
@@ -51,8 +55,11 @@ jobs:
       - run: find out -type f
       - uses: actions/upload-artifact@v3
         with:
-          name: linux-out
-          path: out
+          name: ubuntu-out
+          path: | 
+            out/make/zip/**/*.zip
+            out/make/rpm/**/*.rpm
+            out/make/deb/**/*.deb
       # - run: npx semantic-release
       #   env:
       #     HUSKY: 0
