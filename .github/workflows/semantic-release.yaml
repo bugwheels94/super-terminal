@@ -9,53 +9,38 @@ name: Release
       - beta
       - '*.x'
 jobs:
+  windows:
+    name: release-windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: find out -type f
   mac:
     name: release-mac
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
-      - run: ls
-      - run: pwd
-      # - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
-      # - run: npm i --legacy-peer-deps
-      # - run: npm run build
-      # - run: npm run build:electron
-      - uses: actions/cache@v3
-        with:
-          path: |
-            src
-          key: ${{ github.run_id }}
-  windows:
-    name: release-windows
-    runs-on: windows-2022
-    steps:
-      - run: ls
-      - uses: actions/cache@v3
-        with:
-          path: |
-            *
-          key: ${{ github.run_id }}
-      - run: ls
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
       - run: npm i --legacy-peer-deps
+      - run: npm run build
       - run: npm run build:electron
-    needs: mac
+      - run: find out -type f
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
     steps:
-      - run: ls
-      - uses: actions/cache@v3
-        with:
-          path: |
-            *
-          key: ${{ github.run_id }}
-      - run: ls
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
       - run: npm i --legacy-peer-deps
+      - run: npm run build
       - run: npm run build:electron
-      - run: cd out && find . -type f
-      - run: npx semantic-release
-        env:
-          HUSKY: 0
-          NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    needs: [mac]
+      - run: find out -type f
+      # - run: npx semantic-release
+      #   env:
+      #     HUSKY: 0
+      #     NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
