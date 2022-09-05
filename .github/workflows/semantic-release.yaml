@@ -28,4 +28,4 @@ jobs:
           HUSKY: 0
           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: find . -type f
+      - run: cd out && find . -type f
