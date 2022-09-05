@@ -46,7 +46,7 @@ jobs:
         with:
           path: |
             *
-          key: ${{ GITHUB_RUN_ID }}
+          key: ${{ env.GITHUB_RUN_ID }}
       - run: ls
       - run: npm i --legacy-peer-deps
       - run: npm run build:electron
