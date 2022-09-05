@@ -19,7 +19,7 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
-      - run: find out -type f
+      - run: tree out /f | more
   mac:
     name: release-mac
     runs-on: macos-12/Users/ankit.gautam/pthing/packages/super-terminal-backend/.github/workflows
