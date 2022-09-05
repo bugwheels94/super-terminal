@@ -6,7 +6,7 @@
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "npm run make && npm run make-dmg"
+				"publishCmd": "echo ${nextRelease.version} > .version_semantic_info_workaround"
 			}
 		],
 		[
