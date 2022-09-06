@@ -20,7 +20,7 @@
 			{
 				"assets": [
 					{
-						"path": "my-assets/*"
+						"path": "tmp-assets/*"
 					}
 				]
 			}
