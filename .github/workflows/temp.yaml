@@ -11,6 +11,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: tree out /f | more
       - run: npm i -g @lytejs/mesh@beta
+      - run: tree out /f | more
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
@@ -23,6 +24,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: tree out /f | more
       - run: npm i -g @lytejs/mesh@beta
+      - run: tree out /f | more
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
