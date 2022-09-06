@@ -9,3 +9,6 @@ temp/
 /super-terminal-*
 dist/
 *.zip
+.DS_Store
+/out
+*.dmg

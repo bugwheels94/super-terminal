@@ -9,21 +9,80 @@ name: Release
       - beta
       - '*.x'
 jobs:
-  release:
-    name: release
-    runs-on: macos-11
+  windows:
+    name: release-windows
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
-      # - uses: actions/setup-node@v2
-      #   with:
-      #     cache: npm
-      #     node-version: 16
-      #     cache-dependency-path: 'package.json'
-      - run: npm i -g @lytejs/mesh@alpha pkg && mesh sync dependencies
+      - run: npm i -g @lytejs/mesh@beta
+      - run: npm cache clean --force
+      - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
-      - run: pkg package.json
-      - run: mesh npm zip-npm-files
+      - run: npm run build:electron
+      - run: tree out /f | more
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-out
+          path: |
+            out/make/zip/**/*.zip
+            out/make/squirrel.windows/**/*.exe
+
+  mac:
+    name: release-mac
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: npm run build:electron:dmg
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-out
+          path: |
+            out/make/zip/**/*.zip
+            *.dmg
+  ubuntu:
+    name: release-ubuntu
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-out
+          path: |
+            out/make/zip/**/*.zip
+            out/make/rpm/**/*.rpm
+            out/make/deb/**/*.deb
+  semantic-release:
+    name: semantic-release
+    runs-on: ubuntu-22.04
+    needs: [mac, ubuntu, windows]
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-out
+          path: windows-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-out
+          path: mac-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-out
+          path: ubuntu-out
       - run: npx semantic-release
         env:
           HUSKY: 0

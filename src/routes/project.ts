@@ -28,11 +28,13 @@ const defaultTheme = {
 export const addProjectRoutes = (router: Router) => {
 	router.get('/projects', async (req, res) => {
 		const p = await ProjectRepository.find();
+		// No need to send to all tabs as this is general request
 		res.status(200).send(p);
 	});
-	router.post('/projects', async ({ body }, res) => {
+	router.put<{ projectSlug: string }>('/projects/:projectSlug', async ({ body, params }, res) => {
 		const project = new Project();
-		project.slug = body.slug;
+		project.slug = params.projectSlug;
+		project.fontSize = 14;
 		project.terminalTheme = defaultTheme;
 		try {
 			await AppDataSource.manager.save(project);
@@ -41,22 +43,31 @@ export const addProjectRoutes = (router: Router) => {
 				throw e;
 			}
 		}
-		res.status(200).send(
+		res.group.status(200).send(
 			await ProjectRepository.findOneOrFail({
 				where: {
-					slug: body.slug,
+					slug: params.projectSlug,
 				},
 			})
 		);
 	});
-	router.patch('/projects/:id', async (req, res) => {
-		const id = req.params.id as number;
+	router.delete('/projects/:projectSlug', async (req, res) => {
+		const slug = req.params.projectSlug as string;
+		await ProjectRepository.delete({
+			slug,
+		});
+		res.group.status(200);
+	});
+
+	router.patch<{ projectSlug: string }>('/projects/:projectSlug', async (req, res) => {
+		const slug = req.params.projectSlug as string;
 		const { fontSize, terminalTheme } = req.body;
-		const project = new Project();
-		project.id = id;
-		project.fontSize = fontSize;
-		project.terminalTheme = terminalTheme;
-		await ProjectRepository.update(id, { fontSize, terminalTheme });
-		res.status(200).send(await ProjectRepository.findOneOrFail({ where: { id } }));
+		await ProjectRepository.update(
+			{
+				slug,
+			},
+			{ fontSize, terminalTheme }
+		);
+		res.group.status(200).send(await ProjectRepository.findOneOrFail({ where: { slug } }));
 	});
 };
