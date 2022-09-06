@@ -28,7 +28,7 @@ jobs:
       - run: tree out /f | more
   windows-without-mesh:
     name: three
-    runs-on: windows-2022
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
       - run: npm i --legacy-peer-deps
@@ -39,7 +39,7 @@ jobs:
       - run: tree out /f | more
   windows-without-mesh-2019:
     name: four
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
       - run: npm i --legacy-peer-deps
@@ -59,7 +59,7 @@ jobs:
       - run: tree out /f | more
   plainest-2022:
     name: six
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
       - run: npm i --legacy-peer-deps
