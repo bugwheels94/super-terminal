@@ -37,7 +37,7 @@ export const addProjectRoutes = (router: Router) => {
 		project.fontSize = 14;
 		project.terminalTheme = defaultTheme;
 		try {
-			await AppDataSource.manager.save(project);
+			await AppDataSource.manager.save(project).catch((e) => console.log(e));
 		} catch (e) {
 			if (!(e instanceof QueryFailedError) || e.driverError.errno !== 19) {
 				throw e;

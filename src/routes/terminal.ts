@@ -43,7 +43,6 @@ export const addTerminalRoutes = (router: Router) => {
 	// });
 	router.put('/groups/:groupId', (req, res) => {
 		res.socket['groupId'] = req.params.groupId;
-		console.log('WOW');
 		res.clients.add(res.socket);
 	});
 	router.post<{ projectSlug: string }>('/projects/:projectSlug/terminals', async (req, res) => {
