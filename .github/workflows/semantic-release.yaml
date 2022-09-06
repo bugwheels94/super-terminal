@@ -11,11 +11,10 @@ name: Release
 jobs:
   windows:
     name: release-windows
-    runs-on: windows-2022
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta
-      - run: rd -r ~/Appdata/Local/node-gyp
       - run: npm cache clean --force
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
