@@ -11,7 +11,7 @@ name: Release
 jobs:
   windows:
     name: release-windows
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta
@@ -27,24 +27,6 @@ jobs:
           path: |
             out/make/zip/**/*.zip
             out/make/squirrel.windows/**/*.exe
-  windows-2022:
-    name: release-windows
-    runs-on: windows-2019
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta
-      - run: npm cache clean --force
-      - run: mesh sync dependencies
-      - run: npm i --legacy-peer-deps
-      - run: npm run build
-      - run: npm run build:electron
-      - run: tree out /f | more
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     name: windows-out
-      #     path: |
-      #       out/make/zip/**/*.zip
-      #       out/make/squirrel.windows/**/*.exe
 
   mac:
     name: release-mac
@@ -85,7 +67,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, ubuntu]
+    needs: [mac, ubuntu, windows]
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies

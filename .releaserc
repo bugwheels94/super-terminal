@@ -6,7 +6,7 @@
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "find mac-out -type f && find ubuntu-out -type f && ls"
+				"publishCmd": "find mac-out -type f && find ubuntu-out -type f && find windows-out -type f "
 			}
 		],
 		[
