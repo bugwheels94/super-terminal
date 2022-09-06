@@ -1,0 +1,68 @@
+name: Release
+'on':
+  push:
+    branches:
+      - bugwheels94/feature
+jobs:
+  windows:
+    name: one
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+  windows-2022:
+    name: two
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+  windows-without-mesh:
+    name: three
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i --legacy-peer-deps
+      - run: npm i super-terminal-ui@beta
+      - run: npm i -D restify-websocket@beta
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+  windows-without-mesh-2019:
+    name: four
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i --legacy-peer-deps
+      - run: npm i super-terminal-ui@beta
+      - run: npm i -D restify-websocket@beta
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+  plainest-2019:
+    name: five
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+  plainest-2022:
+    name: six
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
