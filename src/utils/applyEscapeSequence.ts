@@ -18,7 +18,6 @@ export function applyEscapeSequence(command: string) {
 		return false;
 	}
 	let position = 0;
-	console.log('!', JSON.stringify(currentCommand));
 	const splitByEol = currentCommand
 		.split(/\r|\n/g)
 		.filter((v) => v)
@@ -60,7 +59,6 @@ export function applyEscapeSequence(command: string) {
 		})
 		.filter((v) => v);
 	if (splitByEol.find((v) => v === '') !== undefined) {
-		console.log('UNKNOWN_COMMAND');
 		return 'UNKNOWN_COMMAND';
 	}
 	// const previous = sanitized.replace(/((\[\d+~)|(\x1B))/g, '');
@@ -76,6 +74,5 @@ export function applyEscapeSequence(command: string) {
 			appendToLastCommand = true;
 		}
 	}
-	console.log('FINAL', commands);
 	return commands;
 }
