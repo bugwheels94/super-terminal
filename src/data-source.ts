@@ -9,12 +9,11 @@ import { Terminal } from './entity/Terminal';
 import { TerminalLog } from './entity/TerminalLog';
 import { TerminalLogArchive } from './entity/TerminalLogArchive';
 import { TerminalSetting } from './entity/TerminalSetting';
-import 'sqlite3';
 import { TerminalCommand } from './entity/TerminalCommand';
 const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
 export const AppDataSource = new DataSource({
-	type: 'sqlite',
+	type: 'better-sqlite3',
 	database: path.join(targetDir, 'database.sqlite'),
 	synchronize: true,
 	logging: ['error'],

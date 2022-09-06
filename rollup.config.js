@@ -19,7 +19,7 @@ const bundlePackages = [
 	'is-docker',
 	'define-lazy-prop',
 ];
-const neverBundlePackages = ['node-pty', 'ws', 'sqlite3', 'tcp-port-used', 'express', 'typeorm'];
+const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
 const isProduction = !isDevelopment;
