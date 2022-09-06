@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta
       - run: npm cache clean --force
+      - run: rm -rf ~/.node_gyp
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
