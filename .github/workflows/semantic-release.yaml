@@ -31,7 +31,6 @@ jobs:
   mac:
     name: release-mac
     runs-on: macos-12
-    needs: windows
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
@@ -49,7 +48,6 @@ jobs:
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
-    needs: windows
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
