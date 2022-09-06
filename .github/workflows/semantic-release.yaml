@@ -1,88 +1,108 @@
-# name: Release
-# 'on':
-#   push:
-#     branches:
-#       - master
-#       - next
-#       - alpha
-#       - next-major
-#       - beta
-#       - '*.x'
-# jobs:
-#   # windows:
-#   #   name: release-windows
-#   #   runs-on: windows-2019
-#   #   steps:
-#   #     - uses: actions/checkout@v2
-#   #     - run: npm i -g @lytejs/mesh@beta
-#   #     - run: mesh sync dependencies
-#   #     - run: npm i --legacy-peer-deps
-#   #     - run: npm run build
-#   #     - run: npm run build:electron
-#   #     - run: tree out /f | more
-#   #     - uses: actions/upload-artifact@v3
-#   #       with:
-#   #         name: windows-out
-#   #         path: |
-#   #           out/make/zip/**/*.zip
-#   #           out/make/squirrel.windows/**/*.exe
-#   mac:
-#     name: release-mac
-#     runs-on: macos-12
-#     steps:
-#       - uses: actions/checkout@v2
-#       - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
-#       - run: npm i --legacy-peer-deps
-#       - run: npm run build
-#       - run: npm run build:electron
-#       - run: npm run build:electron:dmg
-#       - run: find out -type f
-#       - uses: actions/upload-artifact@v3
-#         with:
-#           name: mac-out
-#           path: |
-#             out/make/zip/**/*.zip
-#             *.dmg
-#   ubuntu:
-#     name: release-ubuntu
-#     runs-on: ubuntu-22.04
-#     steps:
-#       - uses: actions/checkout@v2
-#       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
-#       - run: npm i --legacy-peer-deps
-#       - run: npm run build
-#       - run: npm run build:electron
-#       - run: find out -type f
-#       - uses: actions/upload-artifact@v3
-#         with:
-#           name: ubuntu-out
-#           path: |
-#             out/make/zip/**/*.zip
-#             out/make/rpm/**/*.rpm
-#             out/make/deb/**/*.deb
-#   semantic-release:
-#     name: semantic-release
-#     runs-on: ubuntu-22.04
-#     needs: [mac, ubuntu]
-#     steps:
-#       - uses: actions/checkout@v2
-#       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
-#       - run: npm i --legacy-peer-deps
-#       - run: npm run build
-#       # - uses: actions/download-artifact@v3
-#       #   with:
-#       #     name: windows-out
-#       #     path: windows-out
-#       - uses: actions/download-artifact@v3
-#         with:
-#           name: mac-out
-#           path: mac-out
-#       - uses: actions/download-artifact@v3
-#         with:
-#           name: ubuntu-out
-#           path: ubuntu-out
-#       - run: npx semantic-release
-#         env:
-#           HUSKY: 0
-#           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: Release
+'on':
+  push:
+    branches:
+      - master
+      - next
+      - alpha
+      - next-major
+      - beta
+      - '*.x'
+jobs:
+  windows:
+    name: release-windows
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-out
+          path: |
+            out/make/zip/**/*.zip
+            out/make/squirrel.windows/**/*.exe
+  windows-2022:
+    name: release-windows
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: tree out /f | more
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     name: windows-out
+      #     path: |
+      #       out/make/zip/**/*.zip
+      #       out/make/squirrel.windows/**/*.exe
+
+  mac:
+    name: release-mac
+    runs-on: macos-12
+    needs: windows
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: npm run build:electron:dmg
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-out
+          path: |
+            out/make/zip/**/*.zip
+            *.dmg
+  ubuntu:
+    name: release-ubuntu
+    runs-on: ubuntu-22.04
+    needs: windows
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: npm run build:electron
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-out
+          path: |
+            out/make/zip/**/*.zip
+            out/make/rpm/**/*.rpm
+            out/make/deb/**/*.deb
+  semantic-release:
+    name: semantic-release
+    runs-on: ubuntu-22.04
+    needs: [mac, ubuntu]
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-out
+          path: windows-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-out
+          path: mac-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-out
+          path: ubuntu-out
+      - run: npx semantic-release
+        env:
+          HUSKY: 0
+          NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
