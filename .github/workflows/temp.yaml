@@ -2,7 +2,7 @@ name: Release
 'on':
   push:
     branches:
-      - bugwheels94/feature
+      - beta
 jobs:
   windows:
     name: one
