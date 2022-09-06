@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
-      - run: rd -r ~/Appdata/Local/node-gyp/Cache
       - run: npm i -g @lytejs/mesh@beta
+      - run: rd -r ~/Appdata/Local/node-gyp
       - run: npm cache clean --force
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
