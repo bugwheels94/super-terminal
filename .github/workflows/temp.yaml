@@ -9,6 +9,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i -g @lytejs/mesh@beta
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
@@ -20,6 +21,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i -g @lytejs/mesh@beta
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
@@ -31,6 +33,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i --legacy-peer-deps
       - run: npm i super-terminal-ui@beta
       - run: npm i -D restify-websocket@beta
@@ -42,6 +45,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i --legacy-peer-deps
       - run: npm i super-terminal-ui@beta
       - run: npm i -D restify-websocket@beta
@@ -53,6 +57,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -62,6 +67,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
+      - run: tree out /f | more
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
