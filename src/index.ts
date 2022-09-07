@@ -54,7 +54,8 @@ export function main() {
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
-		const p = require.resolve('super-terminal-ui').split('/dummy')[0];
+		const p = require.resolve('super-terminal-ui').split(/[/\\]dummy/)[0];
+		console.log(p);
 		app.use(express.static(p));
 		app.use('*', express.static(path.join(p, 'index.html')));
 	}
