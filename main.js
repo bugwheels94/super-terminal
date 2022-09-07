@@ -14,7 +14,7 @@ const createWindow = () => {
 	});
 
 	// and load the index.html of the app.
-	mainWindow.loadURL('http://localhost:7001');
+	mainWindow.loadURL('http://localhost:3879');
 	// mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
 	mainWindow.once('ready-to-show', () => {
 		mainWindow.maximize();
@@ -35,7 +35,7 @@ const dockMenu = Menu.buildFromTemplate([
 		},
 	},
 ]);
-
+main();
 app
 	.whenReady()
 	.then(() => {
