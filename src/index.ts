@@ -38,18 +38,19 @@ export const readJSONFile = (...fileName: string[]) => {
 function getConfig() {
 	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 	fs.mkdirSync(targetDir, { recursive: true });
+	const userConfig = readYAMLFile(targetDir, 'config') as typeof config;
 	const finalConfig = {
 		...config,
 		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
 	};
-	return finalConfig;
+	return { finalConfig, userConfig };
 }
 export function main() {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
 
-	const finalConfig = getConfig();
+	const { finalConfig, userConfig } = getConfig();
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
@@ -134,5 +135,3 @@ export function main() {
 		})
 		.catch((error) => console.log(error));
 }
-
-main();
