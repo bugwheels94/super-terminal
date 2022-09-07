@@ -26,6 +26,8 @@ const isProduction = !isDevelopment;
 const isPackageDependency = (pkg, path, importer = '') => {
 	return (
 		path.includes('node_modules/' + pkg) ||
+		path.includes('node_modules\\' + pkg) ||
+		(importer.includes('node_modules\\' + pkg) && path.startsWith('.')) ||
 		(importer.includes('node_modules/' + pkg) && path.startsWith('.')) ||
 		path === pkg
 	);

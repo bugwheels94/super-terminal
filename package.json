@@ -10,7 +10,7 @@
 	"keywords": [],
 	"main": "main.js",
 	"bin": {
-		"super-terminal": "dist/index.js"
+		"super-terminal": "dist/run-server.js"
 	},
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",
@@ -127,7 +127,8 @@
 		"forge": {
 			"packagerConfig": {
 				"name": "Super Terminal",
-				"executableName": "super-terminal"
+				"executableName": "super-terminal",
+				"icon": "super-terminal"
 			},
 			"makers": [
 				{
