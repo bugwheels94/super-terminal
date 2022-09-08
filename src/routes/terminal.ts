@@ -83,6 +83,7 @@ export const addTerminalRoutes = (router: Router) => {
 				createPtyTerminal({
 					terminal: terminalRecord,
 					res,
+					meta,
 				});
 			return;
 		}
@@ -193,7 +194,15 @@ export const addTerminalRoutes = (router: Router) => {
 		// null means dont send response
 	});
 };
-function createPtyTerminal({ terminal, res }: { terminal: Terminal; res: RouterResponse }) {
+function createPtyTerminal({
+	terminal,
+	res,
+	meta,
+}: {
+	terminal: Terminal;
+	res: RouterResponse;
+	meta?: { rows: number; cols: number };
+}) {
 	if (ptyProcesses[terminal.id]) return;
 	const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
@@ -208,8 +217,8 @@ function createPtyTerminal({ terminal, res }: { terminal: Terminal; res: RouterR
 	}
 	const ptyProcess = spawn(shell, [], {
 		name: 'xterm-color',
-		cols: 80,
-		rows: 30,
+		cols: meta?.cols || 80,
+		rows: meta?.rows || 30,
 		cwd: terminal.cwd || process.env.HOME,
 		env,
 	});

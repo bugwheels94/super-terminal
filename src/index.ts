@@ -45,7 +45,7 @@ function getConfig() {
 	};
 	return { finalConfig, userConfig };
 }
-export function main() {
+export function main(port?: number) {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
@@ -70,7 +70,7 @@ export function main() {
 	} else {
 		httpServer = http.createServer(app);
 	}
-	httpServer.listen(finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
+	httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
 		console.log('Running on Port', finalConfig.PORT);
 	});
 
