@@ -52,6 +52,8 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
       - run: npm i --legacy-peer-deps
+      - run: sudo apt -y install rpm
+      - run: npm i electron-installer-debian electron-installer-redhat
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
