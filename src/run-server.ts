@@ -1,2 +1,3 @@
 import { main } from './index';
-main();
+const PORT = process.env.PORT;
+main(Number(PORT || 0));

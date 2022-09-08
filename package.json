@@ -15,9 +15,9 @@
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",
 		"build:watch": "rollup -c -w --environment NODE_ENV:development",
-		"nodemon-server": "nodemon --watch 'dist/**/*' dist/index.js",
+		"start:nodemon": "PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
 		"test": "run-s build test:*",
-		"start:watch": "run-p build:watch nodemon-server",
+		"start:watch": "run-p build:watch start:nodemon",
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
 		"start:electron": "electron-forge start",
