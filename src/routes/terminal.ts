@@ -214,7 +214,7 @@ function createPtyTerminal({
 	} catch (e) {
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
-
+ 
 	const ptyProcess = spawn('/usr/bin/env', [shell], {
 		name: 'xterm-256color',
 		cols: meta?.cols || 80,
@@ -226,10 +226,16 @@ function createPtyTerminal({
 		process: ptyProcess,
 		currentCommand: '',
 	};
+	const encoder = new TextEncoder();
 	ptyProcess.onData((data) => {
+		console.log('raw', data, JSON.stringify(data));
+
 		res.groupedClients.post(`/terminals/${terminal.id}/terminal-data`, {
 			data: data,
 		});
+	});
+	ptyProcess.on('data', (data) => {
+		console.log('raw', data, JSON.stringify(data));
 	});
 	ptyProcesses[terminal.id] = ptyProcessObject;
 	let chunk = '';
