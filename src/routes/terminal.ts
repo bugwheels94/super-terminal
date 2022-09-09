@@ -214,18 +214,7 @@ function createPtyTerminal({
 	} catch (e) {
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
-	console.log({
-		name: 'xterm-256color',
-		cols: meta?.cols || 80,
-		rows: meta?.rows || 30,
-		cwd: terminal.cwd || process.env.HOME,
-		env: Object.assign(
-			{},
-			...Object.keys(env)
-				.filter((key: string) => env[key] !== undefined)
-				.map((key: string) => ({ [key]: env[key] }))
-		),
-	});
+ 
 	const ptyProcess = spawn('/usr/bin/env', [shell], {
 		name: 'xterm-256color',
 		cols: meta?.cols || 80,
