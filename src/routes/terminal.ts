@@ -9,14 +9,13 @@ import { Router, RouterResponse } from 'restify-websocket';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
 import yaml from 'js-yaml';
-import { IPty, spawn } from 'node-pty';
+import { spawn } from 'node-pty';
 import { throttle } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
 import { applyEscapeSequence } from '../utils/applyEscapeSequence';
 import { TerminalCommand } from '../entity/TerminalCommand';
-import { Raw } from 'typeorm';
-type ProcessObject = { process: IPty; currentCommand: string };
-const ptyProcesses: Record<number, ProcessObject> = {};
+import { ptyProcesses } from '../utils/pty';
+import { TextEncoder } from 'util';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -215,8 +214,20 @@ function createPtyTerminal({
 	} catch (e) {
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
-	const ptyProcess = spawn(shell, [], {
-		name: 'xterm-color',
+	console.log({
+		name: 'xterm-256color',
+		cols: meta?.cols || 80,
+		rows: meta?.rows || 30,
+		cwd: terminal.cwd || process.env.HOME,
+		env: Object.assign(
+			{},
+			...Object.keys(env)
+				.filter((key: string) => env[key] !== undefined)
+				.map((key: string) => ({ [key]: env[key] }))
+		),
+	});
+	const ptyProcess = spawn('/usr/bin/env', [shell], {
+		name: 'xterm-256color',
 		cols: meta?.cols || 80,
 		rows: meta?.rows || 30,
 		cwd: terminal.cwd || process.env.HOME,
@@ -226,10 +237,16 @@ function createPtyTerminal({
 		process: ptyProcess,
 		currentCommand: '',
 	};
+	const encoder = new TextEncoder();
 	ptyProcess.onData((data) => {
+		console.log('raw', data, JSON.stringify(data));
+
 		res.groupedClients.post(`/terminals/${terminal.id}/terminal-data`, {
-			data,
+			data: data,
 		});
+	});
+	ptyProcess.on('data', (data) => {
+		console.log('raw', data, JSON.stringify(data));
 	});
 	ptyProcesses[terminal.id] = ptyProcessObject;
 	let chunk = '';
