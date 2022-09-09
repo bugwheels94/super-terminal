@@ -40,7 +40,7 @@ const getRollupConfig =
 			output: {
 				file: path.join('./dist', input.replace('/src', '').replace(/\.(tsx|ts)/, '.js')),
 				format: 'cjs',
-				banner: input.endsWith('index.ts') ? '#!/usr/bin/env node' : undefined,
+				banner: input.endsWith('run-server.ts') ? '#!/usr/bin/env node' : undefined,
 			},
 			external(id, second = '') {
 				const sanitizedId = id.split('?')[0];

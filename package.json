@@ -17,6 +17,7 @@
 		"build:watch": "rollup -c -w --environment NODE_ENV:development",
 		"start:nodemon": "PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
 		"test": "run-s build test:*",
+		"start": "PORT=3878 node dist/run-server.js",
 		"start:watch": "run-p build:watch start:nodemon",
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
