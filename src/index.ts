@@ -10,6 +10,7 @@ import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
 import { addTerminalRoutes } from './routes/terminal';
+import { initShellHistory, shellHistory, updateShellHistoryInDB } from './utils/shellHistory';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
 
@@ -56,7 +57,6 @@ export function main(port?: number) {
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
 		const p = require.resolve('super-terminal-ui').split(/[/\\]dummy/)[0];
-		console.log(p);
 		app.use(express.static(p));
 		app.use('*', express.static(path.join(p, 'index.html')));
 	}
@@ -78,6 +78,12 @@ export function main(port?: number) {
 
 	AppDataSource.initialize()
 		.then(async () => {
+			initShellHistory();
+
+			setInterval(() => {
+				shellHistory();
+			}, 30 * 1000);
+
 			const restify = new RestifyWebSocket.Server({ noServer: true });
 			const { clients, router, server } = restify;
 			restify.addEventListener('connection', ({ client, socket }) => {
