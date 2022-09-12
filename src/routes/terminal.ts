@@ -1,21 +1,14 @@
-import {
-	AppDataSource,
-	ProjectRepository,
-	TerminalRepository,
-	TerminalLogRepository,
-	TerminalCommandRepository,
-} from '../data-source';
+import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
 import { Router, RouterResponse } from 'restify-websocket';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
 import yaml from 'js-yaml';
 import { spawn } from 'node-pty';
-import { throttle } from 'lodash';
+import { throttle, uniqBy } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
-import { applyEscapeSequence } from '../utils/applyEscapeSequence';
-import { TerminalCommand } from '../entity/TerminalCommand';
 import { ptyProcesses } from '../utils/pty';
 import { TextEncoder } from 'util';
+import { shellHistory } from '../utils/shellHistory';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -156,21 +149,6 @@ export const addTerminalRoutes = (router: Router) => {
 		const processObject = ptyProcesses[terminalId];
 		if (!processObject) console.error('Process not found with id', terminalId);
 		// console.log(/[^\\]\r/g.exec(processObject.currentCommand));
-		processObject.currentCommand += command;
-
-		const result = applyEscapeSequence(processObject.currentCommand);
-
-		if (result === 'UNKNOWN_COMMAND' || Array.isArray(result)) {
-			processObject.currentCommand = '';
-		}
-		if (Array.isArray(result)) {
-			result.forEach((command) => {
-				const terminalCommand = new TerminalCommand();
-				terminalCommand.terminalId = terminalId;
-				terminalCommand.command = command;
-				AppDataSource.manager.save(terminalCommand);
-			});
-		}
 
 		// console.log(processObject.currentCommand.split(/\r/g));
 		processObject.process.write(command);
@@ -180,16 +158,26 @@ export const addTerminalRoutes = (router: Router) => {
 	router.get('/terminals/:terminalId/terminal-commands/:query', async (req, res) => {
 		const terminalId = Number(req.params.terminalId);
 		const query = req.params.query as string;
-		const commands = await TerminalCommandRepository.createQueryBuilder('terminal_command')
-			.select('command')
-			.where('terminalId=:terminalId AND command LIKE :command', {
-				terminalId,
-				command: `%${query.toLocaleLowerCase()}%`,
-			})
-			.distinct()
-			// .distinctOn(['terminal_command.command'])
-			.execute();
-		res.send(commands);
+		const chunks = query
+			.trim()
+			.split(/[\s-.]/)
+			.filter((v) => v);
+		const finalQuery = chunks.map((v) => `"${v}"${v.match(/[^A-Za-z0-9]/) ? '' : ` OR ${v}*`}`).join(' OR ');
+		const result = (await AppDataSource.manager
+			.query(`SELECT * FROM terminal_history WHERE terminal_history MATCH ? ORDER BY rank LIMIT 10;`, [finalQuery])
+			.catch((e) => {
+				console.log('failed', e);
+			})) as { command: string }[];
+		res.send(uniqBy(result, 'command'));
+		// const commands = await TerminalCommandRepository.createQueryBuilder('terminal_command')
+		// 	.select('command')
+		// 	.where('command LIKE :command', {
+		// 		command: `%${query.toLocaleLowerCase()}%`,
+		// 	})
+		// 	.distinct()
+		// 	.orderBy('id', 'DESC')
+		// 	// .distinctOn(['terminal_command.command'])
+		// 	.execute();
 		// null means dont send response
 	});
 };
@@ -210,12 +198,13 @@ function createPtyTerminal({
 		const doc = yaml.load(terminal.startupEnvironmentVariables, {
 			schema: yaml.JSON_SCHEMA,
 		}) as Record<string, string>;
+
 		env = { ...(process.env as Record<string, string>), ...doc };
 	} catch (e) {
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
- 
-	const ptyProcess = spawn('/usr/bin/env', [shell], {
+
+	const ptyProcess = spawn(shell, [], {
 		name: 'xterm-256color',
 		cols: meta?.cols || 80,
 		rows: meta?.rows || 30,
@@ -228,14 +217,9 @@ function createPtyTerminal({
 	};
 	const encoder = new TextEncoder();
 	ptyProcess.onData((data) => {
-		console.log('raw', data, JSON.stringify(data));
-
 		res.groupedClients.post(`/terminals/${terminal.id}/terminal-data`, {
 			data: data,
 		});
-	});
-	ptyProcess.on('data', (data) => {
-		console.log('raw', data, JSON.stringify(data));
 	});
 	ptyProcesses[terminal.id] = ptyProcessObject;
 	let chunk = '';
