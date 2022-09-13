@@ -148,37 +148,23 @@ export const addTerminalRoutes = (router: Router) => {
 		};
 		const processObject = ptyProcesses[terminalId];
 		if (!processObject) console.error('Process not found with id', terminalId);
-		// console.log(/[^\\]\r/g.exec(processObject.currentCommand));
-
-		// console.log(processObject.currentCommand.split(/\r/g));
 		processObject.process.write(command);
 		// null means dont send response
 		res.status(null);
 	});
 	router.get('/terminals/:terminalId/terminal-commands/:query', async (req, res) => {
-		const terminalId = Number(req.params.terminalId);
 		const query = req.params.query as string;
 		const chunks = query
 			.trim()
 			.split(/[\s-.]/)
 			.filter((v) => v);
-		const finalQuery = chunks.map((v) => `"${v}"${v.match(/[^A-Za-z0-9]/) ? '' : ` OR ${v}*`}`).join(' OR ');
+		const finalQuery = chunks.map((v) => `"${v}"*`).join(' OR ');
 		const result = (await AppDataSource.manager
 			.query(`SELECT * FROM terminal_history WHERE terminal_history MATCH ? ORDER BY rank LIMIT 10;`, [finalQuery])
 			.catch((e) => {
 				console.log('failed', e);
 			})) as { command: string }[];
 		res.send(uniqBy(result, 'command'));
-		// const commands = await TerminalCommandRepository.createQueryBuilder('terminal_command')
-		// 	.select('command')
-		// 	.where('command LIKE :command', {
-		// 		command: `%${query.toLocaleLowerCase()}%`,
-		// 	})
-		// 	.distinct()
-		// 	.orderBy('id', 'DESC')
-		// 	// .distinctOn(['terminal_command.command'])
-		// 	.execute();
-		// null means dont send response
 	});
 };
 function createPtyTerminal({
