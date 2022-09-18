@@ -36,3 +36,4 @@ export function getConfig() {
 	};
 	return { finalConfig, userConfig };
 }
+export const isWindows = os.platform() === 'win32';

@@ -6,6 +6,7 @@ import { chunk, uniq } from 'lodash';
 import { AppDataSource, HistoryHashRepository } from '../data-source';
 import crypto from 'crypto';
 import { HistoryHash } from '../entity/HistoryHash';
+import { isWindows } from './config';
 const sha1 = (path: string) => {
 	const hash = crypto.createHash('sha1');
 	hash.update(path);
@@ -28,13 +29,19 @@ export function parseShellHistory(string: string) {
 }
 
 export function shellHistoryPath({ extraPaths = [] } = {}) {
+	const paths = new Set();
+	if (isWindows) {
+		const r = childProcess.spawnSync('powershell.exe', ['(Get-PSReadlineOption).HistorySavePath']);
+		// paths.add('stdout',stdout)
+		paths.add(r.stdout.toString().replace('\r\n', ''));
+	}
+	if (!isWindows) {
+		paths.add(path.join(homeDir, '.history'));
+		paths.add(path.join(homeDir, '.bash_history'));
+		paths.add(path.join(homeDir, '.zsh_history'));
+	}
 	const homeDir = os.homedir();
 
-	const paths = new Set([
-		path.join(homeDir, '.history'),
-		path.join(homeDir, '.bash_history'),
-		path.join(homeDir, '.zsh_history'),
-	]);
 	if (process.env.HISTFILE) {
 		paths.add(process.env.HISTFILE);
 	}
@@ -74,10 +81,6 @@ export async function shellHistory(options = {}) {
 				updateShellHistoryInDB(uniq(parseShellHistory(content)), result.id);
 			}
 		});
-	}
-	if (process.platform === 'win32') {
-		const { stdout } = childProcess.spawnSync('doskey', ['/history'], { encoding: 'utf8' });
-		return updateShellHistoryInDB(uniq(stdout.trim().split('\r\n')), -1);
 	}
 }
 export async function updateShellHistoryInDB(commands: string[], historyFileId: number) {

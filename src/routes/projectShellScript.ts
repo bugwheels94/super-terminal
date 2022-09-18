@@ -6,6 +6,7 @@ import { targetDir } from '../utils/config';
 import fs from 'fs';
 import os from 'os';
 import { ptyProcesses } from '../utils/pty';
+import { isWindows } from '../utils/config';
 type PatchShellScriptRequest = Partial<Omit<ShellScript, 'project' | 'terminal' | 'id' | 'createdAt'>>;
 export const addProjectSchellScriptRoutes = (router: Router) => {
 	router.post('/projects/:projectSlug/scripts', async (req, res) => {
@@ -17,7 +18,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		shellScript.project = project;
 		shellScript.script = req.body.script;
 		shellScript.parameters = req.body.parameters;
-		shellScript.name = req.body.name;
+		shellScript.name = 'untitled-script';
 		await AppDataSource.manager.save(shellScript);
 		res.group.status(200).send(shellScript);
 	});
@@ -41,10 +42,12 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		for (let parameter in parameters) {
 			content = content.replace(new RegExp(`_${parameter}_`, 'g'), parameters[parameter]);
 		}
-		const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
-		const scriptPath = path.join(targetDir, 'script-' + script.name.replace(' ', ''));
-		fs.writeFileSync(scriptPath, `#!${shell}\n${content}`);
-		ptyProcesses[terminalId].process.write(`${shell} ${scriptPath}\n`);
+		const shell = isWindows ? '' : (process.env.SHELL || 'bash') + ' ';
+		const scriptPath = path.join(targetDir, 'script-' + script.name.replace(' ', '') + (isWindows ? '.cmd' : ''));
+		const shebang = isWindows ? '' : `#!${shell}\n`;
+		fs.writeFileSync(scriptPath, `${shebang}${content}`);
+		const newLine = isWindows ? '\r\n' : '\n';
+		ptyProcesses[terminalId].process.write(`${shell}${scriptPath}${newLine}`);
 	});
 	router.patch('/projects/:projectSlug/scripts/:id', async (req, res) => {
 		const id = Number(req.params.id);
