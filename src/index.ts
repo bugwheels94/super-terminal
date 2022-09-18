@@ -1,50 +1,19 @@
-import { RestifyWebSocket } from 'restify-websocket';
+import express from 'express';
 import fs from 'fs';
 import http, { Server } from 'http';
 import https from 'https';
-import os from 'os';
 import path from 'path';
-import tcpPortUsed from 'tcp-port-used';
-import express from 'express';
-import config from './config.json';
+import { RestifyWebSocket } from 'restify-websocket';
 import { AppDataSource } from './data-source';
-import { addProjectRoutes } from './routes/project';
-import { addTerminalRoutes } from './routes/terminal';
 import { TerminalLog } from './entity/TerminalLog';
+import { addProjectRoutes } from './routes/project';
+import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
+import { addTerminalRoutes } from './routes/terminal';
+import { initShellHistory, shellHistory, updateShellHistoryInDB } from './utils/shellHistory';
+import { getConfig } from './utils/config';
+// import ON_DEATH from 'death'; //this is intentionally ugly
+// import { ptyProcesses } from './utils/pty';
 
-export const readYAMLFile = (...fileName: string[]) => {
-	const yaml = require('js-yaml');
-	const path = require('path');
-	const fs = require('fs');
-
-	try {
-		return yaml.load(fs.readFileSync(path.join(...fileName), 'utf8'), {
-			schema: yaml.JSON_SCHEMA,
-		});
-	} catch (e) {
-		return {};
-	}
-};
-export const readJSONFile = (...fileName: string[]) => {
-	const path = require('path');
-	const fs = require('fs');
-
-	try {
-		return JSON.parse(fs.readFileSync(path.join(...fileName), 'utf8'));
-	} catch (e) {
-		return {};
-	}
-};
-function getConfig() {
-	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
-	fs.mkdirSync(targetDir, { recursive: true });
-	const userConfig = readYAMLFile(targetDir, 'config') as typeof config;
-	const finalConfig = {
-		...config,
-		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
-	};
-	return { finalConfig, userConfig };
-}
 export function main(port?: number) {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
@@ -55,7 +24,6 @@ export function main(port?: number) {
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
 		const p = require.resolve('super-terminal-ui').split(/[/\\]dummy/)[0];
-		console.log(p);
 		app.use(express.static(p));
 		app.use('*', express.static(path.join(p, 'index.html')));
 	}
@@ -72,11 +40,17 @@ export function main(port?: number) {
 		httpServer = http.createServer(app);
 	}
 	httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
-		console.log('Running on Port', finalConfig.PORT);
+		console.log('Running on Port', port || finalConfig.PORT);
 	});
 
 	AppDataSource.initialize()
 		.then(async () => {
+			initShellHistory();
+
+			setInterval(() => {
+				shellHistory();
+			}, 30 * 1000);
+
 			const restify = new RestifyWebSocket.Server({ noServer: true });
 			const { clients, router, server } = restify;
 			restify.addEventListener('connection', ({ client, socket }) => {
@@ -102,7 +76,7 @@ export function main(port?: number) {
 
 			addProjectRoutes(router);
 			addTerminalRoutes(router);
-
+			addProjectSchellScriptRoutes(router);
 			async function cleanup() {
 				var date = new Date();
 				date.setDate(date.getDate() - 7);
@@ -135,4 +109,14 @@ export function main(port?: number) {
 			setInterval(cleanup, 24 * 60 * 60 * 1000);
 		})
 		.catch((error) => console.log(error));
+
+	// ON_DEATH((signal, err) => {
+	// 	Object.values(ptyProcesses).forEach(({ process: pty }) => {
+	// 		console.log('KILLING');
+	// 		// process.platform === 'win32' ? pty.kill() : pty.kill('SIGKILL');
+	// 	});
+	// 	process.exit();
+
+	// 	//clean up code here
+	// });
 }

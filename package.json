@@ -15,8 +15,9 @@
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",
 		"build:watch": "rollup -c -w --environment NODE_ENV:development",
-		"start:nodemon": "PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
+		"start:nodemon": "cross-env PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
 		"test": "run-s build test:*",
+		"start": "cross-env PORT=3878 node dist/run-server.js",
 		"start:watch": "run-p build:watch start:nodemon",
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
@@ -50,12 +51,13 @@
 		"@semantic-release/github": "^8.0.4",
 		"@semantic-release/npm": "^9.0.1",
 		"@types/js-yaml": "^4.0.5",
-		"@types/lodash": "^4.14.182",
+		"@types/lodash": "^4.14.185",
 		"@types/node": "^16.11.10",
 		"@types/sqlite3": "^3.1.8",
 		"@types/tcp-port-used": "^1.0.1",
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
+		"cross-env": "^7.0.3",
 		"define-lazy-prop": "^3.0.0",
 		"electron": "^17.4.11",
 		"fast-glob": "^3.2.11",
@@ -69,13 +71,12 @@
 		"npm-run-all": "^4.1.5",
 		"prettier": "^2.7.1",
 		"reflect-metadata": "^0.1.13",
-		"restify-websocket": "^1.2.0-beta.2",
+		"restify-websocket": "^1.0.0",
 		"rollup": "^2.70.2",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
-		"strip-ansi": "^7.0.1",
 		"ts-node": "10.7.0",
-		"typescript": "4.5.2"
+		"typescript": "^4.8.3"
 	},
 	"pkg": {
 		"assets": [
@@ -98,7 +99,7 @@
 		"electron-squirrel-startup": "^1.0.0",
 		"express": "^4.18.1",
 		"node-pty": "^0.10.1",
-		"super-terminal-ui": "^1.1.0-beta.1",
+		"super-terminal-ui": "^1.0.0",
 		"tcp-port-used": "^1.0.2",
 		"typeorm": "0.3.6",
 		"ws": "^8.5.0"
