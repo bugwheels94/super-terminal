@@ -16,16 +16,17 @@ Super Terminal is a terminal manager for super fast developers who dont like rep
 
 ## Features
 
-1. Restoration of terminal with logs after reboot
+1. **Restoration** of terminal with logs after reboot
 2. Fit Terminals on Screen with a single click
 3. Ability to run command at start while opening the project like `git config --user.name`
 4. Run project with one click
 5. Set Environment Variables once and never again
-6. Clone Terminal with same current directory, env variables
-7. Ability to keep related terminals together under 1 project within view.
+6. **Clone Terminal** with same current directory, env variables
+7. Ability to group related terminals together under 1 project within view.
 8. Themes can be applied: https://windowsterminalthemes.dev/
-9. Easily enter multiline commands like curl by double clicking on any temrinal
+9. Easily **enter multiline commands like curl** by double clicking on any temrinal
 10. Works with [oh my zsh](https://ohmyz.sh/)
+11. Save **frequent commands as shell scripts** and execute with a click.
 
 ## Upcoming Features
 

@@ -201,8 +201,8 @@ function createPtyTerminal({
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
 	let cwd = terminal.cwd;
-	const envVariableInCwd = cwd.match(/\$[A-Za-z0-9_]+/g);
-	if (envVariableInCwd?.length) {
+	if (cwd) {
+		const envVariableInCwd = cwd.match(/\$[A-Za-z0-9_]+/g);
 		cwd = envVariableInCwd?.reduce((acc, variable) => {
 			const variableWithout$ = variable.substring(1);
 			return cwd.replace(variable, process.env[variableWithout$] || '');
