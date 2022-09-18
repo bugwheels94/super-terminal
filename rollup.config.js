@@ -10,25 +10,19 @@ const extensions = ['.js', '.ts'];
 const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
-const bundlePackages = [
-	'restify-websocket',
-	'isomorphic-ws',
-	'strip-ansi',
-	'ansi-regex',
-	'is-wsl',
-	'is-docker',
-	'define-lazy-prop',
-];
+// Generally only put npm workspace packages here
+const bundlePackages = ['restify-websocket'];
 const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
 const isProduction = !isDevelopment;
 const isPackageDependency = (pkg, path, importer = '') => {
+	// Dont prefix with node_modules because it is only supposed to work in npm workspace
 	return (
-		path.includes('node_modules/' + pkg) ||
-		path.includes('node_modules\\' + pkg) ||
-		(importer.includes('node_modules\\' + pkg) && path.startsWith('.')) ||
-		(importer.includes('node_modules/' + pkg) && path.startsWith('.')) ||
+		path.includes('/' + pkg) ||
+		path.includes('\\' + pkg) ||
+		(importer.includes('\\' + pkg) && path.startsWith('.')) ||
+		(importer.includes('/' + pkg) && path.startsWith('.')) ||
 		path === pkg
 	);
 };
@@ -44,29 +38,29 @@ const getRollupConfig =
 			},
 			external(id, second = '') {
 				const sanitizedId = id.split('?')[0];
-				const isNodeModule = id.includes('node_modules');
-				const isLocalModule = id.startsWith('.') || (id.startsWith('/') && !isNodeModule);
+				const isNodeModule = id.includes('node_modules') || second.includes('node_modules');
+				const isLocalModule = id.startsWith('.');
 				if (id.endsWith('.json')) return false;
 				if (sanitizedId.endsWith(input.replace('./', '/'))) {
 					return false;
 				}
 				// No need to pass second because the entry will be stopped
 				if (neverBundlePackages.find((pkg) => isPackageDependency(pkg, id))) {
+					console.log(id, 'External');
 					return true;
 				}
 				if (bundlePackages.find((pkg) => isPackageDependency(pkg, id, second))) {
 					return false;
 				}
 				if (
-					!id.includes('node_modules') &&
-					!second.includes('node_modules') &&
+					!isNodeModule &&
 					bundleNpmWorkspacePackages.find((pkg) => id.includes('/' + pkg + '/') || second.includes('/' + pkg + '/'))
 				) {
 					return false;
 				}
 
 				if (isLocalModule) {
-					console.log(id, second);
+					console.log(id, second, ':Local');
 					return !shouldBundleLocalFilesTogether;
 				}
 				return false;

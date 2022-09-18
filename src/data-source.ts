@@ -10,6 +10,7 @@ import { TerminalLog } from './entity/TerminalLog';
 import { TerminalLogArchive } from './entity/TerminalLogArchive';
 import { TerminalSetting } from './entity/TerminalSetting';
 import { HistoryHash } from './entity/HistoryHash';
+import { ShellScript } from './entity/ShellScript';
 const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
 export const AppDataSource = new DataSource({
@@ -17,11 +18,12 @@ export const AppDataSource = new DataSource({
 	database: path.join(targetDir, 'database.sqlite'),
 	synchronize: true,
 	logging: ['error'],
-	entities: [Project, Terminal, TerminalSetting, TerminalLog, TerminalLogArchive, HistoryHash],
+	entities: [Project, Terminal, TerminalSetting, TerminalLog, TerminalLogArchive, HistoryHash, ShellScript],
 	migrations: [],
 	subscribers: [],
 });
 export const TerminalRepository = AppDataSource.getRepository(Terminal);
+export const ShellScriptRepository = AppDataSource.getRepository(ShellScript);
 export const TerminalLogRepository = AppDataSource.getRepository(TerminalLog);
 export const TerminalLogArchiveRepository = AppDataSource.getRepository(TerminalLogArchive);
 export const ProjectRepository = AppDataSource.getRepository(Project);

@@ -1,4 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { ShellScript } from './ShellScript';
 
 import { Terminal } from './Terminal';
 @Entity()
@@ -11,6 +12,9 @@ export class Project {
 
 	@OneToMany(() => Terminal, (terminal) => terminal.project, { cascade: true })
 	terminals: Terminal[];
+
+	@OneToMany(() => ShellScript, (ShellScript) => ShellScript.project, { cascade: true })
+	scripts: ShellScript[];
 
 	@Column({ nullable: true })
 	fontSize?: number;

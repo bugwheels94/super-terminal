@@ -1,4 +1,4 @@
-import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
+import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository } from '../data-source';
 import { Router } from 'restify-websocket';
 import { Project } from '../entity/Project';
 import { QueryFailedError } from 'typeorm';
@@ -26,6 +26,21 @@ const defaultTheme = {
 	cursorColor: '#eff0f1',
 };
 export const addProjectRoutes = (router: Router) => {
+	// Implement query parameters
+	router.delete('/logs-archive/:days', async (req, res) => {
+		const days = Number(req.params.days) || 7;
+		var date = new Date();
+		date.setDate(date.getDate() - days);
+		await TerminalLogArchiveRepository.createQueryBuilder()
+			.delete()
+			.where('createdAt < :date', {
+				date,
+			})
+			.execute();
+		await AppDataSource.manager.query('vacuum');
+		// No need to send to all tabs as this is general request
+	});
+
 	router.get('/projects', async (req, res) => {
 		const p = await ProjectRepository.find();
 		// No need to send to all tabs as this is general request
@@ -36,20 +51,30 @@ export const addProjectRoutes = (router: Router) => {
 		project.slug = params.projectSlug;
 		project.fontSize = 14;
 		project.terminalTheme = defaultTheme;
+		let projectRecord: Project;
 		try {
-			await AppDataSource.manager.save(project).catch((e) => console.log(e));
-		} catch (e) {
-			if (!(e instanceof QueryFailedError) || e.driverError.errno !== 19) {
-				throw e;
-			}
-		}
-		res.group.status(200).send(
-			await ProjectRepository.findOneOrFail({
+			projectRecord = await ProjectRepository.findOneOrFail({
 				where: {
 					slug: params.projectSlug,
 				},
-			})
-		);
+			});
+		} catch (e) {
+			await ProjectRepository.save(project);
+			projectRecord = await ProjectRepository.findOneOrFail({
+				where: {
+					slug: params.projectSlug,
+				},
+			});
+		}
+		// VERY SLOW Constraint failure code
+		// try {
+		// 	await ProjectRepository.save(project);
+		// } catch (e) {
+		// 	if (!(e instanceof QueryFailedError) || e.driverError.code !== 'SQLITE_CONSTRAINT_UNIQUE') {
+		// 		throw e;
+		// 	}
+		// }
+		res.group.status(200).send(projectRecord);
 	});
 	router.delete('/projects/:projectSlug', async (req, res) => {
 		const slug = req.params.projectSlug as string;

@@ -1,4 +1,10 @@
-import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
+import {
+	AppDataSource,
+	ProjectRepository,
+	TerminalRepository,
+	TerminalLogRepository,
+	ShellScriptRepository,
+} from '../data-source';
 import { Router, RouterResponse } from 'restify-websocket';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
@@ -8,7 +14,6 @@ import { throttle, uniqBy } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
 import { TextEncoder } from 'util';
-import { shellHistory } from '../utils/shellHistory';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -27,6 +32,7 @@ type PutTerminalRequest = {
 	startupCommands?: string;
 	startupEnvironmentVariables?: string;
 };
+
 export const addTerminalRoutes = (router: Router) => {
 	// socket.on('close', () => {
 	// 	Object.values(ptyProcesses).forEach((ptyProcess) => {
@@ -48,13 +54,18 @@ export const addTerminalRoutes = (router: Router) => {
 		createPtyTerminal({ terminal, res });
 		res.group.status(200).send(terminal);
 	});
+
 	router.post('/projects/:projectSlug/terminals/:id/copies', async (req, res) => {
 		const oldTerminal = await TerminalRepository.findOneOrFail({
 			where: {
-				id: req.params.id as number,
+				id: Number(req.params.id),
 			},
 		});
-		const insertResult = await TerminalRepository.insert({ ...oldTerminal, id: undefined });
+		const insertResult = await TerminalRepository.insert({
+			...oldTerminal,
+			id: undefined,
+			title: oldTerminal.title + '-clone',
+		});
 		const terminal = await TerminalRepository.findOneOrFail({
 			where: {
 				id: insertResult.raw,
@@ -65,7 +76,7 @@ export const addTerminalRoutes = (router: Router) => {
 	});
 	router.patch('/projects/:projectSlug/terminals/:id', async (req, res) => {
 		const { meta, restart, ...terminal } = req.body as PutTerminalRequest;
-		const id = req.params.id as number;
+		const id = Number(req.params.id);
 		if (restart) {
 			killPtyProcess(id);
 			const terminalRecord = await TerminalRepository.findOne({
@@ -108,7 +119,7 @@ export const addTerminalRoutes = (router: Router) => {
 		// null means dont send response
 	});
 	router.delete('/projects/:projectSlug/terminals/:id', async (req, res) => {
-		const id = req.params.id as number;
+		const id = Number(req.params.id);
 		killPtyProcess(id);
 		await TerminalRepository.delete(id);
 		res.group.status(200);
@@ -148,37 +159,23 @@ export const addTerminalRoutes = (router: Router) => {
 		};
 		const processObject = ptyProcesses[terminalId];
 		if (!processObject) console.error('Process not found with id', terminalId);
-		// console.log(/[^\\]\r/g.exec(processObject.currentCommand));
-
-		// console.log(processObject.currentCommand.split(/\r/g));
 		processObject.process.write(command);
 		// null means dont send response
 		res.status(null);
 	});
 	router.get('/terminals/:terminalId/terminal-commands/:query', async (req, res) => {
-		const terminalId = Number(req.params.terminalId);
 		const query = req.params.query as string;
 		const chunks = query
 			.trim()
 			.split(/[\s-.]/)
 			.filter((v) => v);
-		const finalQuery = chunks.map((v) => `"${v}"${v.match(/[^A-Za-z0-9]/) ? '' : ` OR ${v}*`}`).join(' OR ');
+		const finalQuery = chunks.map((v) => `"${v}"*`).join(' OR ');
 		const result = (await AppDataSource.manager
 			.query(`SELECT * FROM terminal_history WHERE terminal_history MATCH ? ORDER BY rank LIMIT 10;`, [finalQuery])
 			.catch((e) => {
 				console.log('failed', e);
 			})) as { command: string }[];
 		res.send(uniqBy(result, 'command'));
-		// const commands = await TerminalCommandRepository.createQueryBuilder('terminal_command')
-		// 	.select('command')
-		// 	.where('command LIKE :command', {
-		// 		command: `%${query.toLocaleLowerCase()}%`,
-		// 	})
-		// 	.distinct()
-		// 	.orderBy('id', 'DESC')
-		// 	// .distinctOn(['terminal_command.command'])
-		// 	.execute();
-		// null means dont send response
 	});
 };
 function createPtyTerminal({
@@ -203,19 +200,25 @@ function createPtyTerminal({
 	} catch (e) {
 		throw new Error('Invalid YAML for startup Environment Variables');
 	}
-
+	let cwd = terminal.cwd;
+	const envVariableInCwd = cwd.match(/\$[A-Za-z0-9_]+/g);
+	if (envVariableInCwd?.length) {
+		cwd = envVariableInCwd?.reduce((acc, variable) => {
+			const variableWithout$ = variable.substring(1);
+			return cwd.replace(variable, process.env[variableWithout$] || '');
+		}, '');
+	}
 	const ptyProcess = spawn(shell, [], {
 		name: 'xterm-256color',
 		cols: meta?.cols || 80,
 		rows: meta?.rows || 30,
-		cwd: terminal.cwd || process.env.HOME,
+		cwd: cwd || process.env.HOME,
 		env,
 	});
 	const ptyProcessObject = {
 		process: ptyProcess,
 		currentCommand: '',
 	};
-	const encoder = new TextEncoder();
 	ptyProcess.onData((data) => {
 		res.groupedClients.post(`/terminals/${terminal.id}/terminal-data`, {
 			data: data,
