@@ -2,51 +2,18 @@ import express from 'express';
 import fs from 'fs';
 import http, { Server } from 'http';
 import https from 'https';
-import os from 'os';
 import path from 'path';
 import { RestifyWebSocket } from 'restify-websocket';
-import config from './config.json';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
+import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
 import { addTerminalRoutes } from './routes/terminal';
 import { initShellHistory, shellHistory, updateShellHistoryInDB } from './utils/shellHistory';
+import { getConfig } from './utils/config';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
 
-export const readYAMLFile = (...fileName: string[]) => {
-	const yaml = require('js-yaml');
-	const path = require('path');
-	const fs = require('fs');
-
-	try {
-		return yaml.load(fs.readFileSync(path.join(...fileName), 'utf8'), {
-			schema: yaml.JSON_SCHEMA,
-		});
-	} catch (e) {
-		return {};
-	}
-};
-export const readJSONFile = (...fileName: string[]) => {
-	const path = require('path');
-	const fs = require('fs');
-
-	try {
-		return JSON.parse(fs.readFileSync(path.join(...fileName), 'utf8'));
-	} catch (e) {
-		return {};
-	}
-};
-function getConfig() {
-	const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
-	fs.mkdirSync(targetDir, { recursive: true });
-	const userConfig = readYAMLFile(targetDir, 'config') as typeof config;
-	const finalConfig = {
-		...config,
-		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
-	};
-	return { finalConfig, userConfig };
-}
 export function main(port?: number) {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
@@ -109,7 +76,7 @@ export function main(port?: number) {
 
 			addProjectRoutes(router);
 			addTerminalRoutes(router);
-
+			addProjectSchellScriptRoutes(router);
 			async function cleanup() {
 				var date = new Date();
 				date.setDate(date.getDate() - 7);
