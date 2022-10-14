@@ -10,6 +10,11 @@ export class Project {
 	@Column({ unique: true })
 	slug: string;
 
+	@Column({
+		default: 'automatic',
+	})
+	terminalLayout: 'automatic' | 'manual';
+
 	@OneToMany(() => Terminal, (terminal) => terminal.project, { cascade: true })
 	terminals: Terminal[];
 

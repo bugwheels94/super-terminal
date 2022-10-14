@@ -1,7 +1,7 @@
-import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository } from '../data-source';
+import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
 import { Router } from 'restify-websocket';
 import { Project } from '../entity/Project';
-import { QueryFailedError } from 'typeorm';
+import { getNewFullSizeTerminal } from './terminal';
 const defaultTheme = {
 	name: 'Breeze',
 	black: '#31363b',
@@ -46,25 +46,34 @@ export const addProjectRoutes = (router: Router) => {
 		// No need to send to all tabs as this is general request
 		res.status(200).send(p);
 	});
-	router.put<{ projectSlug: string }>('/projects/:projectSlug', async ({ body, params }, res) => {
+	router.put('/projects/:projectSlug/:id?', async ({ body, params }, res) => {
 		const project = new Project();
-		project.slug = params.projectSlug;
+		const query: Record<string, string | number> = {};
+		const id = Number(params.id);
+		const slug = params.projectSlug;
+		if (id) {
+			project.id = id;
+			query.id = id;
+		} else {
+			project.slug = slug;
+			query.slug = slug;
+		}
 		project.fontSize = 14;
 		project.terminalTheme = defaultTheme;
 		let projectRecord: Project;
 		try {
 			projectRecord = await ProjectRepository.findOneOrFail({
-				where: {
-					slug: params.projectSlug,
-				},
+				where: query,
 			});
 		} catch (e) {
 			await ProjectRepository.save(project);
+
 			projectRecord = await ProjectRepository.findOneOrFail({
-				where: {
-					slug: params.projectSlug,
-				},
+				where: query,
 			});
+			const terminal = getNewFullSizeTerminal();
+			terminal.project = projectRecord;
+			await TerminalRepository.save(terminal);
 		}
 		// VERY SLOW Constraint failure code
 		// try {
@@ -74,25 +83,17 @@ export const addProjectRoutes = (router: Router) => {
 		// 		throw e;
 		// 	}
 		// }
-		res.group.status(200).send(projectRecord);
+		res.send(projectRecord);
 	});
-	router.delete('/projects/:projectSlug', async (req, res) => {
-		const slug = req.params.projectSlug as string;
-		await ProjectRepository.delete({
-			slug,
-		});
+	router.delete('/projects/:id', async (req, res) => {
+		const id = Number(req.params.id);
+		await ProjectRepository.delete(id);
 		res.group.status(200);
 	});
 
-	router.patch<{ projectSlug: string }>('/projects/:projectSlug', async (req, res) => {
-		const slug = req.params.projectSlug as string;
-		const { fontSize, terminalTheme } = req.body;
-		await ProjectRepository.update(
-			{
-				slug,
-			},
-			{ fontSize, terminalTheme }
-		);
-		res.group.status(200).send(await ProjectRepository.findOneOrFail({ where: { slug } }));
+	router.patch('/projects/:id', async (req, res) => {
+		const id = Number(req.params.id);
+		await ProjectRepository.update(id, req.body || {});
+		res.group.status(200).send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});
 };

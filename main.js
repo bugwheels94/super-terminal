@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const util = require('util');
 const { main } = require('./dist/index');
-const createWindow = () => {
+const createWindow = (url) => {
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
 		width: 800,
@@ -14,7 +14,7 @@ const createWindow = () => {
 	});
 
 	// and load the index.html of the app.
-	mainWindow.loadURL('http://localhost:3879');
+	mainWindow.loadURL(url || 'http://localhost:3879');
 	// mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
 	mainWindow.once('ready-to-show', () => {
 		mainWindow.maximize();
@@ -31,7 +31,7 @@ const dockMenu = Menu.buildFromTemplate([
 	{
 		label: 'New Window',
 		click() {
-			createWindow();
+			createWindow('http://localhost:3879#/new');
 		},
 	},
 ]);

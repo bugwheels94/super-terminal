@@ -4,15 +4,14 @@ import { AppDataSource, ProjectRepository, ShellScriptRepository } from '../data
 import { ShellScript } from '../entity/ShellScript';
 import { targetDir } from '../utils/config';
 import fs from 'fs';
-import os from 'os';
 import { ptyProcesses } from '../utils/pty';
 import { isWindows } from '../utils/config';
 type PatchShellScriptRequest = Partial<Omit<ShellScript, 'project' | 'terminal' | 'id' | 'createdAt'>>;
 export const addProjectSchellScriptRoutes = (router: Router) => {
-	router.post('/projects/:projectSlug/scripts', async (req, res) => {
-		const { projectSlug } = req.params;
+	router.post('/projects/:id/scripts', async (req, res) => {
+		const id = Number(req.params.id);
 		const project = await ProjectRepository.findOneOrFail({
-			where: { slug: projectSlug },
+			where: { id },
 		});
 		const shellScript = new ShellScript();
 		shellScript.project = project;
@@ -22,8 +21,8 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		await AppDataSource.manager.save(shellScript);
 		res.group.status(200).send(shellScript);
 	});
-	router.post('/projects/:projectSlug/scripts/:scriptId/copies', async (req, res) => {
-		const projectSlug = req.params.projectSlug;
+	router.post('/projects/:id/scripts/:scriptId/copies', async (req, res) => {
+		const id = Number(req.params.id);
 		const scriptId = Number(req.params.scriptId);
 		const script = await ShellScriptRepository.findOneOrFail({ where: { id: scriptId } });
 		// @ts-ignore
@@ -49,24 +48,23 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		const newLine = isWindows ? '\r\n' : '\n';
 		ptyProcesses[terminalId].process.write(`${shell}${scriptPath}${newLine}`);
 	});
-	router.patch('/projects/:projectSlug/scripts/:id', async (req, res) => {
+	router.patch('/projects/:id/scripts/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		const shellScript = req.body as PatchShellScriptRequest;
 		await ShellScriptRepository.update(id, shellScript);
 		res.group.status(200).send(await ShellScriptRepository.findOneOrFail({ where: { id } }));
 	});
-	router.get('/projects/:projectSlug/scripts', async (req, res) => {
-		const { id, projectSlug } = req.params;
+	router.get('/projects/:id/scripts', async (req, res) => {
+		const id = Number(req.params.id);
 		const data = await ShellScriptRepository.createQueryBuilder('shell_script')
 			.select()
-			.leftJoin('shell_script.project', 'project')
-			.where('project.slug = :slug', { slug: projectSlug })
+			.where('projectId = :id', { id })
 			.orWhere('projectId is NULL')
 			.getMany();
 		res.group.status(200).send(data);
 	});
-	router.delete('/projects/:projectSlug/scripts/:id', async (req, res) => {
-		const id = Number(req.params.id);
+	router.delete('/projects/:id/scripts/:scriptId', async (req, res) => {
+		const id = Number(req.params.scriptId);
 		await ShellScriptRepository.delete(id);
 		res.group.status(200);
 	});
