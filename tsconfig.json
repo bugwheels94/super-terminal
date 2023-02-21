@@ -13,8 +13,7 @@
 		"strict": true,
 		"forceConsistentCasingInFileNames": true,
 		"noFallthroughCasesInSwitch": true,
-		"module": "ES2020",
-		"moduleResolution": "node",
+		"moduleResolution": "node16",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"strictPropertyInitialization": false

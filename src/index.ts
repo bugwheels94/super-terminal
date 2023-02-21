@@ -3,7 +3,8 @@ import fs from 'fs';
 import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
-import { RestifyWebSocket } from 'restify-websocket';
+import { WebSocket } from 'ws';
+import { RestifyWebSocketServer } from 'restify-websocket/server';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
@@ -51,10 +52,11 @@ export function main(port?: number) {
 				shellHistory();
 			}, 30 * 1000);
 
-			const restify = new RestifyWebSocket.Server({ noServer: true });
-			const { clients, router, server } = restify;
-			restify.addEventListener('connection', ({ client, socket }) => {
-				socket.send(JSON.stringify({ put: '/fresh-connection' }));
+			const restify = new RestifyWebSocketServer({ noServer: true });
+			const { router, rawWebSocketServer } = restify;
+			restify.addEventListener('connection', ({ socket }) => {
+				socket.project = socket.socket.groups[0];
+				socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
 			});
 			httpServer.on('upgrade', function upgrade(request, socket, head) {
 				// This function is not defined on purpose. Implement it with your own logic.
@@ -65,10 +67,9 @@ export function main(port?: number) {
 				// 		return;
 				// 	}
 
-				server.handleUpgrade(request, socket, head, function done(ws) {
-					// @ts-ignore
-					ws['groupId'] = request.url;
-					server.emit('connection', ws, request);
+				rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
+					ws.groups = [request.url];
+					restify.emit('connection', ws, request);
 				});
 				// });
 			});
