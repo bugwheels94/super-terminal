@@ -57,8 +57,8 @@ export const addTerminalRoutes = (router: Router) => {
 	// 	});
 	// });
 	router.put('/groups/:groupId', (req, res) => {
-		res.socket['groupId'] = req.params.groupId;
-		res.clients.add(res.socket);
+		console.log('Joining GROUP', req.params.groupId);
+		res.joinGroup(req.params.groupId);
 	});
 	router.post('/projects/:id/terminals', async (req, res) => {
 		const id = Number(req.params.id);
@@ -69,14 +69,15 @@ export const addTerminalRoutes = (router: Router) => {
 		terminal.project = project;
 
 		await TerminalRepository.save(terminal);
-		createPtyTerminal({ terminal, res });
-		res.group(res.socket.project).status(200).send(terminal);
+		createPtyTerminal({ terminal, res, projectId: id });
+		res.group(id.toString()).status(200).send(terminal);
 	});
 
 	router.post('/projects/:projectId/terminals/:id/copies', async (req, res) => {
+		const projectId = Number(req.params.id);
 		const oldTerminal = await TerminalRepository.findOneOrFail({
 			where: {
-				id: Number(req.params.id),
+				id: projectId,
 			},
 		});
 		const terminal = await TerminalRepository.save({
@@ -85,13 +86,13 @@ export const addTerminalRoutes = (router: Router) => {
 			id: undefined,
 			title: oldTerminal.title + '-clone',
 		});
-		createPtyTerminal({ terminal, res });
-		res.group(res.socket.project).status(200).send(terminal);
+		createPtyTerminal({ terminal, res, projectId });
+		res.group(projectId.toString()).status(200).send(terminal);
 	});
 	router.patch('/projects/:projectId/terminals/:id', async (req, res) => {
 		const { meta, restart, ...terminal } = req.body as PutTerminalRequest;
-		console.log(req.params, req.body, req.url);
 		const id = Number(req.params.id);
+		const projectId = Number(req.params.projectId);
 		if (restart) {
 			killPtyProcess(id);
 			const terminalRecord = await TerminalRepository.findOne({
@@ -102,11 +103,12 @@ export const addTerminalRoutes = (router: Router) => {
 					terminal: terminalRecord,
 					res,
 					meta,
+					projectId,
 				});
 			return;
 		}
 		if (meta) {
-			const processObject = ptyProcesses[id];
+			const processObject = ptyProcesses.get(id);
 			if (!processObject) console.error('Process not found with id', id);
 			else processObject.process.resize(meta.cols, meta.rows);
 		}
@@ -123,7 +125,7 @@ export const addTerminalRoutes = (router: Router) => {
 			await TerminalRepository.update(id, terminal);
 		}
 		res
-			.group(res.socket.project)
+			.group(projectId.toString())
 			.status(200)
 			.send(
 				await TerminalRepository.findOneOrFail({
@@ -137,10 +139,11 @@ export const addTerminalRoutes = (router: Router) => {
 	});
 	router.delete('/projects/:projectId/terminals/:id', async (req, res) => {
 		const id = Number(req.params.id);
+		const projectId = Number(req.params.projectId);
 
 		killPtyProcess(id);
 		await TerminalRepository.delete(id);
-		res.group(res.socket.project).status(200);
+		res.group(projectId.toString()).status(200);
 	});
 	router.get('/projects/:projectId/terminals', async (req, res) => {
 		const id = Number(req.params.projectId);
@@ -166,17 +169,18 @@ export const addTerminalRoutes = (router: Router) => {
 			})
 		);
 		project.terminals.forEach((terminal) => {
-			createPtyTerminal({ terminal, res });
+			createPtyTerminal({ terminal, res, projectId: id });
 		});
 
 		res.status(200).send(data);
 	});
 	router.post('/terminal-command', async (req, res) => {
+		console.log('received command');
 		const { terminalId, command } = req.body as {
 			terminalId: number;
 			command: string;
 		};
-		const processObject = ptyProcesses[terminalId];
+		const processObject = ptyProcesses.get(terminalId);
 		if (!processObject) return console.error('Process not found with id', terminalId);
 		processObject.process.write(command);
 		// null means dont send response
@@ -200,12 +204,14 @@ function createPtyTerminal({
 	terminal,
 	res,
 	meta,
+	projectId,
 }: {
 	terminal: Terminal;
 	res: RouterResponse;
 	meta?: { rows: number; cols: number };
+	projectId: number;
 }) {
-	if (ptyProcesses[terminal.id]) return;
+	if (ptyProcesses.get(terminal.id)) return;
 	const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
@@ -239,9 +245,10 @@ function createPtyTerminal({
 		currentCommand: '',
 	};
 	ptyProcess.onData((data) => {
-		res.group(res.socket.project).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
+		console.log(projectId, 'sending to browser');
+		res.group(projectId.toString()).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
 	});
-	ptyProcesses[terminal.id] = ptyProcessObject;
+	ptyProcesses.set(terminal.id, ptyProcessObject);
 	let chunk = '';
 	const saveChunk = throttle(() => {
 		const terminalLog = new TerminalLog();
@@ -261,9 +268,9 @@ function createPtyTerminal({
 	}
 }
 function killPtyProcess(terminalId: number) {
-	const ptyProcess = ptyProcesses[terminalId];
+	const ptyProcess = ptyProcesses.get(terminalId);
 	if (ptyProcess) {
 		ptyProcess.process.kill();
 	}
-	delete ptyProcesses[terminalId];
+	ptyProcesses.delete(terminalId);
 }

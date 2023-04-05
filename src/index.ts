@@ -4,7 +4,7 @@ import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
 import { WebSocket } from 'ws';
-import { RestifyWebSocketServer } from 'restify-websocket/server';
+import { RestifyWebSocketServer, RedisMessageStore, RedisStore } from 'restify-websocket/server';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
@@ -40,9 +40,6 @@ export function main(port?: number) {
 	} else {
 		httpServer = http.createServer(app);
 	}
-	httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
-		console.log('Running on Port', port || finalConfig.PORT);
-	});
 
 	AppDataSource.initialize()
 		.then(async () => {
@@ -52,62 +49,73 @@ export function main(port?: number) {
 				shellHistory();
 			}, 30 * 1000);
 
-			const restify = new RestifyWebSocketServer({ noServer: true });
-			const { router, rawWebSocketServer } = restify;
-			restify.addEventListener('connection', ({ socket }) => {
-				socket.project = socket.socket.groups[0];
-				socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
+			const restify = new RestifyWebSocketServer({
+				noServer: true,
+				messageStore: new RedisMessageStore('redis://localhost:6379'),
+				distributedStore: new RedisStore('redis://localhost:6379'),
 			});
-			httpServer.on('upgrade', function upgrade(request, socket, head) {
-				// This function is not defined on purpose. Implement it with your own logic.
-				// authenticate(request, function next(err, client) {
-				// 	if (err || !client) {
-				// 		socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-				// 		socket.destroy();
-				// 		return;
-				// 	}
-
-				rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
-					ws.groups = [request.url];
-					restify.emit('connection', ws, request);
+			console.log('attaching ready listener');
+			restify.on('ready', () => {
+				console.log('WOW');
+				httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
+					console.log('Running on Port', port || finalConfig.PORT);
 				});
-				// });
-			});
-			// whatever comes to below route should be passed to pty process
 
-			addProjectRoutes(router);
-			addTerminalRoutes(router);
-			addProjectSchellScriptRoutes(router);
-			async function cleanup() {
-				var date = new Date();
-				date.setDate(date.getDate() - 7);
-				const [selectQuery, params] = AppDataSource.manager
-					.createQueryBuilder()
-					.select(['terminalId', 'log', 'createdAt'])
-					.from(TerminalLog, 'terminal_log')
-					.where('createdAt < :date', {
-						date,
-					})
-					.getQueryAndParameters();
-				await AppDataSource.manager.query(
-					`
-			  INSERT INTO terminal_log_archive(terminalId, log, createdAt)
-			  ${selectQuery}
-			  `,
-					params
-				);
-				await AppDataSource.manager
-					.createQueryBuilder()
-					.delete()
-					.from(TerminalLog)
-					.where('createdAt < :date', {
-						date,
-					})
-					.execute();
-				// AppDataSource.manager.query(`vacuum`);
-			}
-			cleanup();
-			setInterval(cleanup, 24 * 60 * 60 * 1000);
+				const { router, rawWebSocketServer } = restify;
+				// restify.addEventListener('connection', ({ socket }) => {
+				// 	socket.project = socket.socket.groups[0];
+				// 	socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
+				// });
+				httpServer.on('upgrade', function upgrade(request, socket, head) {
+					// This function is not defined on purpose. Implement it with your own logic.
+					// authenticate(request, function next(err, client) {
+					// 	if (err || !client) {
+					// 		socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+					// 		socket.destroy();
+					// 		return;
+					// 	}
+
+					rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
+						restify.emit('connection', ws, request);
+					});
+					// });
+				});
+				// whatever comes to below route should be passed to pty process
+
+				addProjectRoutes(router);
+				addTerminalRoutes(router);
+				addProjectSchellScriptRoutes(router);
+				async function cleanup() {
+					var date = new Date();
+					date.setDate(date.getDate() - 7);
+					const [selectQuery, params] = AppDataSource.manager
+						.createQueryBuilder()
+						.select(['terminalId', 'log', 'createdAt'])
+						.from(TerminalLog, 'terminal_log')
+						.where('createdAt < :date', {
+							date,
+						})
+						.getQueryAndParameters();
+					await AppDataSource.manager.query(
+						`
+					INSERT INTO terminal_log_archive(terminalId, log, createdAt)
+					${selectQuery}
+					`,
+						params
+					);
+					await AppDataSource.manager
+						.createQueryBuilder()
+						.delete()
+						.from(TerminalLog)
+						.where('createdAt < :date', {
+							date,
+						})
+						.execute();
+					// AppDataSource.manager.query(`vacuum`);
+				}
+				cleanup();
+				setInterval(cleanup, 24 * 60 * 60 * 1000);
+			});
 		})
 		.catch((error) => console.log(error));
 

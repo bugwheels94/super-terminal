@@ -2,7 +2,7 @@ import { IPty } from 'node-pty';
 
 export type ProcessObject = { process: IPty; currentCommand: string };
 import type { IPtyForkOptions } from 'node-pty';
-export const ptyProcesses: Record<number, ProcessObject> = {};
+export const ptyProcesses: Map<number, ProcessObject> = new Map();
 
 export const ptyOptions: IPtyForkOptions = {
 	name: 'xterm-256color',

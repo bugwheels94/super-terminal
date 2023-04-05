@@ -14,6 +14,8 @@
 	},
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",
+		"build:types": "tsc --project ./tsconfig.json",
+
 		"build:watch": "rollup -c -w --environment NODE_ENV:development",
 		"start:nodemon": "cross-env PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
 		"test": "run-s build test:*",
@@ -22,6 +24,7 @@
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
 		"start:electron": "electron-forge start",
+		
 		"package": "electron-forge package",
 		"build:electron": "electron-forge make",
 		"build:electron:dmg": "npx appdmg dmg.json \"Super Terminal.dmg\""
