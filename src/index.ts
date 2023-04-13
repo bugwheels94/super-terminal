@@ -4,13 +4,13 @@ import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
 import { WebSocket } from 'ws';
-import { RestifyWebSocketServer, RedisMessageStore, RedisStore } from 'restify-websocket/server';
+import { RestifyWebSocketServer, InMemoryMessageDistributor } from 'restify-websocket/server';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
 import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
 import { addTerminalRoutes } from './routes/terminal';
-import { initShellHistory, shellHistory, updateShellHistoryInDB } from './utils/shellHistory';
+import { initShellHistory, shellHistory } from './utils/shellHistory';
 import { getConfig } from './utils/config';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
@@ -20,7 +20,7 @@ export function main(port?: number) {
 
 	const app = express();
 
-	const { finalConfig, userConfig } = getConfig();
+	const { finalConfig } = getConfig();
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
@@ -51,12 +51,10 @@ export function main(port?: number) {
 
 			const restify = new RestifyWebSocketServer({
 				noServer: true,
-				messageStore: new RedisMessageStore('redis://localhost:6379'),
-				distributedStore: new RedisStore('redis://localhost:6379'),
+
+				distributor: new InMemoryMessageDistributor(),
 			});
-			console.log('attaching ready listener');
 			restify.on('ready', () => {
-				console.log('WOW');
 				httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
 					console.log('Running on Port', port || finalConfig.PORT);
 				});

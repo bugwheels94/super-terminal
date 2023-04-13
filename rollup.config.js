@@ -19,10 +19,10 @@ const isProduction = !isDevelopment;
 const isPackageDependency = (pkg, path, importer = '') => {
 	// Dont prefix with node_modules because it is only supposed to work in npm workspace
 	return (
-		path.includes('/' + pkg) ||
-		path.includes('\\' + pkg) ||
-		(importer.includes('\\' + pkg) && path.startsWith('.')) ||
-		(importer.includes('/' + pkg) && path.startsWith('.')) ||
+		path.includes('/' + pkg + '/') ||
+		path.includes('\\' + pkg + '\\') ||
+		(importer.includes('\\' + pkg + '\\') && path.startsWith('.')) ||
+		(importer.includes('/' + pkg + '/') && path.startsWith('.')) ||
 		path === pkg
 	);
 };

@@ -88,14 +88,14 @@ export const addProjectRoutes = (router: Router) => {
 	router.delete('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.delete(id);
-		res.group(res.socket.project).status(200);
+		res.group(id.toString()).status(200);
 	});
 
 	router.patch('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.update(id, req.body || {});
 		res
-			.group(res.socket.project)
+			.group(id.toString())
 			.status(200)
 			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});

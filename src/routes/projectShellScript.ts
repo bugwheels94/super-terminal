@@ -19,7 +19,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		shellScript.parameters = req.body.parameters;
 		shellScript.name = 'untitled-script';
 		await AppDataSource.manager.save(shellScript);
-		res.group(res.socket.project).status(200).send(shellScript);
+		res.group(id.toString()).status(200).send(shellScript);
 	});
 	router.post('/projects/:id/scripts/:scriptId/copies', async (req, res) => {
 		const id = Number(req.params.id);
@@ -30,7 +30,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		delete script.project;
 		script.name = script.name + '-clone';
 		await ShellScriptRepository.save(script);
-		res.group(res.socket.project).status(200).send(script);
+		res.group(id.toString()).status(200).send(script);
 	});
 	router.post('/terminals/:terminalId/scripts/:scriptId/executions', async (req, res) => {
 		const scriptId = Number(req.params.scriptId);
@@ -48,12 +48,13 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		const newLine = isWindows ? '\r\n' : '\n';
 		ptyProcesses[terminalId].process.write(`${shell}${scriptPath}${newLine}`);
 	});
-	router.patch('/projects/:id/scripts/:id', async (req, res) => {
-		const id = Number(req.params.id);
+	router.patch('/projects/:id/scripts/:scriptId', async (req, res) => {
+		const id = Number(req.params.scriptId);
+		const projectId = Number(req.params.id);
 		const shellScript = req.body as PatchShellScriptRequest;
 		await ShellScriptRepository.update(id, shellScript);
 		res
-			.group(res.socket.project)
+			.group(projectId.toString())
 			.status(200)
 			.send(await ShellScriptRepository.findOneOrFail({ where: { id } }));
 	});
@@ -64,11 +65,12 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 			.where('projectId = :id', { id })
 			.orWhere('projectId is NULL')
 			.getMany();
-		res.group(res.socket.project).status(200).send(data);
+		res.status(200).send(data);
 	});
 	router.delete('/projects/:id/scripts/:scriptId', async (req, res) => {
 		const id = Number(req.params.scriptId);
+		const projectId = Number(req.params.id);
 		await ShellScriptRepository.delete(id);
-		res.group(res.socket.project).status(200);
+		res.group(projectId.toString()).status(200).send();
 	});
 };

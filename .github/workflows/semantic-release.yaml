@@ -15,6 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g @lytejs/mesh@beta
+      - run: cd ui
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: cd ..
+
       - run: npm cache clean --force
       - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
@@ -33,7 +39,13 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
+      - run: npm i -g @lytejs/mesh@beta appdmg
+      - run: cd ui
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: cd ..
+      - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -50,7 +62,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: npm i -g @lytejs/mesh@beta
+      - run: cd ui
+      - run: mesh sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm run build
+      - run: cd ..
+      - run: mesh sync dependencies
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
       - run: npm i electron-installer-debian electron-installer-redhat

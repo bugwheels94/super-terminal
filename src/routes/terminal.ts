@@ -1,10 +1,4 @@
-import {
-	AppDataSource,
-	ProjectRepository,
-	TerminalRepository,
-	TerminalLogRepository,
-	ShellScriptRepository,
-} from '../data-source';
+import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
 import { Router, RouterResponse } from 'restify-websocket/server';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
@@ -13,7 +7,6 @@ import { spawn } from 'node-pty';
 import { throttle, uniqBy } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
-import { TextEncoder } from 'util';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -57,7 +50,6 @@ export const addTerminalRoutes = (router: Router) => {
 	// 	});
 	// });
 	router.put('/groups/:groupId', (req, res) => {
-		console.log('Joining GROUP', req.params.groupId);
 		res.joinGroup(req.params.groupId);
 	});
 	router.post('/projects/:id/terminals', async (req, res) => {
@@ -143,7 +135,7 @@ export const addTerminalRoutes = (router: Router) => {
 
 		killPtyProcess(id);
 		await TerminalRepository.delete(id);
-		res.group(projectId.toString()).status(200);
+		res.group(projectId.toString()).status(200).send();
 	});
 	router.get('/projects/:projectId/terminals', async (req, res) => {
 		const id = Number(req.params.projectId);
@@ -154,7 +146,6 @@ export const addTerminalRoutes = (router: Router) => {
 		});
 		const data = await Promise.all(
 			project.terminals.map(async (terminal) => {
-				const time = new Date();
 				const logs = await TerminalLogRepository.find({
 					where: {
 						terminalId: terminal.id,
@@ -245,7 +236,6 @@ function createPtyTerminal({
 		currentCommand: '',
 	};
 	ptyProcess.onData((data) => {
-		console.log(projectId, 'sending to browser');
 		res.group(projectId.toString()).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
 	});
 	ptyProcesses.set(terminal.id, ptyProcessObject);
