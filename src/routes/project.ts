@@ -1,5 +1,5 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
-import { Router } from 'restify-websocket';
+import { Router } from 'restify-websocket/server';
 import { Project } from '../entity/Project';
 import { getNewFullSizeTerminal } from './terminal';
 const defaultTheme = {
@@ -88,12 +88,15 @@ export const addProjectRoutes = (router: Router) => {
 	router.delete('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.delete(id);
-		res.group.status(200);
+		res.group(id.toString()).status(200);
 	});
 
 	router.patch('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.update(id, req.body || {});
-		res.group.status(200).send(await ProjectRepository.findOneOrFail({ where: { id } }));
+		res
+			.group(id.toString())
+			.status(200)
+			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});
 };

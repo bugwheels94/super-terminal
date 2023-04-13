@@ -1,0 +1,10 @@
+.App {
+	text-align: center;
+	flex-grow: 1;
+	position: relative;
+}
+.ant-row.ant-form-item-row {
+	border: solid 1px #efefef;
+	border-radius: 1rem;
+	padding: 1rem;
+}

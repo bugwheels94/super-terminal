@@ -1,11 +1,5 @@
-import {
-	AppDataSource,
-	ProjectRepository,
-	TerminalRepository,
-	TerminalLogRepository,
-	ShellScriptRepository,
-} from '../data-source';
-import { Router, RouterResponse } from 'restify-websocket';
+import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
+import { Router, RouterResponse } from 'restify-websocket/server';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
 import yaml from 'js-yaml';
@@ -13,7 +7,6 @@ import { spawn } from 'node-pty';
 import { throttle, uniqBy } from 'lodash';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
-import { TextEncoder } from 'util';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -57,8 +50,7 @@ export const addTerminalRoutes = (router: Router) => {
 	// 	});
 	// });
 	router.put('/groups/:groupId', (req, res) => {
-		res.socket['groupId'] = req.params.groupId;
-		res.clients.add(res.socket);
+		res.joinGroup(req.params.groupId);
 	});
 	router.post('/projects/:id/terminals', async (req, res) => {
 		const id = Number(req.params.id);
@@ -69,14 +61,15 @@ export const addTerminalRoutes = (router: Router) => {
 		terminal.project = project;
 
 		await TerminalRepository.save(terminal);
-		createPtyTerminal({ terminal, res });
-		res.group.status(200).send(terminal);
+		createPtyTerminal({ terminal, res, projectId: id });
+		res.group(id.toString()).status(200).send(terminal);
 	});
 
 	router.post('/projects/:projectId/terminals/:id/copies', async (req, res) => {
+		const projectId = Number(req.params.id);
 		const oldTerminal = await TerminalRepository.findOneOrFail({
 			where: {
-				id: Number(req.params.id),
+				id: projectId,
 			},
 		});
 		const terminal = await TerminalRepository.save({
@@ -85,12 +78,13 @@ export const addTerminalRoutes = (router: Router) => {
 			id: undefined,
 			title: oldTerminal.title + '-clone',
 		});
-		createPtyTerminal({ terminal, res });
-		res.group.status(200).send(terminal);
+		createPtyTerminal({ terminal, res, projectId });
+		res.group(projectId.toString()).status(200).send(terminal);
 	});
 	router.patch('/projects/:projectId/terminals/:id', async (req, res) => {
 		const { meta, restart, ...terminal } = req.body as PutTerminalRequest;
 		const id = Number(req.params.id);
+		const projectId = Number(req.params.projectId);
 		if (restart) {
 			killPtyProcess(id);
 			const terminalRecord = await TerminalRepository.findOne({
@@ -101,14 +95,14 @@ export const addTerminalRoutes = (router: Router) => {
 					terminal: terminalRecord,
 					res,
 					meta,
+					projectId,
 				});
 			return;
 		}
 		if (meta) {
-			const processObject = ptyProcesses[id];
+			const processObject = ptyProcesses.get(id);
 			if (!processObject) console.error('Process not found with id', id);
-
-			processObject.process.resize(meta.cols, meta.rows);
+			else processObject.process.resize(meta.cols, meta.rows);
 		}
 		if (terminal.startupEnvironmentVariables) {
 			try {
@@ -122,22 +116,26 @@ export const addTerminalRoutes = (router: Router) => {
 		if (Object.keys(terminal).length) {
 			await TerminalRepository.update(id, terminal);
 		}
-		res.group.status(200).send(
-			await TerminalRepository.findOneOrFail({
-				where: {
-					id,
-				},
-			})
-		);
+		res
+			.group(projectId.toString())
+			.status(200)
+			.send(
+				await TerminalRepository.findOneOrFail({
+					where: {
+						id,
+					},
+				})
+			);
 
 		// null means dont send response
 	});
 	router.delete('/projects/:projectId/terminals/:id', async (req, res) => {
 		const id = Number(req.params.id);
+		const projectId = Number(req.params.projectId);
 
 		killPtyProcess(id);
 		await TerminalRepository.delete(id);
-		res.group.status(200);
+		res.group(projectId.toString()).status(200).send();
 	});
 	router.get('/projects/:projectId/terminals', async (req, res) => {
 		const id = Number(req.params.projectId);
@@ -148,7 +146,6 @@ export const addTerminalRoutes = (router: Router) => {
 		});
 		const data = await Promise.all(
 			project.terminals.map(async (terminal) => {
-				const time = new Date();
 				const logs = await TerminalLogRepository.find({
 					where: {
 						terminalId: terminal.id,
@@ -163,21 +160,21 @@ export const addTerminalRoutes = (router: Router) => {
 			})
 		);
 		project.terminals.forEach((terminal) => {
-			createPtyTerminal({ terminal, res });
+			createPtyTerminal({ terminal, res, projectId: id });
 		});
 
 		res.status(200).send(data);
 	});
 	router.post('/terminal-command', async (req, res) => {
+		console.log('received command');
 		const { terminalId, command } = req.body as {
 			terminalId: number;
 			command: string;
 		};
-		const processObject = ptyProcesses[terminalId];
-		if (!processObject) console.error('Process not found with id', terminalId);
+		const processObject = ptyProcesses.get(terminalId);
+		if (!processObject) return console.error('Process not found with id', terminalId);
 		processObject.process.write(command);
 		// null means dont send response
-		res.status(null);
 	});
 	router.get('/terminals/:terminalId/terminal-commands/:query', async (req, res) => {
 		const query = req.params.query as string;
@@ -198,12 +195,14 @@ function createPtyTerminal({
 	terminal,
 	res,
 	meta,
+	projectId,
 }: {
 	terminal: Terminal;
 	res: RouterResponse;
 	meta?: { rows: number; cols: number };
+	projectId: number;
 }) {
-	if (ptyProcesses[terminal.id]) return;
+	if (ptyProcesses.get(terminal.id)) return;
 	const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
@@ -237,11 +236,9 @@ function createPtyTerminal({
 		currentCommand: '',
 	};
 	ptyProcess.onData((data) => {
-		res.groupedClients.post(`/terminals/${terminal.id}/terminal-data`, {
-			data: data,
-		});
+		res.group(projectId.toString()).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
 	});
-	ptyProcesses[terminal.id] = ptyProcessObject;
+	ptyProcesses.set(terminal.id, ptyProcessObject);
 	let chunk = '';
 	const saveChunk = throttle(() => {
 		const terminalLog = new TerminalLog();
@@ -261,9 +258,9 @@ function createPtyTerminal({
 	}
 }
 function killPtyProcess(terminalId: number) {
-	const ptyProcess = ptyProcesses[terminalId];
+	const ptyProcess = ptyProcesses.get(terminalId);
 	if (ptyProcess) {
 		ptyProcess.process.kill();
 	}
-	delete ptyProcesses[terminalId];
+	ptyProcesses.delete(terminalId);
 }

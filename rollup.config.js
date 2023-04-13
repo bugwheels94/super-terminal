@@ -12,17 +12,17 @@ const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
 // Generally only put npm workspace packages here
 const bundlePackages = ['restify-websocket'];
-const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm'];
+const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm', 'redis'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
 const isProduction = !isDevelopment;
 const isPackageDependency = (pkg, path, importer = '') => {
 	// Dont prefix with node_modules because it is only supposed to work in npm workspace
 	return (
-		path.includes('/' + pkg) ||
-		path.includes('\\' + pkg) ||
-		(importer.includes('\\' + pkg) && path.startsWith('.')) ||
-		(importer.includes('/' + pkg) && path.startsWith('.')) ||
+		path.includes('/' + pkg + '/') ||
+		path.includes('\\' + pkg + '\\') ||
+		(importer.includes('\\' + pkg + '\\') && path.startsWith('.')) ||
+		(importer.includes('/' + pkg + '/') && path.startsWith('.')) ||
 		path === pkg
 	);
 };
