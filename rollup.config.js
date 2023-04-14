@@ -11,7 +11,7 @@ const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
 // Generally only put npm workspace packages here
-const bundlePackages = [];
+const bundlePackages = ['restify-websocket/server', 'restify-websocket'];
 const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm', 'redis'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
@@ -50,6 +50,8 @@ const getRollupConfig =
 					return true;
 				}
 				if (bundlePackages.find((pkg) => isPackageDependency(pkg, id, second))) {
+					console.log(id, second, ':Internal');
+
 					return false;
 				}
 				if (
@@ -74,6 +76,7 @@ const getRollupConfig =
 				json(),
 				resolve({
 					extensions,
+					exportConditions: ['node'],
 				}),
 				commonjs(),
 				babel({
