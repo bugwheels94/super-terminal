@@ -11,7 +11,7 @@ const babelIncludes = ['./src/**/*'];
 const configs = globby.sync(['./src/**', '!./src/**.json']);
 const bundleNpmWorkspacePackages = ['ws'];
 // Generally only put npm workspace packages here
-const bundlePackages = ['restify-websocket'];
+const bundlePackages = [];
 const neverBundlePackages = ['node-pty', 'ws', 'better-sqlite3', 'tcp-port-used', 'express', 'typeorm', 'redis'];
 const shouldBundleLocalFilesTogether = false;
 const isDevelopment = !!process.env.ROLLUP_WATCH;
