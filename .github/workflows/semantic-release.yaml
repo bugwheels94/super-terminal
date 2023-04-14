@@ -95,7 +95,7 @@ jobs:
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
-      - run: npm i electron-installer-debian electron-installer-redhat
+      - run: npm i -g electron-installer-debian electron-installer-redhat
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
