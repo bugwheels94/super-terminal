@@ -4,7 +4,7 @@ import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
 import { WebSocket } from 'ws';
-import { RestifyWebSocketServer, InMemoryMessageDistributor } from 'restify-websocket/server';
+const { RestifyWebSocketServer, InMemoryMessageDistributor } = require('restify-websocket/server');
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
