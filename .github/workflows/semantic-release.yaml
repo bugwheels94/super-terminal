@@ -30,6 +30,7 @@ jobs:
 
   windows:
     name: release-windows
+    needs: [ui]
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
@@ -54,6 +55,7 @@ jobs:
 
   mac:
     name: release-mac
+    needs: [ui]
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
@@ -78,6 +80,7 @@ jobs:
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
+    needs: [ui]
     steps:
       - uses: actions/checkout@v2
       - run: rm -rf ui
@@ -103,7 +106,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, ubuntu, windows]
+    needs: [mac, ubuntu, windows, ui]
     steps:
       - uses: actions/checkout@v2
       - run: rm -rf ui
