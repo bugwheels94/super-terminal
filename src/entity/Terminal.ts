@@ -25,6 +25,9 @@ export class Terminal {
 	height: number;
 
 	@Column({ nullable: true })
+	shell: string;
+
+	@Column({ nullable: true })
 	width: number;
 
 	@Column({ nullable: true })

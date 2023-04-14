@@ -21,7 +21,7 @@ type PutTerminalRequest = {
 	x?: number;
 	y?: number;
 	mainCommand?: string;
-
+	shell?: string;
 	startupCommands?: string;
 	startupEnvironmentVariables?: string;
 };
@@ -41,7 +41,7 @@ export function getNewHalfSizeTerminal() {
 		width: 50,
 		x: 25,
 		y: 25,
-	};
+	} as Terminal;
 }
 export const addTerminalRoutes = (router: Router) => {
 	// socket.on('close', () => {
@@ -203,7 +203,9 @@ function createPtyTerminal({
 	projectId: number;
 }) {
 	if (ptyProcesses.get(terminal.id)) return;
-	const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
+	const shell = terminal.shell
+		? terminal.shell
+		: process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
 	try {

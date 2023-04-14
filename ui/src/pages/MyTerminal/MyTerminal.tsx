@@ -289,7 +289,7 @@ export const MyTerminal = ({
 							minRows: 4,
 							maxRows: 25,
 						}}
-						placeholder="input here"
+						placeholder="Easily enter multiline commands here"
 						className="custom"
 						style={{ height: 50 }}
 						onKeyDown={(e) => {
@@ -364,6 +364,9 @@ export const MyTerminal = ({
 						name="cwd"
 					>
 						<Input placeholder="Current Working Directory" />
+					</Form.Item>
+					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Shell Location" name="shell">
+						<Input placeholder="/usr/bin/bash" />
 					</Form.Item>
 					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Main Command" name="mainCommand">
 						<Input placeholder="like 'npm run start'" />
