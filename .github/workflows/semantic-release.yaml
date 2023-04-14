@@ -9,20 +9,38 @@ name: Release
       - beta
       - '*.x'
 jobs:
+  ui:
+    name: build-ui
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh -c sync dependencies
+        working-directory: ./ui
+      - run: npm i --legacy-peer-deps
+        working-directory: ./ui
+      - run: npm run build
+        working-directory: ./ui
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ui
+          path: |
+            ui
+            !ui/node_modules
+
   windows:
     name: release-windows
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
+      - run: rmdir ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
       - run: npm i -g @lytejs/mesh@beta
-      - run: cd ui
-      - run: mesh sync dependencies
-      - run: npm i --legacy-peer-deps
-      - run: npm run build
-      - run: cd ..
-
       - run: npm cache clean --force
-      - run: mesh sync dependencies
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -39,13 +57,13 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v2
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
       - run: npm i -g @lytejs/mesh@beta appdmg
-      - run: cd ui
-      - run: mesh sync dependencies
-      - run: npm i --legacy-peer-deps
-      - run: npm run build
-      - run: cd ..
-      - run: mesh sync dependencies
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -62,13 +80,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
       - run: npm i -g @lytejs/mesh@beta
-      - run: cd ui
-      - run: mesh sync dependencies
-      - run: npm i --legacy-peer-deps
-      - run: npm run build
-      - run: cd ..
-      - run: mesh sync dependencies
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
       - run: npm i electron-installer-debian electron-installer-redhat
@@ -88,7 +106,12 @@ jobs:
     needs: [mac, ubuntu, windows]
     steps:
       - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: npm i -g @lytejs/mesh@beta && mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - uses: actions/download-artifact@v3
