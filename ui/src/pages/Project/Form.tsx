@@ -1,6 +1,5 @@
 import { Drawer, Input, Slider, Select, Button, Form } from 'antd';
-import { project } from 'ramda';
-import { PatchProjectRequest, PostProjectRequest, Project, usePatchProject } from '../../services/project';
+import { PatchProjectRequest, PostProjectRequest, Project } from '../../services/project';
 import { useMemo } from 'react';
 const rules = [
 	{
