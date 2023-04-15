@@ -42,7 +42,7 @@ export const useGetProjectScripts = (projectId: number) => {
 				});
 				return await d;
 			} catch (e) {
-				console.log('AA', e);
+				console.log(e);
 			}
 		},
 		{

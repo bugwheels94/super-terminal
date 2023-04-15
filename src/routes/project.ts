@@ -46,6 +46,42 @@ export const addProjectRoutes = (router: Router) => {
 		// No need to send to all tabs as this is general request
 		res.status(200).send(p);
 	});
+	router.post('/projects', async ({ body }, res) => {
+		const project = new Project();
+		project.slug = body.slug;
+		project.fontSize = body.fontSize;
+		project.terminalTheme = body.terminalTheme;
+
+		const query: Record<string, string | number> = {};
+		const slug = body.slug;
+		query.slug = slug;
+		project.fontSize = 14;
+		project.terminalTheme = defaultTheme;
+		let projectRecord: Project;
+		try {
+			projectRecord = await ProjectRepository.findOneOrFail({
+				where: query,
+			});
+		} catch (e) {
+			await ProjectRepository.save(project);
+
+			projectRecord = await ProjectRepository.findOneOrFail({
+				where: query,
+			});
+			const terminal = getNewFullSizeTerminal();
+			terminal.project = projectRecord;
+			await TerminalRepository.save(terminal);
+		}
+		// VERY SLOW Constraint failure code
+		// try {
+		// 	await ProjectRepository.save(project);
+		// } catch (e) {
+		// 	if (!(e instanceof QueryFailedError) || e.driverError.code !== 'SQLITE_CONSTRAINT_UNIQUE') {
+		// 		throw e;
+		// 	}
+		// }
+		res.send(projectRecord);
+	});
 	router.put('/projects/:projectSlug/:id?', async ({ body, params }, res) => {
 		const project = new Project();
 		const query: Record<string, string | number> = {};
@@ -95,6 +131,8 @@ export const addProjectRoutes = (router: Router) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.update(id, req.body || {});
 		res
+			.status(200)
+			.send({})
 			.group(id.toString())
 			.status(200)
 			.send(await ProjectRepository.findOneOrFail({ where: { id } }));

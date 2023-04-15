@@ -1,9 +1,10 @@
-import { useQueryClient } from 'react-query';
+import { UseMutationOptions, useQueryClient } from 'react-query';
 import { ITheme } from 'xterm';
 import { fetchSocket } from '../utils/fetch';
 import { useMutationPlus } from '../utils/reactQueryPlus/mutation';
 import { useQueryPlus } from '../utils/reactQueryPlus/query';
 import { addPrefixIfNotEmpty } from '../utils/string';
+import { ApiError } from '../utils/error';
 
 export type Project = {
 	slug: string;
@@ -14,15 +15,32 @@ export type Project = {
 };
 
 export type PostProjectRequest = Omit<Project, 'id'>;
-export type PatchProjectRequest = Partial<PostProjectRequest>;
+export type PatchProjectRequest = Partial<Project>;
 export const getProjectQueryKey = (projectId?: number | string) => `/projects${addPrefixIfNotEmpty(projectId, '/')}`;
 
-export const usePatchProject = (projectId: number) => {
-	return useMutationPlus<Project, PatchProjectRequest>(getProjectQueryKey(projectId), (body) =>
-		fetchSocket<Project>(`/projects/${projectId}`, {
-			method: 'patch',
-			body: body as any,
-		})
+export const usePatchProject = (
+	projectId: number,
+	options: UseMutationOptions<Project, ApiError, PatchProjectRequest> = {}
+) => {
+	return useMutationPlus<Project, PatchProjectRequest>(
+		getProjectQueryKey(projectId + '/patch'),
+		(body) =>
+			fetchSocket<Project>(`/projects/${projectId}`, {
+				method: 'patch',
+				body: body as any,
+			}),
+		options
+	);
+};
+export const usePostProject = (options: UseMutationOptions<Project, ApiError, PostProjectRequest> = {}) => {
+	return useMutationPlus<Project, PostProjectRequest>(
+		getProjectQueryKey('post'),
+		(body) =>
+			fetchSocket<Project>(`/projects`, {
+				method: 'post',
+				body: body as any,
+			}),
+		options
 	);
 };
 export const useGetProjects = () => {

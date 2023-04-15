@@ -1,82 +1,56 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ReactNode, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import 'winbox/dist/css/winbox.min.css';
 import 'xterm/css/xterm.css';
-import { getTerminalQueryKey, Terminal, useGetTerminals, usePostTerminal } from '../../services/terminals';
-import { BsPlusLg, BsGear, BsGrid1X2, BsHouseDoor, BsPlay, BsTerminal } from 'react-icons/bs';
-import { Button, Drawer, Form, Input, Select, Slider } from 'antd';
-import { usePutProject, usePatchProject, getProjectQueryKey, Project } from '../../services/project';
-import { usePutSocketGroup } from '../../services/group';
+import {
+	getTerminalQueryKey,
+	PatchTerminalRequest,
+	Terminal,
+	useCloneTerminal,
+	useGetTerminals,
+	usePostTerminal,
+} from '../../services/terminals';
+import {
+	BsPlusLg,
+	BsGear,
+	BsGrid1X2,
+	BsHouseDoor,
+	BsPlay,
+	BsTerminal,
+	BsTrash,
+	BsArrowRepeat,
+	BsFolder,
+} from 'react-icons/bs';
+import {
+	usePutProject,
+	usePatchProject,
+	getProjectQueryKey,
+	Project,
+	usePostProject,
+	PatchProjectRequest,
+	PostProjectRequest,
+	useGetProjects,
+} from '../../services/project';
+import { useDeleteLogsArchive, usePutSocketGroup } from '../../services/group';
 import { MyTerminal } from '../MyTerminal/MyTerminal';
 import './Project.css';
 import { useQueryClient } from 'react-query';
 import { receiver } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ShellScriptComp } from './ShellScript';
+import { FiCopy } from 'react-icons/fi';
+import { ProjectForm } from './Form';
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
-type Arrangement = { x: number; y: number; height: number; width: number };
-const getTerminalCoordinates = (n: number) => {
-	let columns: number[];
-	if (n === 1) columns = [1];
-	else if (n === 2) columns = [1, 1];
-	else if (n === 3) columns = [2, 1];
-	else if (n <= 8) {
-		columns = new Array(Math.ceil(n / 2) - 1).fill(2);
-		columns.push(n % 2 === 0 ? 2 : n % 2);
+const memory = new Map<string, any[]>();
+const ankit = (s: string, v?: any) => {
+	const item = memory.get(s);
+	if (item) {
+		item.push(v || 1);
 	} else {
-		columns = new Array(Math.ceil(n / 3) - 1).fill(3);
-		columns.push(n % 3 === 0 ? 3 : n % 3);
+		memory.set(s, [v || 1]);
 	}
-	const arrangements: Arrangement[] = [];
-	const viewport = getViewport();
-	columns.forEach((row, columnIndex) => {
-		new Array(row).fill(0).forEach((_, rowIndex) => {
-			const width = 100 / columns.length;
-			const height = 100 / row;
-			arrangements.push({
-				height: (height / 100) * viewport[1],
-				y: rowIndex * height,
-				width: (width / 100) * viewport[0],
-				x: width * columnIndex,
-			});
-		});
-	});
-	return arrangements;
 };
-const rules = [
-	{
-		message: 'Parameter Name can only contain alphabets, numbers, -, _',
-		required: true,
-		whitespace: false,
-		pattern: /^[A-Za-z0-9-_]+$/g,
-	},
-];
-function getViewport() {
-	var viewPortWidth;
-	var viewPortHeight;
-
-	// the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
-	if (typeof window.innerWidth !== 'undefined') {
-		viewPortWidth = window.innerWidth;
-		viewPortHeight = window.innerHeight;
-	}
-
-	// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
-	else if (
-		typeof document.documentElement !== 'undefined' &&
-		typeof document.documentElement.clientWidth !== 'undefined' &&
-		document.documentElement.clientWidth !== 0
-	) {
-		viewPortWidth = document.documentElement.clientWidth;
-		viewPortHeight = document.documentElement.clientHeight;
-	}
-
-	// older versions of IE
-	else {
-		viewPortWidth = document.getElementsByTagName('body')[0].clientWidth;
-		viewPortHeight = document.getElementsByTagName('body')[0].clientHeight;
-	}
-	return [viewPortWidth, viewPortHeight];
-}
+// @ts-ignore
+window.ankit2 = memory;
 function Project2() {
 	const { projectSlug, projectId } = useParams<'projectSlug'>() as { projectSlug: string; projectId?: number };
 	const { data: project } = usePutProject(projectSlug, projectId);
@@ -84,57 +58,134 @@ function Project2() {
 	return <ProjectPage project={project} projectId={projectId} />;
 }
 function ProjectPage({ project, projectId }: { project: Project; projectId?: number }) {
-	const [visible, setVisible] = useState(false);
 	const [scriptvisible, setScriptVisible] = useState(false);
+	const [projectFormOpen, setProjectFormOpen] = useState(false);
+	const [currentProject, setCurrentProject] = useState<null | Project>(null);
+	const [mainCommandCounter, setMainCommandCounter] = useState(0);
+	const [activeTerminal, setActiveTerminal] = useState<number | null>(null);
+	const [terminalPatchers, setTerminalPatchers] = useState<Record<number, PatchTerminalRequest | null>>({});
+	const [rightClickPosition, setRightClickPosition] = useState<null | { left: number; top: number }>(null);
+	const [triggerArrangeTerminals, setTriggerArrangeTerminals] = useState(0);
+	const reff = useRef<HTMLDivElement>(null);
+
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
+	const { mutateAsync: deleteLogsArchive } = useDeleteLogsArchive();
+	const { data: projects } = useGetProjects();
+	const { mutateAsync: patchProject } = usePatchProject(project.id, {
+		onSuccess: () => {
+			setProjectFormOpen(false);
+		},
+	});
+	const { mutateAsync: postProject } = usePostProject({
+		onSuccess: () => {
+			setProjectFormOpen(false);
+		},
+	});
+	const { mutateAsync: cloneTerminal } = useCloneTerminal(project.id);
+	const { mutateAsync: postTerminal } = usePostTerminal(project.id);
+
+	const { mutateAsync: putSocketGroup } = usePutSocketGroup(project.id);
+
+	const { data: terminals } = useGetTerminals(project.id);
+
+	const setTerminalPatcher = useCallback(
+		(terminalId: number, terminal: PatchTerminalRequest | null) => {
+			setTerminalPatchers((s) => ({ ...s, [terminalId]: terminal }));
+		},
+		[setTerminalPatchers]
+	);
+	const terminalsCount = useMemo(() => terminals?.length, [terminals]);
+
+	useEffect(() => {
+		ankit('scriptvisible change', scriptvisible);
+	}, [scriptvisible]);
+	useEffect(() => {
+		ankit('projectFormOpen changed');
+	}, [projectFormOpen]);
+	useEffect(() => {
+		ankit('currentProject changed');
+	}, [currentProject]);
+	useEffect(() => {
+		ankit('mainCommandCounter changed');
+	}, [mainCommandCounter]);
+	useEffect(() => {
+		ankit('activeTerminal changed');
+	}, [activeTerminal]);
+	useEffect(() => {
+		ankit('terminalPatchers changed');
+	}, [terminalPatchers]);
+	useEffect(() => {
+		ankit('rightClickPosition changed');
+	}, [rightClickPosition]);
+	useEffect(() => {
+		ankit('project changed');
+	}, [project]);
+	useEffect(() => {
+		ankit('projectId changed');
+	}, [projectId]);
+	useEffect(() => {
+		ankit('navigate changed');
+	}, [navigate]);
+	useEffect(() => {
+		ankit('deleteLogsArchive changed');
+	}, [deleteLogsArchive]);
+	useEffect(() => {
+		ankit('projects changed', projects);
+	}, [projects]);
+	useEffect(() => {
+		ankit('patchProject changed');
+	}, [patchProject]);
+	useEffect(() => {
+		ankit('postProject changed');
+	}, [postProject]);
+	useEffect(() => {
+		ankit('cloneTerminal changed');
+	}, [cloneTerminal]);
+	useEffect(() => {
+		ankit('postTerminal changed');
+	}, [postTerminal]);
+	useEffect(() => {
+		ankit('putSocketGroup changed');
+	}, [putSocketGroup]);
+	useEffect(() => {
+		ankit('setTerminalPatcher changed');
+	}, [setTerminalPatcher]);
+	useEffect(() => {
+		ankit('terminalsCount changed');
+	}, [terminalsCount]);
+	useEffect(() => {
+		ankit('terminals changed', terminals);
+	}, [terminals]);
+	useEffect(() => {
+		ankit('queryClient changed');
+	}, [queryClient]);
+
 	useEffect(() => {
 		if (projectId) return;
 		navigate(`/${project.slug}/${project.id}`, {
 			replace: true,
 		});
 	}, [navigate, project.id, project.slug, projectId]);
-	const onClose = () => {
-		setVisible(false);
-	};
-	const { mutateAsync: postTerminal } = usePostTerminal(project.id);
-	const [mainCommandCounter, setMainCommandCounter] = useState(0);
 
-	const { mutateAsync: putSocketGroup } = usePutSocketGroup(project.id);
 	useEffect(() => {
 		putSocketGroup();
 	}, [putSocketGroup]);
 	const ref = useRef<HTMLDivElement>(null);
-	const { data: terminals } = useGetTerminals(project.id);
 
 	useEffect(() => {
 		document.title = (project.slug || '') + ' | Super Terminal';
 	}, [project.slug]);
-	const { mutateAsync: patchProject } = usePatchProject(project.id);
 
-	const queryClient = useQueryClient();
-	const [arrangement, setArrangement] = useState<Arrangement[]>([]);
-	const terminalsCount = useMemo(() => terminals?.length, [terminals]);
-
-	const arrangeTerminals = useCallback(() => {
-		if (!terminalsCount) return;
-		setArrangement(getTerminalCoordinates(terminalsCount));
-		setTimeout(() => {
-			setArrangement([]);
-		}, 0);
-	}, [terminalsCount]);
-
-	// path is in expressjs type format
-	useEffect(() => {
-		if (!terminalsCount || project?.terminalLayout !== 'automatic') return;
-		arrangeTerminals();
-	}, [arrangeTerminals, project?.terminalLayout, queryClient, terminalsCount]);
 	useEffect(() => {
 		const slug = project.slug;
+		receiver.startChainedRoutes('project-page');
 		receiver.patch('/projects/:projectId', (request, response) => {
 			if (response.data) queryClient.setQueryData(getProjectQueryKey(slug), response.data);
 		});
 		receiver.post('/projects/:projectId/terminals', (request, response) => {
 			if (!response.data) return;
+			console.log('NEW terminal created', response.data, request.params);
 			const projectId = Number(request.params.projectId);
 			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
 			queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
@@ -162,7 +213,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		});
 		receiver.delete('/projects/:projectId/terminals/:terminalId', (request, response) => {
 			const projectId = Number(request.params.projectId);
-			console.log('Deleted!');
 			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
 			queryClient.setQueryData(
 				getTerminalQueryKey(projectId),
@@ -174,63 +224,148 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 				})
 			);
 		});
+		receiver.endChainedRoutes();
+
+		return () => {
+			receiver.clearChain('project-page');
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [queryClient]);
+
 	const data = useMemo(
-		() => [
-			{
-				title: 'New Terminal',
-				icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
-				onClick: () => postTerminal({}),
-			},
-			{
-				title: 'Run Main Command in all Terminals',
-				icon: <BsPlay style={{ verticalAlign: 'middle' }} />,
-				onClick: () => {
-					setMainCommandCounter((s) => s + 1);
-					setTimeout(() => {
-						setMainCommandCounter(0);
-					}, 0);
+		() =>
+			[
+				...(activeTerminal
+					? [
+							{
+								heading: 'Terminal Actions',
+								title: 'Reload Terminal',
+								icon: <BsArrowRepeat style={{ verticalAlign: 'middle' }} />,
+								onClick: () => setTerminalPatcher(activeTerminal, { restart: true }),
+							},
+							{
+								title: 'Clone Terminal',
+								icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
+								onClick: () => cloneTerminal({ id: activeTerminal }),
+							},
+					  ]
+					: []),
+				{
+					heading: 'Project Actions',
+					title: 'New Terminal',
+					icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
+					onClick: () => postTerminal({}),
 				},
-			},
-			{
-				title: 'Arrange All Terminals Properly',
-				icon: <BsGrid1X2 style={{ verticalAlign: 'middle' }} />,
-				onClick: arrangeTerminals,
-			},
-			{
-				title: 'Edit Project',
-				icon: <BsGear style={{ verticalAlign: 'middle' }} />,
-				onClick: () => {
-					setVisible(true);
+				{
+					title: 'Arrange All Terminals Properly',
+					icon: <BsGrid1X2 style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						setTriggerArrangeTerminals((s) => s + 1);
+					},
 				},
-			},
-			{
-				title: 'Create Shell Script',
-				icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
-				onClick: () => {
-					setScriptVisible(true);
+				{
+					title: 'Edit Project',
+					icon: <BsGear style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						setCurrentProject(project);
+						setProjectFormOpen(true);
+					},
 				},
-			},
-			{
-				title: 'Home',
-				icon: <BsHouseDoor style={{ verticalAlign: 'middle' }} />,
-				onClick: () => {
-					window.location.href = '/';
+				{
+					title: 'Create Shell Script',
+					icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						setScriptVisible(true);
+					},
 				},
-			},
-		],
-		[arrangeTerminals, setMainCommandCounter, postTerminal]
+				{
+					title: 'Run Main Command in all Terminals',
+					icon: <BsPlay style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						setMainCommandCounter((s) => s + 1);
+						setTimeout(() => {
+							setMainCommandCounter(0);
+						}, 0);
+					},
+				},
+				{
+					heading: 'Global Actions',
+					title: 'Home',
+					icon: <BsHouseDoor style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						window.location.href = '/';
+					},
+				},
+				{
+					title: 'Create New Project',
+					icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						setCurrentProject(null);
+						setProjectFormOpen(true);
+					},
+				},
+				{
+					title: 'Switch Project',
+					icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
+					children: (projects || []).map((project) => {
+						return {
+							title: project.slug,
+							icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
+							onClick: () => {
+								navigate(`/${project.slug}/${project.id}`);
+							},
+						};
+					}),
+					onClick: () => {
+						console.log('wow');
+					},
+				},
+				{
+					title: 'Delete Archived Logs Older than 7 days',
+					icon: <BsTrash style={{ verticalAlign: 'middle' }} />,
+					onClick: () => {
+						deleteLogsArchive({
+							days: 7,
+						});
+					},
+				},
+			] as ItemType[],
+		[
+			setMainCommandCounter,
+			postTerminal,
+			activeTerminal,
+			deleteLogsArchive,
+			setTerminalPatcher,
+			projects,
+			cloneTerminal,
+			navigate,
+			project,
+		]
 	);
-	const reff = useRef<HTMLDivElement>(null);
-	const [rightClickPosition, setRightClickPosition] = useState<null | { left: number; top: number }>(null);
+	useEffect(() => {
+		const temp: Record<number, PatchTerminalRequest | null> = {};
+		terminals?.forEach((terminal) => {
+			temp[terminal.id] = {};
+		});
+	}, [terminals]);
 	useEffect(() => {
 		window.addEventListener(
 			'contextmenu',
 			(e) => {
 				e.preventDefault();
+				if (e.target instanceof HTMLElement) {
+					const box = e.target?.closest('.winbox');
+					if (box instanceof HTMLElement) {
+						setActiveTerminal(Number(box.dataset.terminalId));
+					} else {
+						setActiveTerminal(null);
+					}
+				} else {
+					setActiveTerminal(null);
+				}
 				const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 				const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+				console.log('aa', reff.current);
 				if (!reff.current) return;
 				if (width - e.x > reff.current.offsetWidth) {
 					if (height - e.y > reff.current.offsetHeight) {
@@ -257,97 +392,116 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 			setRightClickPosition(null);
 		});
 	}, []);
-	if (!projectId) return null;
+	console.log('rendering');
+	useEffect(() => {
+		console.log('item changed');
+	}, [data]);
+
+	if (!projects || !projectId) return null;
+
 	return (
 		<>
 			{scriptvisible && (
 				<ShellScriptComp projectId={projectId} visible={scriptvisible} onVisibleChange={setScriptVisible} />
 			)}
-			<div ref={reff} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-500px' }}>
-				{data.map((item, index) => {
-					return (
-						<div className="list-item" onClick={item.onClick}>
-							{item.icon}
-							<span style={{ fontSize: '1.3rem', paddingLeft: '1rem' }}>{item.title}</span>
-						</div>
-					);
-				})}
-			</div>
-
-			<Drawer title="Edit Project Settings" placement="right" onClose={onClose} open={visible} size="large">
-				<Form
-					requiredMark={false}
-					onFinish={(v) =>
-						patchProject({ ...v, ...(v.terminalTheme ? { terminalTheme: JSON.parse(v.terminalTheme) } : {}) })
+			<ListItems ref={reff} items={data} rightClickPosition={rightClickPosition} />
+			<ProjectForm
+				onOpenChange={setProjectFormOpen}
+				open={projectFormOpen}
+				onProjectChange={(value: PostProjectRequest | PatchProjectRequest) => {
+					if ('id' in value) {
+						patchProject(value);
+					} else {
+						// @ts-ignore
+						postProject(value);
 					}
-					initialValues={{ ...project, terminalTheme: JSON.stringify(project.terminalTheme, null, 2) }}
-				>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Project Name"
-						name="slug"
-						rules={rules}
-					>
-						<Input placeholder="Unique name for this project" />
-					</Form.Item>
-
-					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Font Size" name="fontSize">
-						<Slider min={6} max={25} />
-					</Form.Item>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Terminal Theme"
-						name="terminalTheme"
-					>
-						<Input.TextArea placeholder="Theme" rows={30} />
-					</Form.Item>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Terminals Positioning"
-						name="terminalLayout"
-					>
-						<Select
-							options={[
-								{
-									label: "Let Super Terminal manage my terminal's positions",
-									value: 'automatic',
-								},
-								{
-									label: "I will manage my terminal's positions",
-									value: 'manual',
-								},
-							]}
-						/>
-					</Form.Item>
-					<Button htmlType="submit" type="primary">
-						Save
-					</Button>
-				</Form>
-			</Drawer>
+				}}
+				project={currentProject}
+			></ProjectForm>
 
 			<div ref={ref} className="App"></div>
 			{ref.current &&
 				terminals?.map((terminal, index) => {
 					return (
 						<MyTerminal
-							arrangement={arrangement[index]}
+							terminalPatcher={terminalPatchers[terminal.id]}
+							setTerminalPatcher={setTerminalPatcher}
 							key={terminal.id}
 							mainCommandCounter={mainCommandCounter}
 							projectId={project.id}
 							project={project}
 							element={ref.current as HTMLDivElement}
 							terminal={terminal}
+							terminalsCount={terminals.length}
+							terminalOrder={index}
+							triggerArrangeTerminals={triggerArrangeTerminals}
 						/>
 					);
 				})}
 		</>
 	);
 }
+type ItemType = {
+	icon: ReactNode;
+	onClick: () => void;
+	title: string;
+	children?: ItemType[];
+	heading?: string;
+};
+type Position = { left: number; top: number } | null;
+const ListItem = ({ item, isVisible }: { isVisible: boolean; item: ItemType }) => {
+	const ref = useRef<HTMLDivElement>(null);
+	const [childrenPosition, setChildrenPosition] = useState<Position>(null);
+	useEffect(() => {
+		setChildrenPosition(null);
+	}, [isVisible]);
 
+	return (
+		<>
+			<div
+				className="list-item"
+				onClick={
+					item.children
+						? () => {
+								if (!ref.current) return;
+								const rect = ref.current.getBoundingClientRect();
+								if (childrenPosition) {
+									setChildrenPosition(null);
+								} else
+									setChildrenPosition({
+										left: rect.width + 6,
+										top: 0,
+									});
+						  }
+						: item.onClick
+				}
+				ref={ref}
+			>
+				{item.icon}
+				<span style={{ fontSize: '1.3rem', paddingLeft: '1rem' }}>{item.title}</span>
+				{item.children && isVisible && <ListItems items={item.children} rightClickPosition={childrenPosition} />}
+			</div>
+		</>
+	);
+};
+const ListItems = forwardRef<HTMLDivElement, { rightClickPosition: Position | null; items: ItemType[] }>(
+	({ items, rightClickPosition }, ref) => {
+		return (
+			<div ref={ref} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-5000px' }}>
+				{items.map((item, index) => {
+					return (
+						<React.Fragment key={item.title}>
+							{item.heading && (
+								<div className="list-item-heading">
+									<strong>{item.heading}</strong>
+								</div>
+							)}
+							<ListItem item={item} isVisible={rightClickPosition !== null} />
+						</React.Fragment>
+					);
+				})}
+			</div>
+		);
+	}
+);
 export default Project2;

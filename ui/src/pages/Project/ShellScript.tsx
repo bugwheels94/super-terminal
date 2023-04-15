@@ -33,7 +33,6 @@ export const ShellScriptComp = ({
 		// });
 		receiver.post('/projects/:projectId/scripts', (request, response) => {
 			if (!response.data) return;
-			console.log('hahaha', request);
 			const projectId = Number(request.params.projectId);
 
 			const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
@@ -76,7 +75,6 @@ export const ShellScriptComp = ({
 		});
 	}, [queryClient]);
 
-	console.log('data', projectId, data);
 	return (
 		<>
 			<Drawer

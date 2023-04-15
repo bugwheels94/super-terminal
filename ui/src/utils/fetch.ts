@@ -12,6 +12,7 @@ export const fetchSocket = async <T>(
 		});
 		return (await result).data as unknown as T;
 	} catch (e) {
+		console.log(e);
 		// @ts-ignore
 		if (typeof e === 'object' && e !== null) throw new ApiError(e.data, e.status);
 		throw e;

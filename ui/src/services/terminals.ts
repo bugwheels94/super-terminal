@@ -48,6 +48,9 @@ export const useGetTerminals = (projectId: number, options: UseQueryOptions<Term
 		() =>
 			fetchSocket<Terminal[]>(`/projects/${projectId}/terminals`, {
 				method: 'get',
+			}).then((d) => {
+				console.log('received terminals', d);
+				return d;
 			}),
 		options
 	);
@@ -84,11 +87,10 @@ export const usePostTerminal = (id: number) => {
 };
 export const useCloneTerminal = (
 	projectId: number,
-	id: number,
 	options: UseMutationOptions<Terminal, ApiError, CloneTerminalRequest> = {}
 ) => {
 	return useMutationPlus<Terminal, CloneTerminalRequest, ApiError>(
-		getTerminalQueryKey(projectId, `${id}/copies`),
+		getTerminalQueryKey(projectId, `terminal/copies`),
 		(body) =>
 			fetchSocket<Terminal>(`/projects/${projectId}/terminals/${body.id}/copies`, {
 				body,

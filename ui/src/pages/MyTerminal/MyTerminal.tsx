@@ -2,8 +2,7 @@ import { debounce } from 'lodash';
 import { useRef, useEffect } from 'react';
 import { client, receiver } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
-import { Drawer, Input, Button, Modal, AutoComplete, Divider, Collapse, Form } from 'antd';
-import { AiOutlineReload } from 'react-icons/ai';
+import { Drawer, Input, Modal, AutoComplete, Divider, Collapse, Form } from 'antd';
 import { ShellScriptExecution } from './ShellScriptExecution';
 import './MyTerminal.css';
 
@@ -13,14 +12,13 @@ import {
 	Terminal,
 	usePatchTerminal,
 	useDeleteTerminal,
-	useCloneTerminal,
 	useGetTerminalCommands,
+	PatchTerminalRequest,
 } from '../../services/terminals';
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
 import { useGetProjectScripts } from '../../services/shellScript';
-import { BsTerminalSplit } from 'react-icons/bs';
 function getPercent(numerator: number, denominator: number) {
 	return Math.round((numerator / denominator + Number.EPSILON) * 10000) / 100;
 }
@@ -47,20 +45,90 @@ function convertToITheme(theme?: ITheme) {
 		cursor: theme.cursor || theme.cursorColor,
 	};
 }
+function getViewport() {
+	var viewPortWidth;
+	var viewPortHeight;
+
+	// the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+	if (typeof window.innerWidth !== 'undefined') {
+		viewPortWidth = window.innerWidth;
+		viewPortHeight = window.innerHeight;
+	}
+
+	// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+	else if (
+		typeof document.documentElement !== 'undefined' &&
+		typeof document.documentElement.clientWidth !== 'undefined' &&
+		document.documentElement.clientWidth !== 0
+	) {
+		viewPortWidth = document.documentElement.clientWidth;
+		viewPortHeight = document.documentElement.clientHeight;
+	}
+
+	// older versions of IE
+	else {
+		viewPortWidth = document.getElementsByTagName('body')[0].clientWidth;
+		viewPortHeight = document.getElementsByTagName('body')[0].clientHeight;
+	}
+	return [viewPortWidth, viewPortHeight];
+}
+const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) => {
+	let columns: number[];
+	if (terminalCount === 1) columns = [1];
+	else if (terminalCount === 2) columns = [1, 1];
+	else if (terminalCount === 3) columns = [2, 1];
+	else if (terminalCount <= 8) {
+		columns = new Array(Math.ceil(terminalCount / 2) - 1).fill(2);
+		columns.push(terminalCount % 2 === 0 ? 2 : terminalCount % 2);
+	} else {
+		columns = new Array(Math.ceil(terminalCount / 3) - 1).fill(3);
+		columns.push(terminalCount % 3 === 0 ? 3 : terminalCount % 3);
+	}
+	const viewport = getViewport();
+	const width = 100 / columns.length;
+	let acc = 0,
+		effectiveColumnIndex = 0,
+		effectiveRowIndex = 0;
+	for (let i = 0; i < columns.length; i++) {
+		if (acc + columns[i] > terminalOrder) {
+			effectiveColumnIndex = i;
+			effectiveRowIndex = terminalOrder - acc;
+			break;
+		} else {
+			acc += columns[i];
+		}
+	}
+	const height = 100 / columns[effectiveColumnIndex];
+	return {
+		height: (height / 100) * viewport[1],
+		y: effectiveRowIndex * height,
+		width: (width / 100) * viewport[0],
+		x: width * effectiveColumnIndex,
+	};
+};
+
 export const MyTerminal = ({
 	terminal,
 	element,
 	projectId,
 	mainCommandCounter,
-	arrangement,
 	project,
+	terminalPatcher,
+	setTerminalPatcher,
+	terminalOrder,
+	terminalsCount,
+	triggerArrangeTerminals,
 }: {
+	triggerArrangeTerminals: number;
+	terminalsCount: number;
+	terminalOrder: number;
 	project: Project;
 	terminal: Terminal;
 	element: HTMLDivElement;
 	projectId: number;
 	mainCommandCounter: number;
-	arrangement?: { x: number; y: number; width: number; height: number };
+	terminalPatcher: PatchTerminalRequest | null;
+	setTerminalPatcher: (terminalId: number, terminalPatcher: PatchTerminalRequest | null) => void;
 }) => {
 	const [visible, setVisible] = useState(false);
 	const [editorCommand, setEditorCommand] = useState('');
@@ -78,7 +146,6 @@ export const MyTerminal = ({
 		addons: Addons;
 	}>();
 	const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
-	const { mutateAsync: cloneTerminal } = useCloneTerminal(projectId, terminal.id);
 	const { data: projectScripts } = useGetProjectScripts(projectId);
 	useEffect(() => {
 		return () => {
@@ -87,6 +154,17 @@ export const MyTerminal = ({
 			ref2.current?.winbox.close(true);
 		};
 	}, []);
+	useEffect(() => {
+		if (!terminalPatcher || !ref2.current) return;
+		patchTerminal({
+			...terminalPatcher,
+			meta: {
+				cols: ref2.current.xterm.cols,
+				rows: ref2.current.xterm.rows,
+			},
+		});
+		setTerminalPatcher(terminal.id, null);
+	}, [terminalPatcher, patchTerminal, setTerminalPatcher, terminal.id]);
 	const { mutateAsync: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
 	useEffect(() => {
 		if (!ref2.current) return;
@@ -104,6 +182,7 @@ export const MyTerminal = ({
 	}, [mainCommandCounter, terminal.id, terminal.mainCommand]);
 
 	useEffect(() => {
+		receiver.startChainedRoutes('terminal-page-' + terminal.id);
 		receiver.post<{ terminalId: string }>('/terminals/:terminalId/terminal-data', async (req, res) => {
 			const terminalId = Number(req.params.terminalId);
 			const data = res.data;
@@ -113,11 +192,27 @@ export const MyTerminal = ({
 			// @ts-ignore
 			instance.xterm.write(data);
 		});
+		receiver.endChainedRoutes();
+		return () => {
+			receiver.clearChain('terminal-page-' + terminal.id);
+		};
 	}, [terminal.id]);
+	const [arrangement, setArrangement] = useState<{ x: string; y: string; height: string; width: string } | null>(null);
 	useEffect(() => {
-		if (!arrangement || !ref2.current) return;
-		ref2.current.winbox.move(arrangement.x + '%', arrangement.y + '%');
-		ref2.current.winbox.resize(arrangement.width + 'px', arrangement.height + 'px');
+		if (triggerArrangeTerminals === 0 && project.terminalLayout !== 'automatic') return;
+		const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
+		setArrangement({
+			x: arrangement.x + '%',
+			y: arrangement.y + '%',
+			width: arrangement.width + 'px',
+			height: arrangement.height + 'px',
+		});
+	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals]);
+	useEffect(() => {
+		if (arrangement && ref2.current) {
+			ref2.current.winbox.move(arrangement.x, arrangement.y);
+			ref2.current.winbox.resize(arrangement.width, arrangement.height);
+		}
 	}, [arrangement]);
 	useEffect(() => {
 		const temp = ref2.current;
@@ -143,8 +238,8 @@ export const MyTerminal = ({
 			...getTerminalPosition(terminal, element),
 		});
 		const $title = winbox.dom.querySelector('.wb-title') as HTMLDivElement;
-
 		$title.contentEditable = 'true';
+		winbox.window.dataset.terminalId = terminal.id.toString();
 		const { xterm, addons } = createTerminal(winbox.body, {
 			fontSize: project.fontSize,
 			theme: convertToITheme(project.terminalTheme),
@@ -220,6 +315,9 @@ export const MyTerminal = ({
 			xterm,
 			addons,
 		};
+		return () => {
+			// xterm.dispose();
+		};
 	}, [deleteTerminal, element, project, projectId, terminal]);
 	useEffect(() => {
 		if (!project.fontSize || !ref2.current) return;
@@ -265,7 +363,7 @@ export const MyTerminal = ({
 	return (
 		<>
 			<Modal
-				visible={isCommandEditorVisible}
+				open={isCommandEditorVisible}
 				onCancel={() => {
 					setIsCommandEditorVisible(false);
 				}}
@@ -316,36 +414,6 @@ export const MyTerminal = ({
 				open={visible}
 				destroyOnClose={true}
 			>
-				<Button
-					icon={<AiOutlineReload style={{ marginRight: '1rem' }} />}
-					style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px' }}
-					onClick={() => {
-						if (!ref2.current) return;
-						patchTerminal({
-							restart: true,
-							meta: {
-								cols: ref2.current.xterm.cols,
-								rows: ref2.current.xterm.rows,
-							},
-						});
-						onClose();
-					}}
-				>
-					Reload Terminal
-				</Button>
-				<Button
-					style={{ display: 'inline-flex', alignItems: 'center' }}
-					icon={<BsTerminalSplit style={{ marginRight: '1rem' }} />}
-					onClick={() => {
-						cloneTerminal({
-							id: terminal.id,
-						});
-						onClose();
-					}}
-				>
-					Clone Terminal
-				</Button>
-				<Divider />
 				<Form
 					requiredMark={false}
 					initialValues={terminal}
