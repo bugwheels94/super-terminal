@@ -32,7 +32,7 @@ export function getNewFullSizeTerminal() {
 		width: 100,
 		x: 0,
 		y: 0,
-	};
+	} as Terminal;
 }
 export function getNewHalfSizeTerminal() {
 	return {
@@ -49,7 +49,8 @@ export const addTerminalRoutes = (router: Router) => {
 	// 		ptyProcess.clients.delete(client);
 	// 	});
 	// });
-	router.put('/groups/:groupId', (req, res) => {
+	router.put('/groups/:groupId', async (req, res) => {
+		// await res.leaveAllGroups()
 		res.joinGroup(req.params.groupId);
 	});
 	router.post('/projects/:id/terminals', async (req, res) => {
@@ -66,10 +67,11 @@ export const addTerminalRoutes = (router: Router) => {
 	});
 
 	router.post('/projects/:projectId/terminals/:id/copies', async (req, res) => {
-		const projectId = Number(req.params.id);
+		const projectId = Number(req.params.projectId);
+		const terminalId = Number(req.params.id);
 		const oldTerminal = await TerminalRepository.findOneOrFail({
 			where: {
-				id: projectId,
+				id: terminalId,
 			},
 		});
 		const terminal = await TerminalRepository.save({
@@ -104,6 +106,7 @@ export const addTerminalRoutes = (router: Router) => {
 			if (!processObject) console.error('Process not found with id', id);
 			else processObject.process.resize(meta.cols, meta.rows);
 		}
+		if (Object.keys(terminal).length === 0) return;
 		if (terminal.startupEnvironmentVariables) {
 			try {
 				const doc = yaml.load(terminal.startupEnvironmentVariables, {
@@ -113,8 +116,18 @@ export const addTerminalRoutes = (router: Router) => {
 				throw new Error('Invalid YAML for startup Environment Variables');
 			}
 		}
+		// This prevents from updating terminal object in the triggering app unnecessary.
+		// Downside is other window will also be not aware of any move of terminal position
+		// Ideal solution is to dispatch this x, y to other windows (except triggering) and update it there
+
 		if (Object.keys(terminal).length) {
 			await TerminalRepository.update(id, terminal);
+		}
+		if (Object.keys(terminal).length === 2 && 'x' in terminal && 'y' in terminal) {
+			return;
+		}
+		if (Object.keys(terminal).length === 2 && 'height' in terminal && 'width' in terminal) {
+			return;
 		}
 		res
 			.group(projectId.toString())
@@ -166,7 +179,6 @@ export const addTerminalRoutes = (router: Router) => {
 		res.status(200).send(data);
 	});
 	router.post('/terminal-command', async (req, res) => {
-		console.log('received command');
 		const { terminalId, command } = req.body as {
 			terminalId: number;
 			command: string;
@@ -249,6 +261,7 @@ function createPtyTerminal({
 		terminalLog.log = chunk;
 		terminalLog.createdAt = new Date();
 		chunk = '';
+
 		TerminalLogRepository.save(terminalLog).catch(() => {});
 	}, 200);
 	ptyProcess.onData((data) => {

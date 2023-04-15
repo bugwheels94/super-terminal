@@ -1,14 +1,13 @@
-import { Button, Input, Popconfirm, Popover, Tag } from 'antd';
+import { Input, Popconfirm, Popover, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDeleteLogsArchive } from '../../services/group';
 import { getProjectQueryKey, Project, useDeleteProject, useGetProjects } from '../../services/project';
 import { receiver } from '../../utils/socket';
-
+import { BsPlusCircle } from 'react-icons/bs';
+import './Home.css';
 function Home() {
 	const { mutateAsync } = useDeleteProject();
-	const { mutateAsync: deleteLogsArchive } = useDeleteLogsArchive();
 	const [visible, setVisible] = useState(false);
 	const [value, setValue] = useState('');
 	const navigate = useNavigate();
@@ -53,24 +52,14 @@ function Home() {
 					}
 					title="Title"
 					trigger="click"
-					visible={visible}
-					onVisibleChange={setVisible}
+					open={visible}
+					onOpenChange={setVisible}
 				>
-					<Button type="primary">New Project</Button>
+					<button className="custom-btn" type="button">
+						<BsPlusCircle style={{ paddingRight: '0.5rem' }} size={20} />
+						Create New Project
+					</button>
 				</Popover>
-
-				<Button
-					type="primary"
-					danger
-					onClick={() => {
-						deleteLogsArchive({
-							days: 15,
-						});
-					}}
-					style={{ margin: '1rem' }}
-				>
-					Delete Log Archive(&gt;7 days)
-				</Button>
 			</div>
 			<div style={{ textAlign: 'center', padding: '4rem' }}>
 				<div>
@@ -104,6 +93,12 @@ function Home() {
 					})}
 				</div>
 			</div>
+			<footer className="footer">
+				<strong>Project Maintained Here: </strong>
+				<a rel="noreferrer" href="https://github.com/bugwheels94/super-terminal" target="_blank">
+					<strong>Github</strong>
+				</a>
+			</footer>
 		</>
 	);
 }

@@ -15,6 +15,7 @@
 }
 
 .list-items {
+	user-select: none;
 	width: auto;
 	padding: 0.3rem;
 	position: absolute;
@@ -24,6 +25,7 @@
 	box-shadow: 0px 0px 11px 0px rgba(0, 0, 0, 0.34);
 }
 .list-item {
+	position: relative;
 	display: flex;
 	align-items: center;
 	height: 3rem;
@@ -37,4 +39,23 @@ body {
 }
 .list-item:hover {
 	background-color: #efefef;
+}
+.list-item-heading {
+	font-size: 1.2rem;
+	margin: 0.5rem 0;
+	position: relative;
+}
+.list-item-heading > strong {
+	background-color: #fff;
+	padding: 0 1rem;
+	margin-left: 1rem;
+}
+.list-item-heading::before {
+	position: absolute;
+	height: 1px;
+	top: 50%;
+	background-color: rgba(0, 0, 0, 0.24);
+	content: '';
+	width: 100%;
+	z-index: -1;
 }

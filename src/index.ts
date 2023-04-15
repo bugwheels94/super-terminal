@@ -84,15 +84,28 @@ export function main(port?: number) {
 				addTerminalRoutes(router);
 				addProjectSchellScriptRoutes(router);
 				async function cleanup() {
-					var date = new Date();
-					date.setDate(date.getDate() - 7);
-					const [selectQuery, params] = AppDataSource.manager
-						.createQueryBuilder()
+					// var date = new Date();
+					// date.setDate(date.getDate() - 7);
+					const qb = AppDataSource.getRepository(TerminalLog).createQueryBuilder('terminal_log');
+					const unnecessaryRows = qb
+						// .where('createdAt < :date', {
+						// 	date,
+						// })
+						.where(
+							'terminal_log.id NOT IN' +
+								qb
+									.subQuery()
+									.select(['id'])
+									.from(TerminalLog, 'terminal_log')
+									.orderBy('createdAt', 'DESC')
+									.limit(1000)
+									.groupBy('terminalId')
+									.addGroupBy('id')
+									.getQuery()
+						);
+					const [selectQuery, params] = unnecessaryRows
 						.select(['terminalId', 'log', 'createdAt'])
-						.from(TerminalLog, 'terminal_log')
-						.where('createdAt < :date', {
-							date,
-						})
+
 						.getQueryAndParameters();
 					await AppDataSource.manager.query(
 						`
@@ -101,18 +114,10 @@ export function main(port?: number) {
 					`,
 						params
 					);
-					await AppDataSource.manager
-						.createQueryBuilder()
-						.delete()
-						.from(TerminalLog)
-						.where('createdAt < :date', {
-							date,
-						})
-						.execute();
-					// AppDataSource.manager.query(`vacuum`);
+					await unnecessaryRows.delete().execute();
 				}
 				cleanup();
-				setInterval(cleanup, 24 * 60 * 60 * 1000);
+				setInterval(cleanup, 4 * 60 * 60 * 1000);
 			});
 		})
 		.catch((error) => console.log(error));
