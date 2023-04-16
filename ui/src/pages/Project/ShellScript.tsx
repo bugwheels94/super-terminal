@@ -31,6 +31,7 @@ export const ShellScriptComp = ({
 
 		// 	if (response.data) queryClient.setQueryData(getProjectScriptQueryKey(projectId), response.data);
 		// });
+		receiver.startChainedRoutes('shell-script-page');
 		receiver.post('/projects/:projectId/scripts', (request, response) => {
 			if (!response.data) return;
 			const projectId = Number(request.params.projectId);
@@ -73,6 +74,10 @@ export const ShellScriptComp = ({
 				})
 			);
 		});
+		receiver.endChainedRoutes();
+		return () => {
+			receiver.clearChain('shell-script-page');
+		};
 	}, [queryClient]);
 
 	return (

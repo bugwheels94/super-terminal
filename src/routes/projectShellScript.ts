@@ -39,7 +39,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		const parameters: Record<string, string> = req.body || {};
 		let content = script.script;
 		for (let parameter in parameters) {
-			content = content.replace(new RegExp(`_${parameter}_`, 'g'), parameters[parameter]);
+			content = content.replace(new RegExp(`{{${parameter}}}`, 'g'), parameters[parameter]);
 		}
 		const shell = isWindows ? '' : (process.env.SHELL || 'bash') + ' ';
 		const scriptPath = path.join(targetDir, 'script-' + script.name.replace(' ', '') + (isWindows ? '.cmd' : ''));

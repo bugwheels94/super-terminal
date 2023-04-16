@@ -2,8 +2,7 @@ import { debounce } from 'lodash';
 import { useRef, useEffect } from 'react';
 import { client, receiver } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
-import { Drawer, Input, Modal, AutoComplete, Divider, Collapse, Form } from 'antd';
-import { ShellScriptExecution } from './ShellScriptExecution';
+import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
 import './MyTerminal.css';
 
 // @ts-ignore
@@ -18,7 +17,6 @@ import {
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
-import { useGetProjectScripts } from '../../services/shellScript';
 function getPercent(numerator: number, denominator: number) {
 	return Math.round((numerator / denominator + Number.EPSILON) * 10000) / 100;
 }
@@ -146,7 +144,6 @@ export const MyTerminal = ({
 		addons: Addons;
 	}>();
 	const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
-	const { data: projectScripts } = useGetProjectScripts(projectId);
 	useEffect(() => {
 		return () => {
 			if (!ref2.current) return;
@@ -458,26 +455,6 @@ export const MyTerminal = ({
 						<Input.TextArea placeholder="Yaml syntax(KEY: VALUE)" />
 					</Form.Item>
 				</Form>
-				<Divider />
-				<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Execute Scripts" name="executeScript">
-					{projectScripts ? (
-						<Collapse accordion destroyInactivePanel={true}>
-							{projectScripts.map((script) => {
-								const temp = visible ? (
-									<ShellScriptExecution script={script} key={script.id} terminalId={terminal.id} onClose={onClose} />
-								) : null;
-								const hasParameters = !!script.parameters.length;
-								return (
-									<Collapse.Panel header={script.name} key={script.id} extra={hasParameters ? null : temp}>
-										{temp}
-									</Collapse.Panel>
-								);
-							})}
-						</Collapse>
-					) : (
-						<em style={{ color: '#666' }}>Please create shell script from the main menu.</em>
-					)}
-				</Form.Item>
 			</Drawer>
 		</>
 	);
