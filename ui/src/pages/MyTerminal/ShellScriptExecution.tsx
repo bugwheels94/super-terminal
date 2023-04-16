@@ -23,12 +23,10 @@ export const ShellScriptExecution = ({
 	const finalScript = useMemo(() => {
 		let finalScript = script.script;
 		Object.keys(currentValues).forEach((key) => {
-			console.log(finalScript, key, currentValues[key]);
 			finalScript = finalScript.replace(`{{${key}}}`, currentValues[key]);
 		});
 		return finalScript;
 	}, [currentValues, script.script]);
-	console.log(currentValues);
 	return (
 		<Form
 			initialValues={initialValue}
