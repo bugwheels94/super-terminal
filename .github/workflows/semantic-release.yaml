@@ -9,14 +9,42 @@ name: Release
       - beta
       - '*.x'
 jobs:
+  ui:
+    name: build-ui
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh -c sync dependencies
+        working-directory: ./ui
+      - run: npm i --legacy-peer-deps
+        working-directory: ./ui
+      - run: npm run build
+        working-directory: ./ui
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ui
+          path: |
+            ui/package.json
+            ui/dist
+
   windows:
     name: release-windows
+    needs: [ui]
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Remove File
+        uses: JesseTG/rm@v1.0.3
+        with:
+          path: ./ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
       - run: npm i -g @lytejs/mesh@beta
       - run: npm cache clean --force
-      - run: mesh sync dependencies
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -30,10 +58,17 @@ jobs:
 
   mac:
     name: release-mac
+    needs: [ui]
     runs-on: macos-12
     steps:
-      - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta appdmg && mesh sync dependencies
+      - uses: actions/checkout@v3
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: npm i -g @lytejs/mesh@beta appdmg
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - run: npm run build:electron
@@ -48,12 +83,19 @@ jobs:
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
+    needs: [ui]
     steps:
-      - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - uses: actions/checkout@v3
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
-      - run: npm i electron-installer-debian electron-installer-redhat
+      - run: npm i -g electron-installer-debian electron-installer-redhat
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
@@ -67,10 +109,15 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, ubuntu, windows]
+    needs: [mac, ubuntu, windows, ui]
     steps:
-      - uses: actions/checkout@v2
-      - run: npm i -g @lytejs/mesh@beta && mesh sync dependencies
+      - uses: actions/checkout@v3
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: npm i -g @lytejs/mesh@beta && mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npm run build
       - uses: actions/download-artifact@v3

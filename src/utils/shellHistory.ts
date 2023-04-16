@@ -29,18 +29,18 @@ export function parseShellHistory(string: string) {
 }
 
 export function shellHistoryPath({ extraPaths = [] } = {}) {
-	const paths = new Set();
+	const paths = new Set<string>();
 	if (isWindows) {
 		const r = childProcess.spawnSync('powershell.exe', ['(Get-PSReadlineOption).HistorySavePath']);
 		// paths.add('stdout',stdout)
 		paths.add(r.stdout.toString().replace('\r\n', ''));
 	}
+	const homeDir = os.homedir();
 	if (!isWindows) {
 		paths.add(path.join(homeDir, '.history'));
 		paths.add(path.join(homeDir, '.bash_history'));
 		paths.add(path.join(homeDir, '.zsh_history'));
 	}
-	const homeDir = os.homedir();
 
 	if (process.env.HISTFILE) {
 		paths.add(process.env.HISTFILE);

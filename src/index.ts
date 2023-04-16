@@ -3,13 +3,14 @@ import fs from 'fs';
 import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
-import { RestifyWebSocket } from 'restify-websocket';
+import { WebSocket } from 'ws';
+import { RestifyWebSocketServer, InMemoryMessageDistributor } from 'restify-websocket/server';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
 import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
 import { addTerminalRoutes } from './routes/terminal';
-import { initShellHistory, shellHistory, updateShellHistoryInDB } from './utils/shellHistory';
+import { initShellHistory, shellHistory } from './utils/shellHistory';
 import { getConfig } from './utils/config';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
@@ -19,7 +20,7 @@ export function main(port?: number) {
 
 	const app = express();
 
-	const { finalConfig, userConfig } = getConfig();
+	const { finalConfig } = getConfig();
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
@@ -39,9 +40,6 @@ export function main(port?: number) {
 	} else {
 		httpServer = http.createServer(app);
 	}
-	httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
-		console.log('Running on Port', port || finalConfig.PORT);
-	});
 
 	AppDataSource.initialize()
 		.then(async () => {
@@ -51,62 +49,76 @@ export function main(port?: number) {
 				shellHistory();
 			}, 30 * 1000);
 
-			const restify = new RestifyWebSocket.Server({ noServer: true });
-			const { clients, router, server } = restify;
-			restify.addEventListener('connection', ({ client, socket }) => {
-				socket.send(JSON.stringify({ put: '/fresh-connection' }));
-			});
-			httpServer.on('upgrade', function upgrade(request, socket, head) {
-				// This function is not defined on purpose. Implement it with your own logic.
-				// authenticate(request, function next(err, client) {
-				// 	if (err || !client) {
-				// 		socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-				// 		socket.destroy();
-				// 		return;
-				// 	}
+			const restify = new RestifyWebSocketServer({
+				noServer: true,
 
-				server.handleUpgrade(request, socket, head, function done(ws) {
-					// @ts-ignore
-					ws['groupId'] = request.url;
-					server.emit('connection', ws, request);
+				distributor: new InMemoryMessageDistributor(),
+			});
+			restify.on('ready', () => {
+				httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
+					console.log('Running on Port', port || finalConfig.PORT);
 				});
-				// });
-			});
-			// whatever comes to below route should be passed to pty process
 
-			addProjectRoutes(router);
-			addTerminalRoutes(router);
-			addProjectSchellScriptRoutes(router);
-			async function cleanup() {
-				var date = new Date();
-				date.setDate(date.getDate() - 7);
-				const [selectQuery, params] = AppDataSource.manager
-					.createQueryBuilder()
-					.select(['terminalId', 'log', 'createdAt'])
-					.from(TerminalLog, 'terminal_log')
-					.where('createdAt < :date', {
-						date,
-					})
-					.getQueryAndParameters();
-				await AppDataSource.manager.query(
-					`
-			  INSERT INTO terminal_log_archive(terminalId, log, createdAt)
-			  ${selectQuery}
-			  `,
-					params
-				);
-				await AppDataSource.manager
-					.createQueryBuilder()
-					.delete()
-					.from(TerminalLog)
-					.where('createdAt < :date', {
-						date,
-					})
-					.execute();
-				// AppDataSource.manager.query(`vacuum`);
-			}
-			cleanup();
-			setInterval(cleanup, 24 * 60 * 60 * 1000);
+				const { router, rawWebSocketServer } = restify;
+				// restify.addEventListener('connection', ({ socket }) => {
+				// 	socket.project = socket.socket.groups[0];
+				// 	socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
+				// });
+				httpServer.on('upgrade', function upgrade(request, socket, head) {
+					// This function is not defined on purpose. Implement it with your own logic.
+					// authenticate(request, function next(err, client) {
+					// 	if (err || !client) {
+					// 		socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+					// 		socket.destroy();
+					// 		return;
+					// 	}
+
+					rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
+						restify.emit('connection', ws, request);
+					});
+					// });
+				});
+				// whatever comes to below route should be passed to pty process
+
+				addProjectRoutes(router);
+				addTerminalRoutes(router);
+				addProjectSchellScriptRoutes(router);
+				async function cleanup() {
+					// var date = new Date();
+					// date.setDate(date.getDate() - 7);
+					const qb = AppDataSource.getRepository(TerminalLog).createQueryBuilder('terminal_log');
+					const unnecessaryRows = qb
+						// .where('createdAt < :date', {
+						// 	date,
+						// })
+						.where(
+							'terminal_log.id NOT IN' +
+								qb
+									.subQuery()
+									.select(['id'])
+									.from(TerminalLog, 'terminal_log')
+									.orderBy('createdAt', 'DESC')
+									.limit(1000)
+									.groupBy('terminalId')
+									.addGroupBy('id')
+									.getQuery()
+						);
+					const [selectQuery, params] = unnecessaryRows
+						.select(['terminalId', 'log', 'createdAt'])
+
+						.getQueryAndParameters();
+					await AppDataSource.manager.query(
+						`
+					INSERT INTO terminal_log_archive(terminalId, log, createdAt)
+					${selectQuery}
+					`,
+						params
+					);
+					await unnecessaryRows.delete().execute();
+				}
+				cleanup();
+				setInterval(cleanup, 4 * 60 * 60 * 1000);
+			});
 		})
 		.catch((error) => console.log(error));
 

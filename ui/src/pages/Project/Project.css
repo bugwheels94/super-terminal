@@ -1,0 +1,61 @@
+.radial_label {
+	position: absolute;
+	cursor: pointer;
+	padding: 0px;
+	font-size: 3rem;
+	width: 50px;
+	height: 50px;
+	z-index: 10000;
+	border-radius: 50%;
+	border: 1px solid rgb(204, 204, 204);
+	background: rgb(239, 239, 239);
+	text-align: center;
+	line-height: 50px;
+	display: inline-block;
+}
+
+.list-items {
+	user-select: none;
+	width: auto;
+	padding: 0.3rem;
+	position: absolute;
+	background-color: rgba(255, 255, 255);
+	border-radius: 10px;
+	z-index: 10000;
+	box-shadow: 0px 0px 11px 0px rgba(0, 0, 0, 0.34);
+}
+.list-item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 3rem;
+	padding: 0 1rem;
+	cursor: pointer;
+	white-space: nowrap;
+	border-radius: 10px;
+}
+body {
+	overflow: hidden;
+}
+.list-item:hover {
+	background-color: #efefef;
+}
+.list-item-heading {
+	font-size: 1.2rem;
+	margin: 0.5rem 0;
+	position: relative;
+}
+.list-item-heading > strong {
+	background-color: #fff;
+	padding: 0 1rem;
+	margin-left: 1rem;
+}
+.list-item-heading::before {
+	position: absolute;
+	height: 1px;
+	top: 50%;
+	background-color: rgba(0, 0, 0, 0.24);
+	content: '';
+	width: 100%;
+	z-index: -1;
+}

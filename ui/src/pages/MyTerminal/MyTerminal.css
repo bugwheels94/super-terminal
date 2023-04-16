@@ -1,0 +1,27 @@
+.wb-full {
+	background-image: url(./cogwheel.png);
+}
+.wb-min {
+	display: none;
+}
+.winbox {
+	/* below props are to remove blurry text  */
+
+	backface-visibility: hidden;
+	transform: translateZ(0);
+	box-shadow: none;
+	border: solid 1px #c0c0c0;
+	border-radius: 1rem;
+	background: #f7f7f7;
+}
+.wb-header {
+	filter: invert(0.8);
+}
+.wb-title {
+	font-family: inherit;
+}
+.wb-icon {
+}
+.wb-body {
+	overflow: hidden;
+}
