@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
@@ -21,6 +21,10 @@ const createWindow = (url) => {
 	});
 	// Open the DevTools.
 	// mainWindow.webContents.openDevTools();
+	mainWindow.webContents.on('new-window', function (e, url) {
+		e.preventDefault();
+		shell.openExternal(url);
+	});
 };
 
 // This method will be called when Electron has finished
@@ -31,7 +35,7 @@ const dockMenu = Menu.buildFromTemplate([
 	{
 		label: 'New Window',
 		click() {
-			createWindow('http://localhost:3879#/new');
+			createWindow('http://localhost:3879#/main-project');
 		},
 	},
 ]);

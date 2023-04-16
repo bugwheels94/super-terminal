@@ -46,7 +46,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		const shebang = isWindows ? '' : `#!${shell}\n`;
 		fs.writeFileSync(scriptPath, `${shebang}${content}`);
 		const newLine = isWindows ? '\r\n' : '\n';
-		ptyProcesses[terminalId].process.write(`${shell}${scriptPath}${newLine}`);
+		ptyProcesses.get(terminalId).process.write(`${shell}${scriptPath}${newLine}`);
 	});
 	router.patch('/projects/:id/scripts/:scriptId', async (req, res) => {
 		const id = Number(req.params.scriptId);

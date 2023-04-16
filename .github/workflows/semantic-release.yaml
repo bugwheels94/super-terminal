@@ -25,8 +25,8 @@ jobs:
         with:
           name: ui
           path: |
-            ui
-            !ui/node_modules
+            ui/package.json
+            ui/dist
 
   windows:
     name: release-windows
