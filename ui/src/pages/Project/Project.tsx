@@ -39,8 +39,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ShellScriptComp } from './ShellScript';
 import { FiCopy } from 'react-icons/fi';
 import { ProjectForm } from './Form';
+import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
+import { Drawer } from 'antd';
+import { ShellScriptExecution } from '../MyTerminal/ShellScriptExecution';
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
 const memory = new Map<string, any[]>();
+const getWindowDimensions = () => {
+	const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+	const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+	return { width, height };
+};
 const ankit = (s: string, v?: any) => {
 	const item = memory.get(s);
 	if (item) {
@@ -86,6 +94,8 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 	const { mutateAsync: postTerminal } = usePostTerminal(project.id);
 
 	const { mutateAsync: putSocketGroup } = usePutSocketGroup(project.id);
+	const { data: projectScripts } = useGetProjectScripts(project.id);
+	const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
 
 	const { data: terminals } = useGetTerminals(project.id);
 
@@ -248,6 +258,19 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 								icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
 								onClick: () => cloneTerminal({ id: activeTerminal }),
 							},
+							{
+								title: 'Execute Shell Script',
+								icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+								children: projectScripts?.map((script) => {
+									return {
+										title: script.name,
+										icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+										onClick: () => {
+											setExecutionScript(script);
+										},
+									};
+								}),
+							},
 					  ]
 					: []),
 				{
@@ -340,6 +363,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 			cloneTerminal,
 			navigate,
 			project,
+			projectScripts,
 		]
 	);
 	useEffect(() => {
@@ -363,10 +387,9 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 				} else {
 					setActiveTerminal(null);
 				}
-				const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-				const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-				console.log('aa', reff.current);
+
 				if (!reff.current) return;
+				const { width, height } = getWindowDimensions();
 				if (width - e.x > reff.current.offsetWidth) {
 					if (height - e.y > reff.current.offsetHeight) {
 						setRightClickPosition({ left: e.x, top: e.y });
@@ -401,10 +424,26 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 
 	return (
 		<>
-			{scriptvisible && (
-				<ShellScriptComp projectId={projectId} visible={scriptvisible} onVisibleChange={setScriptVisible} />
-			)}
-			<ListItems ref={reff} items={data} rightClickPosition={rightClickPosition} />
+			{
+				<Drawer open={!!activeTerminal && !!executionScript} onClose={() => setExecutionScript(null)}>
+					{executionScript && activeTerminal && (
+						<ShellScriptExecution
+							script={executionScript}
+							terminalId={activeTerminal}
+							onClose={() => {
+								setExecutionScript(null);
+							}}
+						/>
+					)}
+				</Drawer>
+			}
+			<ShellScriptComp projectId={projectId} visible={scriptvisible} onVisibleChange={setScriptVisible} />
+			<ListItems
+				ref={reff}
+				items={data}
+				rightClickPosition={rightClickPosition}
+				setRightClickPosition={setRightClickPosition}
+			/>
 			<ProjectForm
 				onOpenChange={setProjectFormOpen}
 				open={projectFormOpen}
@@ -449,13 +488,21 @@ type ItemType = {
 	heading?: string;
 };
 type Position = { left: number; top: number } | null;
-const ListItem = ({ item, isVisible }: { isVisible: boolean; item: ItemType }) => {
+const ListItem = ({
+	item,
+	isVisible,
+	setRightClickPosition,
+}: {
+	isVisible: boolean;
+	item: ItemType;
+	setRightClickPosition: (_: null) => void;
+}) => {
 	const ref = useRef<HTMLDivElement>(null);
 	const [childrenPosition, setChildrenPosition] = useState<Position>(null);
 	useEffect(() => {
 		setChildrenPosition(null);
 	}, [isVisible]);
-
+	const ref2 = useRef<HTMLDivElement>(null);
 	return (
 		<>
 			<div
@@ -467,41 +514,67 @@ const ListItem = ({ item, isVisible }: { isVisible: boolean; item: ItemType }) =
 								const rect = ref.current.getBoundingClientRect();
 								if (childrenPosition) {
 									setChildrenPosition(null);
-								} else
-									setChildrenPosition({
-										left: rect.width + 6,
-										top: 0,
-									});
+								} else {
+									const { width } = getWindowDimensions();
+									if (!ref2.current) return;
+									const newRect = ref2.current.getBoundingClientRect();
+									if (width - (rect.left + rect.width) > newRect.width) {
+										setChildrenPosition({
+											left: rect.width + 6,
+											top: 0,
+										});
+									} else {
+										setChildrenPosition({
+											left: 0 - newRect.width - 6,
+											top: 0,
+										});
+									}
+								}
 						  }
-						: item.onClick
+						: () => {
+								item.onClick();
+								setRightClickPosition(null);
+						  }
 				}
 				ref={ref}
 			>
 				{item.icon}
 				<span style={{ fontSize: '1.3rem', paddingLeft: '1rem' }}>{item.title}</span>
-				{item.children && isVisible && <ListItems items={item.children} rightClickPosition={childrenPosition} />}
+				{item.children && isVisible && (
+					<ListItems
+						ref={ref2}
+						items={item.children}
+						setRightClickPosition={setRightClickPosition}
+						rightClickPosition={childrenPosition}
+					/>
+				)}
 			</div>
 		</>
 	);
 };
-const ListItems = forwardRef<HTMLDivElement, { rightClickPosition: Position | null; items: ItemType[] }>(
-	({ items, rightClickPosition }, ref) => {
-		return (
-			<div ref={ref} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-5000px' }}>
-				{items.map((item, index) => {
-					return (
-						<React.Fragment key={item.title}>
-							{item.heading && (
-								<div className="list-item-heading">
-									<strong>{item.heading}</strong>
-								</div>
-							)}
-							<ListItem item={item} isVisible={rightClickPosition !== null} />
-						</React.Fragment>
-					);
-				})}
-			</div>
-		);
-	}
-);
+const ListItems = forwardRef<
+	HTMLDivElement,
+	{ setRightClickPosition: (_: null) => void; rightClickPosition: Position | null; items: ItemType[] }
+>(({ items, rightClickPosition, setRightClickPosition }, ref) => {
+	return (
+		<div ref={ref} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-5000px' }}>
+			{items.map((item, index) => {
+				return (
+					<React.Fragment key={item.title}>
+						{item.heading && (
+							<div className="list-item-heading">
+								<strong>{item.heading}</strong>
+							</div>
+						)}
+						<ListItem
+							item={item}
+							isVisible={rightClickPosition !== null}
+							setRightClickPosition={setRightClickPosition}
+						/>
+					</React.Fragment>
+				);
+			})}
+		</div>
+	);
+});
 export default Project2;

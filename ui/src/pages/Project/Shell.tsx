@@ -51,8 +51,10 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 		});
 		return options;
 	}, [projects]);
+	const [form] = Form.useForm();
 	return (
 		<Form
+			requiredMark={false}
 			initialValues={initialValues}
 			onFinish={(v) => {
 				patchProjectScript({
@@ -60,6 +62,7 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 					projectId: v.projectId || null,
 				});
 			}}
+			form={form}
 		>
 			<Form.Item name="name" label="Name" rules={rules} labelCol={{ span: 6 }}>
 				<Input />
@@ -69,35 +72,34 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 					placeholder={`any script in your default shell
 echo _parameter_name_
 					`}
+					onChange={(e) => {
+						const value = e.target.value;
+
+						const matches = value.match(/\{\{([A-Za-z0-9-_]+)\}\}/g);
+						const unique = [...new Set(matches)];
+						const finalValue = unique.map((match) => {
+							return {
+								name: match.replace(/\{\{/g, '').replace(/\}\}/g, ''),
+								type: 'manual',
+							};
+						});
+						if (finalValue) form.setFieldValue('parameters', finalValue);
+					}}
 				/>
 			</Form.Item>
 			<Form.Item name="projectId" label="Belongs to Project" labelCol={{ span: 6 }}>
 				<Select options={projectOptions} />
 			</Form.Item>
 			<Form.List name="parameters">
-				{(fields, { add, remove }) => (
+				{(fields) => (
 					<>
 						<Row>
 							<Col span="6" style={{ textAlign: 'right', paddingRight: '1rem' }}>
 								Parameters:
 							</Col>
 							<Col span="18">
-								<Button
-									type="dashed"
-									onClick={() =>
-										add({
-											type: 'manual',
-										})
-									}
-									block
-								>
-									+ New Parameter
-								</Button>
-
 								{fields.map((field) => (
 									<React.Fragment key={field.key}>
-										<Divider />
-
 										<Form.Item
 											{...field}
 											name={[field.name, 'name']}
@@ -106,13 +108,7 @@ echo _parameter_name_
 											labelCol={{ span: 6 }}
 											rules={parameterRules}
 										>
-											<Input
-												suffix={
-													<Button onClick={() => remove(field.name)} block danger>
-														Remove Parameter
-													</Button>
-												}
-											/>
+											<Input />
 										</Form.Item>
 										<Form.Item {...field} name={[field.name, 'type']} key="two" label="Type" labelCol={{ span: 6 }}>
 											<Select
@@ -162,6 +158,7 @@ echo _parameter_name_
 												</Form.List>
 											</Col>
 										</Row>
+										<Divider />
 									</React.Fragment>
 								))}
 							</Col>
