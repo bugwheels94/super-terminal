@@ -18,6 +18,8 @@
 		[
 			"@semantic-release/github",
 			{
+				"successComment": false,
+				"failTitle": false,
 				"assets": [
 					{
 						"path": "tmp-assets/*"
