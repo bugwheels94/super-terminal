@@ -49,7 +49,6 @@ export const useGetTerminals = (projectId: number, options: UseQueryOptions<Term
 			fetchSocket<Terminal[]>(`/projects/${projectId}/terminals`, {
 				method: 'get',
 			}).then((d) => {
-				console.log('received terminals', d);
 				return d;
 			}),
 		options

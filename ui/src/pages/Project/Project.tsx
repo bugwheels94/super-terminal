@@ -43,22 +43,12 @@ import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
 import { Drawer } from 'antd';
 import { ShellScriptExecution } from '../MyTerminal/ShellScriptExecution';
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
-const memory = new Map<string, any[]>();
 const getWindowDimensions = () => {
 	const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 	const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
 	return { width, height };
 };
-const ankit = (s: string, v?: any) => {
-	const item = memory.get(s);
-	if (item) {
-		item.push(v || 1);
-	} else {
-		memory.set(s, [v || 1]);
-	}
-};
-// @ts-ignore
-window.ankit2 = memory;
+
 function Project2() {
 	const { projectSlug, projectId } = useParams<'projectSlug'>() as { projectSlug: string; projectId?: number };
 	const { data: project } = usePutProject(projectSlug, projectId);
@@ -105,71 +95,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		},
 		[setTerminalPatchers]
 	);
-	const terminalsCount = useMemo(() => terminals?.length, [terminals]);
-
-	useEffect(() => {
-		ankit('scriptvisible change', scriptvisible);
-	}, [scriptvisible]);
-	useEffect(() => {
-		ankit('projectFormOpen changed');
-	}, [projectFormOpen]);
-	useEffect(() => {
-		ankit('currentProject changed');
-	}, [currentProject]);
-	useEffect(() => {
-		ankit('mainCommandCounter changed');
-	}, [mainCommandCounter]);
-	useEffect(() => {
-		ankit('activeTerminal changed');
-	}, [activeTerminal]);
-	useEffect(() => {
-		ankit('terminalPatchers changed');
-	}, [terminalPatchers]);
-	useEffect(() => {
-		ankit('rightClickPosition changed');
-	}, [rightClickPosition]);
-	useEffect(() => {
-		ankit('project changed');
-	}, [project]);
-	useEffect(() => {
-		ankit('projectId changed');
-	}, [projectId]);
-	useEffect(() => {
-		ankit('navigate changed');
-	}, [navigate]);
-	useEffect(() => {
-		ankit('deleteLogsArchive changed');
-	}, [deleteLogsArchive]);
-	useEffect(() => {
-		ankit('projects changed', projects);
-	}, [projects]);
-	useEffect(() => {
-		ankit('patchProject changed');
-	}, [patchProject]);
-	useEffect(() => {
-		ankit('postProject changed');
-	}, [postProject]);
-	useEffect(() => {
-		ankit('cloneTerminal changed');
-	}, [cloneTerminal]);
-	useEffect(() => {
-		ankit('postTerminal changed');
-	}, [postTerminal]);
-	useEffect(() => {
-		ankit('putSocketGroup changed');
-	}, [putSocketGroup]);
-	useEffect(() => {
-		ankit('setTerminalPatcher changed');
-	}, [setTerminalPatcher]);
-	useEffect(() => {
-		ankit('terminalsCount changed');
-	}, [terminalsCount]);
-	useEffect(() => {
-		ankit('terminals changed', terminals);
-	}, [terminals]);
-	useEffect(() => {
-		ankit('queryClient changed');
-	}, [queryClient]);
 
 	useEffect(() => {
 		if (projectId) return;
@@ -195,7 +120,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		});
 		receiver.post('/projects/:projectId/terminals', (request, response) => {
 			if (!response.data) return;
-			console.log('NEW terminal created', response.data, request.params);
 			const projectId = Number(request.params.projectId);
 			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
 			queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
@@ -339,9 +263,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 							},
 						};
 					}),
-					onClick: () => {
-						console.log('wow');
-					},
+					onClick: () => {},
 				},
 				{
 					title: 'Delete Archived Logs Older than 7 days',
@@ -415,10 +337,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 			setRightClickPosition(null);
 		});
 	}, []);
-	console.log('rendering');
-	useEffect(() => {
-		console.log('item changed');
-	}, [data]);
 
 	if (!projects || !projectId) return null;
 
