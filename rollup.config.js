@@ -46,12 +46,9 @@ const getRollupConfig =
 				}
 				// No need to pass second because the entry will be stopped
 				if (neverBundlePackages.find((pkg) => isPackageDependency(pkg, id))) {
-					console.log(id, 'External');
 					return true;
 				}
 				if (bundlePackages.find((pkg) => isPackageDependency(pkg, id, second))) {
-					console.log(id, second, ':Internal');
-
 					return false;
 				}
 				if (
@@ -62,7 +59,6 @@ const getRollupConfig =
 				}
 
 				if (isLocalModule) {
-					console.log(id, second, ':Local');
 					return !shouldBundleLocalFilesTogether;
 				}
 				return false;

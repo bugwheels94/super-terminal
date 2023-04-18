@@ -32,6 +32,7 @@ const defaultTheme = {
 	selectionBackground: '#eff0f1',
 	cursorColor: '#eff0f1',
 };
+
 export const ProjectForm = ({
 	project,
 	onOpenChange,
@@ -96,7 +97,7 @@ export const ProjectForm = ({
 						label="Terminal Theme"
 						name="terminalTheme"
 					>
-						<Input.TextArea placeholder="Theme" rows={30} />
+						<Input.TextArea placeholder="Theme" rows={15} />
 					</Form.Item>
 					<Form.Item
 						colon={false}
