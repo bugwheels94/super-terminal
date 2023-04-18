@@ -60,6 +60,9 @@ export function main(port?: number) {
 				});
 
 				const { router, rawWebSocketServer } = restify;
+				router.onConnect((socket) => {
+					router.joinGroup('global', socket);
+				});
 				// restify.addEventListener('connection', ({ socket }) => {
 				// 	socket.project = socket.socket.groups[0];
 				// 	socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));

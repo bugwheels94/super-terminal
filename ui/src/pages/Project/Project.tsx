@@ -165,7 +165,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [queryClient]);
-
+	const [patchTerminalId, setPatchTerminalId] = useState<number | null>(null);
 	const data = useMemo(
 		() =>
 			[
@@ -183,6 +183,11 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 								onClick: () => cloneTerminal({ id: activeTerminal }),
 							},
 							{
+								title: 'Terminal Settings',
+								icon: <BsGear style={{ verticalAlign: 'middle' }} />,
+								onClick: () => setPatchTerminalId(activeTerminal),
+							},
+							{
 								title: 'Execute Shell Script',
 								icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
 								children: projectScripts?.map((script) => {
@@ -194,6 +199,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 										},
 									};
 								}),
+								placeholder: 'Please create a shell script first.',
 							},
 					  ]
 					: []),
@@ -211,7 +217,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 					},
 				},
 				{
-					title: 'Edit Project',
+					title: 'Project Settings',
 					icon: <BsGear style={{ verticalAlign: 'middle' }} />,
 					onClick: () => {
 						setCurrentProject(project);
@@ -339,7 +345,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 	}, []);
 
 	if (!projects || !projectId) return null;
-
 	return (
 		<>
 			{
@@ -381,6 +386,8 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 				terminals?.map((terminal, index) => {
 					return (
 						<MyTerminal
+							patchTerminalId={patchTerminalId}
+							setPatchTerminalId={setPatchTerminalId}
 							terminalPatcher={terminalPatchers[terminal.id]}
 							setTerminalPatcher={setTerminalPatcher}
 							key={terminal.id}
@@ -404,6 +411,7 @@ type ItemType = {
 	title: string;
 	children?: ItemType[];
 	heading?: string;
+	placeholder?: string;
 };
 type Position = { left: number; top: number } | null;
 const ListItem = ({
@@ -458,40 +466,50 @@ const ListItem = ({
 			>
 				{item.icon}
 				<span style={{ fontSize: '1.3rem', paddingLeft: '1rem' }}>{item.title}</span>
-				{item.children && isVisible && (
+				{item.children && isVisible ? (
 					<ListItems
 						ref={ref2}
+						placeholder={item.placeholder}
 						items={item.children}
 						setRightClickPosition={setRightClickPosition}
 						rightClickPosition={childrenPosition}
 					/>
-				)}
+				) : null}
 			</div>
 		</>
 	);
 };
 const ListItems = forwardRef<
 	HTMLDivElement,
-	{ setRightClickPosition: (_: null) => void; rightClickPosition: Position | null; items: ItemType[] }
->(({ items, rightClickPosition, setRightClickPosition }, ref) => {
+	{
+		setRightClickPosition: (_: null) => void;
+		rightClickPosition: Position | null;
+		items: ItemType[];
+		placeholder?: string;
+	}
+>(({ items, placeholder, rightClickPosition, setRightClickPosition }, ref) => {
 	return (
 		<div ref={ref} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-5000px' }}>
-			{items.map((item, index) => {
-				return (
-					<React.Fragment key={item.title}>
-						{item.heading && (
-							<div className="list-item-heading">
-								<strong>{item.heading}</strong>
-							</div>
-						)}
-						<ListItem
-							item={item}
-							isVisible={rightClickPosition !== null}
-							setRightClickPosition={setRightClickPosition}
-						/>
-					</React.Fragment>
-				);
-			})}
+			{items.length ? (
+				items.map((item, index) => {
+					return (
+						<React.Fragment key={item.title}>
+							{item.heading && (
+								<div className="list-item-heading">
+									<strong>{item.heading}</strong>
+								</div>
+							)}
+							<ListItem
+								item={item}
+								isVisible={rightClickPosition !== null}
+								setRightClickPosition={setRightClickPosition}
+							/>
+						</React.Fragment>
+					);
+				})
+			) : (
+				<em>{placeholder}</em>
+			)}
 		</div>
 	);
 });

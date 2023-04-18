@@ -1,5 +1,5 @@
 import { debounce } from 'lodash';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { client, receiver } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
 import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
@@ -116,7 +116,11 @@ export const MyTerminal = ({
 	terminalOrder,
 	terminalsCount,
 	triggerArrangeTerminals,
+	patchTerminalId,
+	setPatchTerminalId,
 }: {
+	patchTerminalId: number | null;
+	setPatchTerminalId: (_: number | null) => void;
 	triggerArrangeTerminals: number;
 	terminalsCount: number;
 	terminalOrder: number;
@@ -128,16 +132,14 @@ export const MyTerminal = ({
 	terminalPatcher: PatchTerminalRequest | null;
 	setTerminalPatcher: (terminalId: number, terminalPatcher: PatchTerminalRequest | null) => void;
 }) => {
-	const [visible, setVisible] = useState(false);
+	const visible = useMemo(() => patchTerminalId === terminal.id, [patchTerminalId, terminal.id]);
 	const [editorCommand, setEditorCommand] = useState('');
 	const [commandQuery, setCommandQuery] = useState('');
 	const [isCommandEditorVisible, setIsCommandEditorVisible] = useState(false);
 	const { data } = useGetTerminalCommands(terminal.id, commandQuery, {
 		initialData: [],
 	});
-	const onClose = () => {
-		setVisible(false);
-	};
+
 	const ref2 = useRef<{
 		xterm: XTerm;
 		winbox: any;
@@ -281,7 +283,7 @@ export const MyTerminal = ({
 		}, 200);
 
 		winbox.fullscreen = () => {
-			showDrawer();
+			setPatchTerminalId(terminal.id);
 		};
 		winbox.onclose = function (force?: boolean) {
 			if (force) return false;
@@ -315,7 +317,7 @@ export const MyTerminal = ({
 		return () => {
 			// xterm.dispose();
 		};
-	}, [deleteTerminal, element, project, projectId, terminal]);
+	}, [deleteTerminal, element, project, projectId, terminal, setPatchTerminalId]);
 	useEffect(() => {
 		if (!project.fontSize || !ref2.current) return;
 		ref2.current.xterm.options.fontSize = project.fontSize;
@@ -343,9 +345,6 @@ export const MyTerminal = ({
 			window.removeEventListener('resize', handler);
 		};
 	}, [element, terminal]);
-	const showDrawer = () => {
-		setVisible(true);
-	};
 
 	const handleSearch = (value: string) => {
 		setCommandQuery(value);
@@ -407,7 +406,9 @@ export const MyTerminal = ({
 				size="large"
 				title="Terminal Settings"
 				placement="right"
-				onClose={onClose}
+				onClose={() => {
+					setPatchTerminalId(null);
+				}}
 				open={visible}
 				destroyOnClose={true}
 			>

@@ -1,16 +1,22 @@
-import { Input, Popconfirm, Popover, Tag } from 'antd';
+import { Popconfirm, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from 'react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { getProjectQueryKey, Project, useDeleteProject, useGetProjects } from '../../services/project';
+import { Link } from 'react-router-dom';
+import {
+	getProjectQueryKey,
+	PatchProjectRequest,
+	PostProjectRequest,
+	Project,
+	useDeleteProject,
+	useGetProjects,
+	usePostProject,
+} from '../../services/project';
 import { receiver } from '../../utils/socket';
 import { BsPlusCircle } from 'react-icons/bs';
 import './Home.css';
+import { ProjectForm } from '../Project/Form';
 function Home() {
 	const { mutateAsync } = useDeleteProject();
-	const [visible, setVisible] = useState(false);
-	const [value, setValue] = useState('');
-	const navigate = useNavigate();
 	const { data: projects } = useGetProjects();
 	const queryClient = useQueryClient();
 	useEffect(() => {
@@ -33,33 +39,29 @@ function Home() {
 			);
 		});
 	}, [queryClient]);
+	const [projectFormOpen, setProjectFormOpen] = useState(false);
+	const { mutateAsync: postProject } = usePostProject({
+		onSuccess: () => {
+			setProjectFormOpen(false);
+		},
+	});
 	return (
 		<>
 			<div style={{ height: '15rem', textAlign: 'center', fontSize: '5rem', padding: '4rem' }}>Super Terminal</div>
 			<div style={{ textAlign: 'center', padding: '4rem' }}>
-				<Popover
-					content={
-						<Input
-							value={value}
-							onChange={(e) => setValue(e.target.value)}
-							onPressEnter={(e) => {
-								if (value)
-									navigate({
-										pathname: value,
-									});
-							}}
-						/>
-					}
-					title="Title"
-					trigger="click"
-					open={visible}
-					onOpenChange={setVisible}
-				>
-					<button className="custom-btn" type="button">
-						<BsPlusCircle style={{ paddingRight: '0.5rem' }} size={20} />
-						Create New Project
-					</button>
-				</Popover>
+				<button className="custom-btn" type="button" onClick={() => setProjectFormOpen(true)}>
+					<BsPlusCircle style={{ paddingRight: '0.5rem' }} size={20} />
+					Create New Project
+				</button>
+				<ProjectForm
+					onOpenChange={setProjectFormOpen}
+					open={projectFormOpen}
+					onProjectChange={(value: PostProjectRequest | PatchProjectRequest) => {
+						//@ts-ignore
+						postProject(value);
+					}}
+					project={null}
+				></ProjectForm>
 			</div>
 			<div style={{ textAlign: 'center', padding: '4rem' }}>
 				<div>
