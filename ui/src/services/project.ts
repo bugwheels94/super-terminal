@@ -5,6 +5,8 @@ import { useMutationPlus } from '../utils/reactQueryPlus/mutation';
 import { useQueryPlus } from '../utils/reactQueryPlus/query';
 import { addPrefixIfNotEmpty } from '../utils/string';
 import { ApiError } from '../utils/error';
+import { useEffect } from 'react';
+import { receiver } from '../utils/socket';
 
 export type Project = {
 	slug: string;
@@ -33,6 +35,21 @@ export const usePatchProject = (
 	);
 };
 export const usePostProject = (options: UseMutationOptions<Project, ApiError, PostProjectRequest> = {}) => {
+	const queryClient = useQueryClient();
+
+	useEffect(() => {
+		receiver.startChainedRoutes('project-post');
+		receiver.post<{ terminalId: string }>('/projects', async (req, res) => {
+			const data = res.data;
+			const oldData = queryClient.getQueryData(getProjectQueryKey()) as Project[];
+			queryClient.setQueryData(getProjectQueryKey(), [...oldData, data]);
+		});
+		receiver.endChainedRoutes();
+		return () => {
+			receiver.clearChain('project-post');
+		};
+	}, [queryClient]);
+
 	return useMutationPlus<Project, PostProjectRequest>(
 		getProjectQueryKey('post'),
 		(body) =>
@@ -40,7 +57,12 @@ export const usePostProject = (options: UseMutationOptions<Project, ApiError, Po
 				method: 'post',
 				body: body as any,
 			}),
-		options
+		{
+			onSuccess: (data, variables, context) => {
+				options.onSuccess?.(data, variables, context);
+			},
+			...options,
+		}
 	);
 };
 export const useGetProjects = () => {

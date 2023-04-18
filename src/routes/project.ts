@@ -81,6 +81,7 @@ export const addProjectRoutes = (router: Router) => {
 		// 	}
 		// }
 		res.send(projectRecord);
+		res.group('global').send(projectRecord);
 	});
 	router.put('/projects/:projectSlug/:id?', async ({ body, params }, res) => {
 		const project = new Project();
@@ -124,7 +125,7 @@ export const addProjectRoutes = (router: Router) => {
 	router.delete('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
 		await ProjectRepository.delete(id);
-		res.group(id.toString()).status(200);
+		res.group('global').status(200).send();
 	});
 
 	router.patch('/projects/:id', async (req, res) => {
