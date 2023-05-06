@@ -28,7 +28,7 @@ export function parseShellHistory(string: string) {
 		});
 }
 
-export function shellHistoryPath({ extraPaths = [] } = {}) {
+export function shellHistoryPath({} = {}) {
 	const paths = new Set<string>();
 	if (isWindows) {
 		const r = childProcess.spawnSync('powershell.exe', ['(Get-PSReadlineOption).HistorySavePath']);
@@ -63,7 +63,7 @@ export function shellHistoryPath({ extraPaths = [] } = {}) {
 export async function shellHistory(options = {}) {
 	const historyPaths = shellHistoryPath(options);
 	if (historyPaths.size) {
-		historyPaths.forEach(async (value, key) => {
+		historyPaths.forEach(async (value) => {
 			const content = fs.readFileSync(value, 'utf8');
 			const hash = sha1(content);
 

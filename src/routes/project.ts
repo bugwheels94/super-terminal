@@ -27,7 +27,7 @@ const defaultTheme = {
 };
 export const addProjectRoutes = (router: Router) => {
 	// Implement query parameters
-	router.delete('/logs-archive/:days', async (req, res) => {
+	router.delete('/logs-archive/:days', async (req) => {
 		const days = Number(req.params.days) || 7;
 		var date = new Date();
 		date.setDate(date.getDate() - days);
@@ -41,7 +41,7 @@ export const addProjectRoutes = (router: Router) => {
 		// No need to send to all tabs as this is general request
 	});
 
-	router.get('/projects', async (req, res) => {
+	router.get('/projects', async (_req, res) => {
 		const p = await ProjectRepository.find();
 		// No need to send to all tabs as this is general request
 		res.status(200).send(p);
@@ -83,7 +83,7 @@ export const addProjectRoutes = (router: Router) => {
 		res.send(projectRecord);
 		res.group('global').send(projectRecord);
 	});
-	router.put('/projects/:projectSlug/:id?', async ({ body, params }, res) => {
+	router.put('/projects/:projectSlug/:id?', async ({ params }, res) => {
 		const project = new Project();
 		const query: Record<string, string | number> = {};
 		const id = Number(params.id);

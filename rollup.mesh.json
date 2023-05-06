@@ -1,0 +1,18 @@
+{
+	"typescript": true,
+	"generateTypes": true,
+	"decorators": true,
+	"bundleLocalFiles": true,
+	"bundleDependencies": ["restify-websocket/server", "restify-websocket"],
+	"neverBundleDependencies": ["typeorm"],
+	"bundleNodeModules": false,
+	"bundleNpmWorkspacePackages": ["ws"],
+	"inputs": [
+		{
+			"include": ["./src/index.ts", "./src/run-server.ts"],
+			"name": "server"
+		}
+	],
+	"formats": ["cjs"],
+	"babelHelpers": "bundled"
+}

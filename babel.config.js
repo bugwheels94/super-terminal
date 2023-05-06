@@ -15,11 +15,11 @@ module.exports = {
 				exclude: ['@babel/plugin-transform-regenerator'],
 			},
 		],
-		['@babel/preset-typescript', {}],
+		...(true ? ['@babel/preset-typescript'] : []),
 	],
 	plugins: [
-		'babel-plugin-transform-typescript-metadata',
-		['@babel/plugin-proposal-decorators', { legacy: true }],
+		true && 'babel-plugin-transform-typescript-metadata',
+		true && ['@babel/plugin-proposal-decorators', { legacy: true }],
 		['@babel/plugin-proposal-class-properties', { loose: true }],
 		[
 			'const-enum',
@@ -28,13 +28,13 @@ module.exports = {
 			},
 		],
 		cjs && ['@babel/transform-modules-commonjs', { loose }],
-		// [
-		// 	'@babel/transform-runtime',
-		// 	{
-		// useESModules: !cjs, @babe
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		// version: require('./package.json').dependencies['@babel/runtime'].replace(/^[^0-9]*/, ''),
-		// 	},
-		// ],
+		'bundled' === 'runtime' && [
+			'@babel/transform-runtime',
+			{
+				// useESModules: !cjs, @babe
+				// eslint-disable-next-line @typescript-eslint/no-var-requires
+				version: require('./package.json').dependencies['@babel/runtime'].replace(/^[^0-9]*/, ''),
+			},
+		],
 	].filter(Boolean),
 };
