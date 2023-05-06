@@ -10,9 +10,9 @@ export class HistoryHash {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@Column({ unique: true })
+	@Column('text', { unique: true })
 	path: string;
 
-	@Column()
+	@Column('text')
 	hash: string;
 }

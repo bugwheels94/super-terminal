@@ -109,7 +109,7 @@ export const addTerminalRoutes = (router: Router) => {
 		if (Object.keys(terminal).length === 0) return;
 		if (terminal.startupEnvironmentVariables) {
 			try {
-				const doc = yaml.load(terminal.startupEnvironmentVariables, {
+				yaml.load(terminal.startupEnvironmentVariables, {
 					schema: yaml.JSON_SCHEMA,
 				});
 			} catch (e) {
@@ -178,7 +178,7 @@ export const addTerminalRoutes = (router: Router) => {
 
 		res.status(200).send(data);
 	});
-	router.post('/terminal-command', async (req, res) => {
+	router.post('/terminal-command', async (req) => {
 		const { terminalId, command } = req.body as {
 			terminalId: number;
 			command: string;

@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Project } from './Project';
+import type { Project } from './Project';
 
 @Entity()
 export class ShellScript {
@@ -19,7 +19,7 @@ export class ShellScript {
 
 	@Column({ nullable: true })
 	projectId?: number;
-	@ManyToOne(() => Project, (terminal) => terminal.scripts, {
+	@ManyToOne('Project', 'scripts', {
 		onDelete: 'CASCADE',
 		nullable: true,
 	})

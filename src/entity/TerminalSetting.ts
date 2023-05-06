@@ -1,12 +1,12 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { Terminal } from './Terminal';
+import type { Terminal } from './Terminal';
 @Entity()
 export class TerminalSetting {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@ManyToOne(() => Terminal, (terminal) => terminal.settings)
+	@ManyToOne('Terminal', 'settings')
 	terminal: Terminal;
 
 	// row,cols are not used because winbox decides xterm size and the end effect will be same
