@@ -3,10 +3,10 @@
 	"generateTypes": true,
 	"decorators": true,
 	"bundleLocalFiles": true,
-	"bundleDependencies": ["restify-websocket/server", "restify-websocket"],
-	"neverBundleDependencies": ["typeorm"],
-	"bundleNodeModules": false,
-	"bundleNpmWorkspacePackages": ["ws"],
+	"bundleDependencies": [],
+	"neverBundleDependencies": ["typeorm", "node-pty"],
+	"bundleNodeModules": true,
+	"bundleNpmWorkspacePackages": [],
 	"inputs": [
 		{
 			"include": ["./src/index.ts", "./src/run-server.ts"],
