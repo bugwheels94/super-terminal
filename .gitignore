@@ -12,3 +12,4 @@ dist/
 .DS_Store
 /out
 *.dmg
+tsconfig.tsbuildinfo

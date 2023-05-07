@@ -9,9 +9,9 @@ import path from 'path';
 import terser from '@rollup/plugin-terser';
 const extensions = ['.js', '.ts', '.jsx', '.tsx'];
 const babelIncludes = ['./src/**/*'];
-const bundleNpmWorkspacePackages = ['ws'];
-const bundlePackages = ['restify-websocket/server', 'restify-websocket'];
-const neverBundlePackages = ['typeorm'];
+const bundleNpmWorkspacePackages = ["ws"];
+const bundlePackages = ["restify-websocket/server","restify-websocket"];
+const neverBundlePackages = ["typeorm"];
 const shouldBundleLocalFilesTogether = true;
 const shouldBundleNodeModules = false;
 const isDevelopment = process.env.ROLLUP_WATCH;
@@ -21,7 +21,7 @@ const isPackageDependency = (pkg, path, importer = '') => {
 	return path.includes('/' + pkg + '/') || (importer.includes('/' + pkg + '/') && path.startsWith('.')) || path === pkg;
 };
 const getRollupConfig =
-	({ isBrowser = false, format = 'esm' } = { isBrowser: false, format: 'esm' }) =>
+	({ isBrowser = false, format = 'esm', totalFormats = 1 } = { isBrowser: false, format: 'esm', totalFormats: 1 }) =>
 	(localInput) => {
 		const input = localInput;
 		return {
@@ -29,7 +29,7 @@ const getRollupConfig =
 			output: {
 				file: path.join(
 					'./dist',
-					format,
+					totalFormats > 1 ? format : "",
 					// isBrowser ? '' : 'server',
 					localInput.replace('/src', '').replace(/\.(tsx|ts)/, format === 'cjs' ? '.js' : '.js')
 				),
@@ -87,7 +87,7 @@ const getRollupConfig =
 			],
 		};
 	};
-const inputs = [{ include: ['./src/index.ts', './src/run-server.ts'], name: 'server' }];
+const inputs = [{"include":["./src/index.ts","./src/run-server.ts"],"name":"server"}];
 
 /**[
 	{
@@ -108,11 +108,11 @@ const wow = inputs.reduce((acc, input) => {
 		// cwd: process.env.FOLDER_PATH,
 	});
 	// const tempp = files.map((file) => path.join(process.env.FOLDER_PATH, file));
-	const formats = ['cjs'];
+	const formats = ["cjs"];
 	return [
 		...acc,
 		...formats.reduce((acc, format) => {
-			return [...acc, ...files.map(getRollupConfig({ isBrowser: input.browser, format }))];
+			return [...acc, ...files.map(getRollupConfig({ isBrowser: input.browser, format, totalFormats: formats.length }))];
 		}, []),
 	];
 }, []);

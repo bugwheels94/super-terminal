@@ -107,7 +107,7 @@
 		"node-pty": "^0.10.1",
 		"super-terminal-ui": "file:./ui",
 		"tcp-port-used": "^1.0.2",
-		"typeorm": "0.3.6",
+		"typeorm": "^0.3.15",
 		"ws": "^8.5.0"
 	},
 	"prettier": {
