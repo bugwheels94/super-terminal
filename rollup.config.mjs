@@ -9,11 +9,11 @@ import path from 'path';
 import terser from '@rollup/plugin-terser';
 const extensions = ['.js', '.ts', '.jsx', '.tsx'];
 const babelIncludes = ['./src/**/*'];
-const bundleNpmWorkspacePackages = ["ws"];
-const bundlePackages = ["restify-websocket/server","restify-websocket"];
-const neverBundlePackages = ["typeorm"];
+const bundleNpmWorkspacePackages = [];
+const bundlePackages = [];
+const neverBundlePackages = ['typeorm', 'node-pty'];
 const shouldBundleLocalFilesTogether = true;
-const shouldBundleNodeModules = false;
+const shouldBundleNodeModules = true;
 const isDevelopment = process.env.ROLLUP_WATCH;
 const decorators = true;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -29,7 +29,7 @@ const getRollupConfig =
 			output: {
 				file: path.join(
 					'./dist',
-					totalFormats > 1 ? format : "",
+					totalFormats > 1 ? format : '',
 					// isBrowser ? '' : 'server',
 					localInput.replace('/src', '').replace(/\.(tsx|ts)/, format === 'cjs' ? '.js' : '.js')
 				),
@@ -87,7 +87,7 @@ const getRollupConfig =
 			],
 		};
 	};
-const inputs = [{"include":["./src/index.ts","./src/run-server.ts"],"name":"server"}];
+const inputs = [{ include: ['./src/index.ts', './src/run-server.ts'], name: 'server' }];
 
 /**[
 	{
@@ -108,11 +108,14 @@ const wow = inputs.reduce((acc, input) => {
 		// cwd: process.env.FOLDER_PATH,
 	});
 	// const tempp = files.map((file) => path.join(process.env.FOLDER_PATH, file));
-	const formats = ["cjs"];
+	const formats = ['cjs'];
 	return [
 		...acc,
 		...formats.reduce((acc, format) => {
-			return [...acc, ...files.map(getRollupConfig({ isBrowser: input.browser, format, totalFormats: formats.length }))];
+			return [
+				...acc,
+				...files.map(getRollupConfig({ isBrowser: input.browser, format, totalFormats: formats.length })),
+			];
 		}, []),
 	];
 }, []);
