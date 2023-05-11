@@ -24,9 +24,7 @@ export function main(port?: number) {
 	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
-		const p = require.resolve('super-terminal-ui').split(/[/\\]dummy/)[0];
-		app.use(express.static(p));
-		app.use('*', express.static(path.join(p, 'index.html')));
+		app.use(express.static(path.join(__dirname, '..', 'ui/dist')));
 	}
 	let httpServer: Server;
 	if (finalConfig.KEY && finalConfig.CERT) {
