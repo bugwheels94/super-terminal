@@ -12,7 +12,7 @@
 
 ## Introduction
 
-Super Terminal is a terminal manager for super fast developers who dont like repetition and work fast. If saving time is the basic decision maker for your actions then super terminal might suite you well.
+Super Terminal is a terminal manager for developers who dont like repetition and work fast. If saving time is the basic decision maker for your actions then super terminal might suite you well.
 
 ## Features
 
