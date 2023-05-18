@@ -2,12 +2,9 @@ import path from 'path';
 import os from 'os';
 import config from '../config.json';
 import fs from 'fs';
+import yaml from 'js-yaml';
 
 export const readYAMLFile = (...fileName: string[]) => {
-	const yaml = require('js-yaml');
-	const path = require('path');
-	const fs = require('fs');
-
 	try {
 		return yaml.load(fs.readFileSync(path.join(...fileName), 'utf8'), {
 			schema: yaml.JSON_SCHEMA,

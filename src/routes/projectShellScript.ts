@@ -32,7 +32,7 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 		await ShellScriptRepository.save(script);
 		res.group(id.toString()).status(200).send(script);
 	});
-	router.post('/terminals/:terminalId/scripts/:scriptId/executions', async (req, res) => {
+	router.post('/terminals/:terminalId/scripts/:scriptId/executions', async (req) => {
 		const scriptId = Number(req.params.scriptId);
 		const terminalId = Number(req.params.terminalId);
 		const script = await ShellScriptRepository.findOneOrFail({ where: { id: scriptId } });

@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity } from 'typeorm';
 
 import { TerminalLog } from './TerminalLog';
 @Entity()

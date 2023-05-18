@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { Terminal } from './Terminal';
+import type { Terminal } from './Terminal';
 @Entity()
 export class TerminalLog {
 	@PrimaryGeneratedColumn()
@@ -10,7 +10,7 @@ export class TerminalLog {
 	@Column()
 	terminalId: number;
 
-	@ManyToOne(() => Terminal, (terminal) => terminal.logs, {
+	@ManyToOne('Terminal', 'logs', {
 		onDelete: 'CASCADE',
 	})
 	terminal: Terminal;

@@ -1,8 +1,8 @@
 import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
-import { Project } from './Project';
-import { TerminalLog } from './TerminalLog';
-import { TerminalSetting } from './TerminalSetting';
+import type { Project } from './Project';
+import type { TerminalLog } from './TerminalLog';
+import type { TerminalSetting } from './TerminalSetting';
 @Entity()
 export class Terminal {
 	@PrimaryGeneratedColumn()
@@ -12,7 +12,7 @@ export class Terminal {
 	@Column({ nullable: true })
 	projectId: number;
 
-	@ManyToOne(() => Project, (project) => project.terminals, {
+	@ManyToOne('Project', 'terminals', {
 		onDelete: 'CASCADE',
 	})
 	project: Project;
@@ -36,12 +36,12 @@ export class Terminal {
 	@Column({ nullable: true })
 	y: number;
 
-	@OneToMany(() => TerminalSetting, (settings) => settings.terminal, {
+	@OneToMany('TerminalSetting', 'terminal', {
 		cascade: true,
 	})
 	settings: TerminalSetting[];
 
-	@OneToMany(() => TerminalLog, (logs) => logs.terminal, { cascade: true })
+	@OneToMany('TerminalLog', 'terminal', { cascade: true })
 	logs: TerminalLog[];
 
 	@Column({ nullable: true })

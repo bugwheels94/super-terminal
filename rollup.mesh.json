@@ -1,0 +1,18 @@
+{
+	"typescript": true,
+	"generateTypes": true,
+	"decorators": true,
+	"bundleLocalFiles": true,
+	"bundleDependencies": [],
+	"neverBundleDependencies": ["typeorm", "node-pty"],
+	"bundleNodeModules": true,
+	"bundleNpmWorkspacePackages": [],
+	"inputs": [
+		{
+			"include": ["./src/index.ts", "./src/run-server.ts"],
+			"name": "server"
+		}
+	],
+	"formats": ["cjs"],
+	"babelHelpers": "bundled"
+}
