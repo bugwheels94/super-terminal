@@ -1,3 +1,4 @@
 import { main } from './index';
 const PORT = process.env.PORT;
-main(Number(PORT || 0));
+const BIND_ADDRESS = process.env.HOST;
+main(Number(PORT || 0), BIND_ADDRESS);

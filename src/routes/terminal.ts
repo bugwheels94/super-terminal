@@ -164,7 +164,7 @@ export const addTerminalRoutes = (router: Router) => {
 						terminalId: terminal.id,
 					},
 					order: { createdAt: -1 },
-					take: 1000,
+					take: project.numberOfLogsToRestore,
 				});
 				return {
 					...terminal,
