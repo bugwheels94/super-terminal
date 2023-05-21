@@ -7,7 +7,7 @@
 	],
 	"homepage": ".",
 	"scripts": {
-		"start:watch": "PORT=7000 BROWSER=none craco start",
+		"start:watch": "BROWSER=none craco start",
 		"build": "BUILD_PATH='./dist' craco build",
 		"eject": "craco eject"
 	},
