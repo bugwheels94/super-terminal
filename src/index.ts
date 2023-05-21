@@ -15,7 +15,7 @@ import { getConfig } from './utils/config';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
 
-export function main(port?: number) {
+export function main(port: number, bindAddress: string) {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
@@ -27,7 +27,7 @@ export function main(port?: number) {
 		app.use(express.static(path.join(__dirname, '..', 'ui/dist')));
 	}
 	let httpServer: Server;
-	if (finalConfig.KEY && finalConfig.CERT) {
+	if (finalConfig.KEY && finalConfig.CERT && !process.env.DEVELOPMENT) {
 		httpServer = https.createServer(
 			{
 				cert: fs.readFileSync(finalConfig.CERT),
@@ -53,8 +53,10 @@ export function main(port?: number) {
 				distributor: new InMemoryMessageDistributor(),
 			});
 			restify.on('ready', () => {
-				httpServer.listen(port || finalConfig.PORT, finalConfig.BIND_ADDRESS, function listening() {
-					console.log('Running on Port', port || finalConfig.PORT);
+				const p = port || finalConfig.PORT;
+				const b = bindAddress || finalConfig.BIND_ADDRESS;
+				httpServer.listen(p, b, function listening() {
+					console.log(`Running at ${b}:${p}`);
 				});
 
 				const { router, rawWebSocketServer } = restify;

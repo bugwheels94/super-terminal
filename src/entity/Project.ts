@@ -24,6 +24,9 @@ export class Project {
 	@Column('int', { nullable: true })
 	fontSize?: number;
 
+	@Column('int', { nullable: true, default: 100 })
+	numberOfLogsToRestore?: number;
+
 	@Column({ nullable: true, type: 'simple-json' })
 	terminalTheme?: any;
 }
