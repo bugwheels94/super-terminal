@@ -1,5 +1,5 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
-import { Router } from 'restify-websocket/server';
+import { Router } from 'soxtend/server';
 import { Project } from '../entity/Project';
 import { getNewFullSizeTerminal } from './terminal';
 const defaultTheme = {

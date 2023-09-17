@@ -34,7 +34,7 @@ import { useDeleteLogsArchive, usePutSocketGroup } from '../../services/group';
 import { MyTerminal } from '../MyTerminal/MyTerminal';
 import './Project.css';
 import { useQueryClient } from 'react-query';
-import { receiver } from '../../utils/socket';
+import { client } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ShellScriptComp } from './ShellScript';
 import { FiCopy } from 'react-icons/fi';
@@ -42,6 +42,7 @@ import { ProjectForm } from './Form';
 import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
 import { Drawer } from 'antd';
 import { ShellScriptExecution } from '../MyTerminal/ShellScriptExecution';
+import { debounce } from 'lodash';
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
 const getWindowDimensions = () => {
 	const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
@@ -89,6 +90,18 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 
 	const { data: terminals } = useGetTerminals(project.id);
 
+	useEffect(() => {
+		const handler = debounce(() => {
+			if (project.terminalLayout === 'automatic') {
+				setTriggerArrangeTerminals((t) => t + 1);
+			}
+		}, 250);
+		window.addEventListener('resize', handler);
+		return () => {
+			window.removeEventListener('resize', handler);
+		};
+	}, [project.terminalLayout]);
+
 	const setTerminalPatcher = useCallback(
 		(terminalId: number, terminal: PatchTerminalRequest | null) => {
 			setTerminalPatchers((s) => ({ ...s, [terminalId]: terminal }));
@@ -114,54 +127,53 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 
 	useEffect(() => {
 		const slug = project.slug;
-		receiver.startChainedRoutes('project-page');
-		receiver.patch('/projects/:projectId', (request, response) => {
-			if (response.data) queryClient.setQueryData(getProjectQueryKey(slug), response.data);
-		});
-		receiver.post('/projects/:projectId/terminals', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
-			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-			queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
-		});
-		receiver.post('/projects/:projectId/terminals/:terminalId/copies', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
-			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-			queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
-		});
-		receiver.patch('/projects/:projectId/terminals/:terminalId', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
+		const listeners = client.addServerResponseListenerFor
+			.patch('/projects/:projectId', (request, response) => {
+				if (response.data) queryClient.setQueryData(getProjectQueryKey(slug), response.data);
+			})
+			.post('/projects/:projectId/terminals', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+				queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
+			})
+			.post('/projects/:projectId/terminals/:terminalId/copies', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+				queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
+			})
+			.patch('/projects/:projectId/terminals/:terminalId', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
 
-			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-			queryClient.setQueryData(
-				getTerminalQueryKey(projectId),
-				oldData.map((terminal) => {
-					if (terminal.id === Number(request.params.terminalId)) {
-						return response.data;
-					}
-					return terminal;
-				})
-			);
-		});
-		receiver.delete('/projects/:projectId/terminals/:terminalId', (request, response) => {
-			const projectId = Number(request.params.projectId);
-			const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-			queryClient.setQueryData(
-				getTerminalQueryKey(projectId),
-				oldData.filter((terminal) => {
-					if (Number(request.params.terminalId) === terminal.id) {
-						return false;
-					}
-					return true;
-				})
-			);
-		});
-		receiver.endChainedRoutes();
+				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+				queryClient.setQueryData(
+					getTerminalQueryKey(projectId),
+					oldData.map((terminal) => {
+						if (terminal.id === Number(request.params.terminalId)) {
+							return response.data;
+						}
+						return terminal;
+					})
+				);
+			})
+			.delete('/projects/:projectId/terminals/:terminalId', (request, response) => {
+				const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+				queryClient.setQueryData(
+					getTerminalQueryKey(projectId),
+					oldData.filter((terminal) => {
+						if (Number(request.params.terminalId) === terminal.id) {
+							return false;
+						}
+						return true;
+					})
+				);
+			});
 
 		return () => {
-			receiver.clearChain('project-page');
+			listeners.stopListening();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [queryClient]);

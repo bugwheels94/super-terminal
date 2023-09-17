@@ -7,7 +7,7 @@ import {
 	useGetProjectScripts,
 	usePostProjectScript,
 } from '../../services/shellScript';
-import { receiver } from '../../utils/socket';
+import { client } from '../../utils/socket';
 import { Shell } from './Shell';
 const { Panel } = Collapse;
 
@@ -25,58 +25,51 @@ export const ShellScriptComp = ({
 	const queryClient = useQueryClient();
 
 	useEffect(() => {
-		// receiver.get('/projects/:projectId/scripts', (request, response) => {
-		// 	console.log("Receiver picking")
-		// 	const projectId = Number(request.params.projectId);
+		const listeners = client.addServerResponseListenerFor
+			.post('/projects/:projectId/scripts', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
 
-		// 	if (response.data) queryClient.setQueryData(getProjectScriptQueryKey(projectId), response.data);
-		// });
-		receiver.startChainedRoutes('shell-script-page');
-		receiver.post('/projects/:projectId/scripts', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+				queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
+			})
+			.post('/projects/:projectId/scripts/:scriptId/copies', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+				queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
+			})
+			.patch('/projects/:projectId/scripts/:scriptId', (request, response) => {
+				if (!response.data) return;
+				const projectId = Number(request.params.projectId);
 
-			const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-			queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
-		});
-		receiver.post('/projects/:projectId/scripts/:scriptId/copies', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
-			const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-			queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
-		});
-		receiver.patch('/projects/:projectId/scripts/:scriptId', (request, response) => {
-			if (!response.data) return;
-			const projectId = Number(request.params.projectId);
+				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+				queryClient.setQueryData(
+					getProjectScriptQueryKey(projectId),
+					oldData.map((shellScript) => {
+						if (shellScript.id === Number(request.params.scriptId)) {
+							return response.data;
+						}
+						return shellScript;
+					})
+				);
+			})
+			.delete('/projects/:projectId/scripts/:scriptId', (request, response) => {
+				const projectId = Number(request.params.projectId);
 
-			const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-			queryClient.setQueryData(
-				getProjectScriptQueryKey(projectId),
-				oldData.map((shellScript) => {
-					if (shellScript.id === Number(request.params.scriptId)) {
-						return response.data;
-					}
-					return shellScript;
-				})
-			);
-		});
-		receiver.delete('/projects/:projectId/scripts/:scriptId', (request, response) => {
-			const projectId = Number(request.params.projectId);
-
-			const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-			queryClient.setQueryData(
-				getProjectScriptQueryKey(projectId),
-				oldData.filter((script) => {
-					if (Number(request.params.scriptId) === script.id) {
-						return false;
-					}
-					return true;
-				})
-			);
-		});
-		receiver.endChainedRoutes();
+				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+				queryClient.setQueryData(
+					getProjectScriptQueryKey(projectId),
+					oldData.filter((script) => {
+						if (Number(request.params.scriptId) === script.id) {
+							return false;
+						}
+						return true;
+					})
+				);
+			});
 		return () => {
-			receiver.clearChain('shell-script-page');
+			listeners.stopListening();
 		};
 	}, [queryClient]);
 

@@ -11,7 +11,7 @@ import {
 	useGetProjects,
 	usePostProject,
 } from '../../services/project';
-import { receiver } from '../../utils/socket';
+import { client } from '../../utils/socket';
 import { BsPlusCircle } from 'react-icons/bs';
 import './Home.css';
 import { ProjectForm } from '../Project/Form';
@@ -24,9 +24,8 @@ function Home() {
 	}, []);
 
 	useEffect(() => {
-		receiver.delete('/projects/:id', (request, response) => {
+		client.addServerResponseListenerFor.delete('/projects/:id', (request, response) => {
 			const id = Number(request.params.id);
-
 			const oldData = queryClient.getQueryData(getProjectQueryKey()) as Project[];
 			queryClient.setQueryData(
 				getProjectQueryKey(),

@@ -1,4 +1,4 @@
-import { ClientRequest } from 'restify-websocket/client';
+import { ClientRequest } from 'soxtend/client';
 import { ApiError } from './error';
 import { client } from './socket';
 

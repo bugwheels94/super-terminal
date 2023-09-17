@@ -1,5 +1,5 @@
 import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
-import { Router, RouterResponse } from 'restify-websocket/server';
+import { Router, RouterResponse } from 'soxtend/server';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
 import yaml from 'js-yaml';
@@ -37,10 +37,10 @@ export function getNewFullSizeTerminal() {
 export function getNewHalfSizeTerminal() {
 	return {
 		title: 'New Terminal',
-		height: 50,
-		width: 50,
-		x: 25,
-		y: 25,
+		height: 300,
+		width: 220,
+		x: 0,
+		y: 0,
 	} as Terminal;
 }
 export const addTerminalRoutes = (router: Router) => {
@@ -122,12 +122,6 @@ export const addTerminalRoutes = (router: Router) => {
 
 		if (Object.keys(terminal).length) {
 			await TerminalRepository.update(id, terminal);
-		}
-		if (Object.keys(terminal).length === 2 && 'x' in terminal && 'y' in terminal) {
-			return;
-		}
-		if (Object.keys(terminal).length === 2 && 'height' in terminal && 'width' in terminal) {
-			return;
 		}
 		res
 			.group(projectId.toString())

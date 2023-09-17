@@ -1,6 +1,6 @@
 import { debounce } from 'lodash';
 import { useRef, useEffect, useMemo } from 'react';
-import { client, receiver } from '../../utils/socket';
+import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
 import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
 import './MyTerminal.css';
@@ -17,21 +17,23 @@ import {
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
-function getPercent(numerator: number, denominator: number) {
-	return Math.round((numerator / denominator + Number.EPSILON) * 10000) / 100;
-}
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
 	}
 }
-function getTerminalPosition(terminal: Terminal, parent: HTMLDivElement) {
-	return {
-		height: terminal.height ? (terminal.height * parent?.offsetHeight) / 100 : undefined,
-		width: terminal.width ? (terminal.width * parent?.offsetWidth) / 100 : undefined,
-		x: terminal.x ? (terminal.x * parent?.offsetWidth) / 100 : undefined,
-		y: terminal.y ? (terminal.y * parent?.offsetHeight) / 100 : undefined,
+function getTerminalPosition(
+	terminal: Terminal,
+	{ parent, shouldCenter }: { shouldCenter?: boolean; parent: HTMLDivElement }
+) {
+	const position = {
+		height: terminal.height ? terminal.height : undefined,
+		width: terminal.width ? terminal.width : undefined,
+		x: terminal.x ? terminal.x : undefined,
+		y: terminal.y ? terminal.y : undefined,
 	};
+
+	return position;
 }
 function convertToITheme(theme?: ITheme) {
 	if (!theme) return {};
@@ -83,7 +85,7 @@ const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) =>
 		columns.push(terminalCount % 3 === 0 ? 3 : terminalCount % 3);
 	}
 	const viewport = getViewport();
-	const width = 100 / columns.length;
+	const width = Math.floor(viewport[0] / columns.length);
 	let acc = 0,
 		effectiveColumnIndex = 0,
 		effectiveRowIndex = 0;
@@ -96,11 +98,11 @@ const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) =>
 			acc += columns[i];
 		}
 	}
-	const height = 100 / columns[effectiveColumnIndex];
+	const height = Math.floor(viewport[1] / columns[effectiveColumnIndex]);
 	return {
-		height: (height / 100) * viewport[1],
+		height,
 		y: effectiveRowIndex * height,
-		width: (width / 100) * viewport[0],
+		width,
 		x: width * effectiveColumnIndex,
 	};
 };
@@ -181,30 +183,31 @@ export const MyTerminal = ({
 	}, [mainCommandCounter, terminal.id, terminal.mainCommand]);
 
 	useEffect(() => {
-		receiver.startChainedRoutes('terminal-page-' + terminal.id);
-		receiver.post<{ terminalId: string }>('/terminals/:terminalId/terminal-data', async (req, res) => {
-			const terminalId = Number(req.params.terminalId);
-			const data = res.data;
-			if (terminalId !== terminal.id) return;
-			const instance = ref2.current;
-			if (!instance) return;
-			// @ts-ignore
-			instance.xterm.write(data);
-		});
-		receiver.endChainedRoutes();
+		const listeners = client.addServerResponseListenerFor.post<{ terminalId: string }>(
+			'/terminals/:terminalId/terminal-data',
+			async (req, res) => {
+				const terminalId = Number(req.params.terminalId);
+				const data = res.data;
+				if (terminalId !== terminal.id) return;
+				const instance = ref2.current;
+				if (!instance) return;
+				// @ts-ignore
+				instance.xterm.write(data);
+			}
+		);
 		return () => {
-			receiver.clearChain('terminal-page-' + terminal.id);
+			listeners.stopListening();
 		};
 	}, [terminal.id]);
-	const [arrangement, setArrangement] = useState<{ x: string; y: string; height: string; width: string } | null>(null);
+	const [arrangement, setArrangement] = useState<{ x: number; y: number; height: number; width: number } | null>(null);
 	useEffect(() => {
 		if (triggerArrangeTerminals === 0 && project.terminalLayout !== 'automatic') return;
 		const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
 		setArrangement({
-			x: arrangement.x + '%',
-			y: arrangement.y + '%',
-			width: arrangement.width + 'px',
-			height: arrangement.height + 'px',
+			x: arrangement.x,
+			y: arrangement.y,
+			width: arrangement.width,
+			height: arrangement.height,
 		});
 	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals]);
 	useEffect(() => {
@@ -234,7 +237,10 @@ export const MyTerminal = ({
 		if (ref2.current || !project) return;
 		const winbox = new WinBox(terminal.title || 'Untitled', {
 			root: element,
-			...getTerminalPosition(terminal, element),
+			...getTerminalPosition(terminal, {
+				parent: element,
+				shouldCenter: project.terminalLayout !== 'automatic',
+			}),
 		});
 		const $title = winbox.dom.querySelector('.wb-title') as HTMLDivElement;
 		$title.contentEditable = 'true';
@@ -250,8 +256,8 @@ export const MyTerminal = ({
 			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
 				body: {
 					// multiply by 100 to make default 1% instead of 100
-					x: getPercent(x, element?.offsetWidth || x * 100),
-					y: getPercent(y, element?.offsetHeight || x * 100),
+					x,
+					y,
 				},
 				forget: true,
 			});
@@ -275,12 +281,12 @@ export const MyTerminal = ({
 			addons.fit.fit();
 			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
 				body: {
-					height: getPercent(height, element?.offsetHeight || height),
-					width: getPercent(width, element?.offsetWidth || width),
+					height,
+					width,
 				},
 				forget: true,
 			});
-		}, 200);
+		}, 100);
 
 		winbox.fullscreen = () => {
 			setPatchTerminalId(terminal.id);
@@ -333,18 +339,6 @@ export const MyTerminal = ({
 			forget: true,
 		});
 	}, [project.fontSize, project.id, terminal.id]);
-
-	useEffect(() => {
-		const handler = debounce(() => {
-			const position = getTerminalPosition(terminal, element);
-			ref2.current?.winbox.move(position.x, position.y);
-			ref2.current?.winbox.resize(position.width, position.height);
-		}, 250);
-		window.addEventListener('resize', handler);
-		return () => {
-			window.removeEventListener('resize', handler);
-		};
-	}, [element, terminal]);
 
 	const handleSearch = (value: string) => {
 		setCommandQuery(value);

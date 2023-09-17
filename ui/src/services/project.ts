@@ -6,7 +6,7 @@ import { useQueryPlus } from '../utils/reactQueryPlus/query';
 import { addPrefixIfNotEmpty } from '../utils/string';
 import { ApiError } from '../utils/error';
 import { useEffect } from 'react';
-import { receiver } from '../utils/socket';
+import { client } from '../utils/socket';
 
 export type Project = {
 	slug: string;
@@ -38,15 +38,16 @@ export const usePostProject = (options: UseMutationOptions<Project, ApiError, Po
 	const queryClient = useQueryClient();
 
 	useEffect(() => {
-		receiver.startChainedRoutes('project-post');
-		receiver.post<{ terminalId: string }>('/projects', async (req, res) => {
-			const data = res.data;
-			const oldData = queryClient.getQueryData(getProjectQueryKey()) as Project[];
-			queryClient.setQueryData(getProjectQueryKey(), [...oldData, data]);
-		});
-		receiver.endChainedRoutes();
+		const listeners = client.addServerResponseListenerFor.post<{ terminalId: string }>(
+			'/projects',
+			async (req, res) => {
+				const data = res.data;
+				const oldData = queryClient.getQueryData(getProjectQueryKey()) as Project[];
+				queryClient.setQueryData(getProjectQueryKey(), [...oldData, data]);
+			}
+		);
 		return () => {
-			receiver.clearChain('project-post');
+			listeners.stopListening();
 		};
 	}, [queryClient]);
 

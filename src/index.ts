@@ -4,7 +4,7 @@ import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
 import { WebSocket } from 'ws';
-import { RestifyWebSocketServer, InMemoryMessageDistributor } from 'restify-websocket/server';
+import { SoxtendServer, InMemoryMessageDistributor, Router } from 'soxtend/server';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
@@ -47,22 +47,23 @@ export function main(port: number, bindAddress: string) {
 				shellHistory();
 			}, 30 * 1000);
 
-			const restify = new RestifyWebSocketServer({
+			const server = new SoxtendServer({
 				noServer: true,
 
 				distributor: new InMemoryMessageDistributor(),
 			});
-			restify.on('ready', () => {
+			const router = new Router(server);
+			server.addListener('connection', (socket) => {
+				server.joinGroup('global', socket);
+			});
+			server.addListener('ready', () => {
 				const p = port || finalConfig.PORT;
 				const b = bindAddress || finalConfig.BIND_ADDRESS;
 				httpServer.listen(p, b, function listening() {
 					console.log(`Running at ${b}:${p}`);
 				});
 
-				const { router, rawWebSocketServer } = restify;
-				router.onConnect((socket) => {
-					router.joinGroup('global', socket);
-				});
+				const { rawWebSocketServer } = server;
 				// restify.addEventListener('connection', ({ socket }) => {
 				// 	socket.project = socket.socket.groups[0];
 				// 	socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
@@ -77,7 +78,7 @@ export function main(port: number, bindAddress: string) {
 					// 	}
 
 					rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
-						restify.emit('connection', ws, request);
+						server.rawWebSocketServer.emit('connection', ws, request);
 					});
 					// });
 				});

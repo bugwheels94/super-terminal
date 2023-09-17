@@ -76,7 +76,7 @@
 		"npm-run-all": "^4.1.5",
 		"prettier": "^2.7.1",
 		"reflect-metadata": "^0.1.13",
-		"restify-websocket": "^1.0.0",
+		"soxtend": "^1.0.0",
 		"rollup": "^3.21.5",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
@@ -119,7 +119,7 @@
 		"**/*": "prettier --write --ignore-unknown"
 	},
 	"syncWorkspaceDependencies": {
-		"restify-websocket": {
+		"soxtend": {
 			"type": "npm"
 		}
 	},

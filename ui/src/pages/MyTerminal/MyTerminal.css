@@ -24,4 +24,8 @@
 }
 .wb-body {
 	overflow: hidden;
+	display: flex;
+}
+.xterm {
+	flex-grow: 1;
 }
