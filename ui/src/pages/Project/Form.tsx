@@ -98,7 +98,16 @@ export const ProjectForm = ({
 						label="Number of Logs to Restore"
 						name="numberOfLogsToRestore"
 					>
-						<Slider min={5} max={5000} />
+						<Slider min={500} max={10000} step={100} />
+					</Form.Item>
+					<Form.Item
+						colon={false}
+						labelAlign="left"
+						labelCol={{ span: 12 }}
+						label="Number of Lines that can be scrolled"
+						name="scrollback"
+					>
+						<Slider min={1000} max={50000} step={100} />
 					</Form.Item>
 					<Form.Item
 						colon={false}

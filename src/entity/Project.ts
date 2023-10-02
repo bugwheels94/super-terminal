@@ -27,6 +27,9 @@ export class Project {
 	@Column('int', { nullable: true, default: 100 })
 	numberOfLogsToRestore?: number;
 
+	@Column('int', { nullable: true, default: 1000 })
+	scrollback?: number;
+
 	@Column({ nullable: true, type: 'simple-json' })
 	terminalTheme?: any;
 }

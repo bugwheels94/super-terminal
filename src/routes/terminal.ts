@@ -25,20 +25,11 @@ type PutTerminalRequest = {
 	startupCommands?: string;
 	startupEnvironmentVariables?: string;
 };
-export function getNewFullSizeTerminal() {
+export function createNewTerminal() {
 	return {
 		title: 'New Terminal',
-		height: 100,
-		width: 100,
-		x: 0,
-		y: 0,
-	} as Terminal;
-}
-export function getNewHalfSizeTerminal() {
-	return {
-		title: 'New Terminal',
-		height: 300,
-		width: 220,
+		height: 250,
+		width: 400,
 		x: 0,
 		y: 0,
 	} as Terminal;
@@ -58,7 +49,7 @@ export const addTerminalRoutes = (router: Router) => {
 		const project = await ProjectRepository.findOneOrFail({
 			where: { id },
 		});
-		const terminal = getNewHalfSizeTerminal();
+		const terminal = createNewTerminal();
 		terminal.project = project;
 
 		await TerminalRepository.save(terminal);
@@ -76,7 +67,7 @@ export const addTerminalRoutes = (router: Router) => {
 		});
 		const terminal = await TerminalRepository.save({
 			...oldTerminal,
-			...getNewHalfSizeTerminal(),
+			...createNewTerminal(),
 			id: undefined,
 			title: oldTerminal.title + '-clone',
 		});

@@ -88,7 +88,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 	const { data: projectScripts } = useGetProjectScripts(project.id);
 	const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
 
-	const { data: terminals } = useGetTerminals(project.id);
+	const { data: terminals } = useGetTerminals(project.id, {});
 
 	useEffect(() => {
 		const handler = debounce(() => {
@@ -306,12 +306,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 			projectScripts,
 		]
 	);
-	useEffect(() => {
-		const temp: Record<number, PatchTerminalRequest | null> = {};
-		terminals?.forEach((terminal) => {
-			temp[terminal.id] = {};
-		});
-	}, [terminals]);
 	useEffect(() => {
 		window.addEventListener(
 			'contextmenu',

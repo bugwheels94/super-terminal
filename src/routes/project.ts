@@ -1,7 +1,7 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
 import { Router } from 'soxtend/server';
 import { Project } from '../entity/Project';
-import { getNewFullSizeTerminal } from './terminal';
+import { createNewTerminal } from './terminal';
 const defaultTheme = {
 	name: 'Breeze',
 	black: '#31363b',
@@ -51,6 +51,7 @@ export const addProjectRoutes = (router: Router) => {
 		project.slug = body.slug;
 		project.fontSize = body.fontSize;
 		project.terminalTheme = body.terminalTheme;
+		project.scrollback = body.scrollback;
 
 		const query: Record<string, string | number> = {};
 		const slug = body.slug;
@@ -68,7 +69,7 @@ export const addProjectRoutes = (router: Router) => {
 			projectRecord = await ProjectRepository.findOneOrFail({
 				where: query,
 			});
-			const terminal = getNewFullSizeTerminal();
+			const terminal = createNewTerminal();
 			terminal.project = projectRecord;
 			await TerminalRepository.save(terminal);
 		}
@@ -96,6 +97,7 @@ export const addProjectRoutes = (router: Router) => {
 			query.slug = slug;
 		}
 		project.fontSize = 14;
+		project.scrollback = 1000;
 		project.terminalTheme = defaultTheme;
 		let projectRecord: Project;
 		try {
@@ -108,7 +110,7 @@ export const addProjectRoutes = (router: Router) => {
 			projectRecord = await ProjectRepository.findOneOrFail({
 				where: query,
 			});
-			const terminal = getNewFullSizeTerminal();
+			const terminal = createNewTerminal();
 			terminal.project = projectRecord;
 			await TerminalRepository.save(terminal);
 		}

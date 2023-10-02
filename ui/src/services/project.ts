@@ -14,6 +14,7 @@ export type Project = {
 	terminalTheme?: ITheme;
 	fontSize?: number;
 	terminalLayout: 'automatic' | 'manual';
+	scrollback?: number;
 };
 
 export type PostProjectRequest = Omit<Project, 'id'>;
