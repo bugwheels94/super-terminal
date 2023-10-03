@@ -1,5 +1,5 @@
 import path from 'path';
-import { Router } from 'restify-websocket/server';
+import { Router } from 'soxtend/server';
 import { AppDataSource, ProjectRepository, ShellScriptRepository } from '../data-source';
 import { ShellScript } from '../entity/ShellScript';
 import { targetDir } from '../utils/config';

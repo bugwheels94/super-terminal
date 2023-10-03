@@ -1,6 +1,6 @@
 import { debounce } from 'lodash';
-import { useRef, useEffect, useMemo } from 'react';
-import { client, receiver } from '../../utils/socket';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
 import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
 import './MyTerminal.css';
@@ -17,21 +17,24 @@ import {
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
-function getPercent(numerator: number, denominator: number) {
-	return Math.round((numerator / denominator + Number.EPSILON) * 10000) / 100;
-}
+import { createPortal } from 'react-dom';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
 	}
 }
-function getTerminalPosition(terminal: Terminal, parent: HTMLDivElement) {
-	return {
-		height: terminal.height ? (terminal.height * parent?.offsetHeight) / 100 : undefined,
-		width: terminal.width ? (terminal.width * parent?.offsetWidth) / 100 : undefined,
-		x: terminal.x ? (terminal.x * parent?.offsetWidth) / 100 : undefined,
-		y: terminal.y ? (terminal.y * parent?.offsetHeight) / 100 : undefined,
+function getTerminalPosition(
+	terminal: Terminal,
+	{ parent, shouldCenter }: { shouldCenter?: boolean; parent: HTMLDivElement }
+) {
+	const position = {
+		height: terminal.height ? terminal.height : undefined,
+		width: terminal.width ? terminal.width : undefined,
+		x: terminal.x ? terminal.x : undefined,
+		y: terminal.y ? terminal.y : undefined,
 	};
+
+	return position;
 }
 function convertToITheme(theme?: ITheme) {
 	if (!theme) return {};
@@ -83,7 +86,7 @@ const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) =>
 		columns.push(terminalCount % 3 === 0 ? 3 : terminalCount % 3);
 	}
 	const viewport = getViewport();
-	const width = 100 / columns.length;
+	const width = Math.floor(viewport[0] / columns.length);
 	let acc = 0,
 		effectiveColumnIndex = 0,
 		effectiveRowIndex = 0;
@@ -96,11 +99,11 @@ const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) =>
 			acc += columns[i];
 		}
 	}
-	const height = 100 / columns[effectiveColumnIndex];
+	const height = Math.floor(viewport[1] / columns[effectiveColumnIndex]);
 	return {
-		height: (height / 100) * viewport[1],
+		height,
 		y: effectiveRowIndex * height,
-		width: (width / 100) * viewport[0],
+		width,
 		x: width * effectiveColumnIndex,
 	};
 };
@@ -134,41 +137,58 @@ export const MyTerminal = ({
 }) => {
 	const visible = useMemo(() => patchTerminalId === terminal.id, [patchTerminalId, terminal.id]);
 	const [editorCommand, setEditorCommand] = useState('');
+	const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
+	const [searchValue, setSearchValue] = useState('');
 	const [commandQuery, setCommandQuery] = useState('');
 	const [isCommandEditorVisible, setIsCommandEditorVisible] = useState(false);
 	const { data } = useGetTerminalCommands(terminal.id, commandQuery, {
 		initialData: [],
 	});
 
-	const ref2 = useRef<{
+	type Action = { type: 'set'; payload: State };
+
+	// Define the state type
+	type State = {
 		xterm: XTerm;
 		winbox: any;
 		addons: Addons;
-	}>();
+	} | null;
+
+	// Reducer function
+	function reducer(state: State, action: Action): State {
+		switch (action.type) {
+			case 'set':
+				return action.payload;
+			default:
+				return state;
+		}
+	}
+	const [state, dispatch] = useReducer(reducer, null);
+
 	const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
 	useEffect(() => {
 		return () => {
-			if (!ref2.current) return;
-			ref2.current?.xterm.dispose();
-			ref2.current?.winbox.close(true);
+			if (!state) return;
+			state.xterm.dispose();
+			state.winbox.close(true);
 		};
-	}, []);
+	}, [state]);
 	useEffect(() => {
-		if (!terminalPatcher || !ref2.current) return;
+		if (!terminalPatcher || !state) return;
 		patchTerminal({
 			...terminalPatcher,
 			meta: {
-				cols: ref2.current.xterm.cols,
-				rows: ref2.current.xterm.rows,
+				cols: state.xterm.cols,
+				rows: state.xterm.rows,
 			},
 		});
 		setTerminalPatcher(terminal.id, null);
-	}, [terminalPatcher, patchTerminal, setTerminalPatcher, terminal.id]);
+	}, [terminalPatcher, patchTerminal, setTerminalPatcher, terminal.id, state]);
 	const { mutateAsync: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
 	useEffect(() => {
-		if (!ref2.current) return;
-		ref2.current.xterm.options.theme = convertToITheme(project.terminalTheme);
-	}, [project.terminalTheme]);
+		if (!state) return;
+		state.xterm.options.theme = convertToITheme(project.terminalTheme);
+	}, [project.terminalTheme, state]);
 	useEffect(() => {
 		if (mainCommandCounter === 0 || terminal.mainCommand == null) return;
 		client.post('/terminal-command', {
@@ -181,77 +201,83 @@ export const MyTerminal = ({
 	}, [mainCommandCounter, terminal.id, terminal.mainCommand]);
 
 	useEffect(() => {
-		receiver.startChainedRoutes('terminal-page-' + terminal.id);
-		receiver.post<{ terminalId: string }>('/terminals/:terminalId/terminal-data', async (req, res) => {
-			const terminalId = Number(req.params.terminalId);
-			const data = res.data;
-			if (terminalId !== terminal.id) return;
-			const instance = ref2.current;
-			if (!instance) return;
-			// @ts-ignore
-			instance.xterm.write(data);
-		});
-		receiver.endChainedRoutes();
+		if (!state) return;
+		const listeners = client.addServerResponseListenerFor.post<{ terminalId: string }>(
+			'/terminals/:terminalId/terminal-data',
+			async (req, res) => {
+				const terminalId = Number(req.params.terminalId);
+				const data = res.data;
+				if (terminalId !== terminal.id) return;
+				state.xterm.write(data);
+			}
+		);
 		return () => {
-			receiver.clearChain('terminal-page-' + terminal.id);
+			listeners.stopListening();
 		};
-	}, [terminal.id]);
-	const [arrangement, setArrangement] = useState<{ x: string; y: string; height: string; width: string } | null>(null);
+	}, [terminal.id, state]);
 	useEffect(() => {
 		if (triggerArrangeTerminals === 0 && project.terminalLayout !== 'automatic') return;
+		if (!state) return;
 		const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
-		setArrangement({
-			x: arrangement.x + '%',
-			y: arrangement.y + '%',
-			width: arrangement.width + 'px',
-			height: arrangement.height + 'px',
-		});
-	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals]);
-	useEffect(() => {
-		if (arrangement && ref2.current) {
-			ref2.current.winbox.move(arrangement.x, arrangement.y);
-			ref2.current.winbox.resize(arrangement.width, arrangement.height);
+		const winbox = state.winbox;
+		if (winbox.max) {
+			winbox.restore();
 		}
-	}, [arrangement]);
+		winbox.move(arrangement.x, arrangement.y);
+		winbox.resize(arrangement.width, arrangement.height);
+	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
 	useEffect(() => {
-		const temp = ref2.current;
 		return () => {
-			if (!temp) return;
+			if (!state) return;
 			// eslint-disable-next-line react-hooks/exhaustive-deps
-			temp.xterm.dispose();
+			// this condition means that user has not destroyed
+			if (state.winbox.dom !== null) state.winbox.close(true);
+			state.xterm.dispose();
 			// @ts-ignore
-			temp.winbox.close(true);
-			// @ts-ignore
-			temp.winbox.unmount(tempp);
 		};
-	}, []);
-
+	}, [state]);
+	const [searchBar, setSearchBar] = useState(false);
 	useEffect(() => {
-		if (!ref2.current) return;
-		if (terminal.title) ref2.current.winbox.setTitle(terminal.title);
-	}, [terminal.title]);
+		if (!state) return;
+		if (terminal.title) state.winbox.setTitle(terminal.title);
+	}, [terminal.title, state]);
+	const showSearchBarOnKeyboard = useCallback(
+		(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
+				setSearchBar(true);
+				if (searchValue && state) state.addons.search.findNext(searchValue);
+				event.preventDefault();
+			}
+		},
+		[searchValue, state]
+	);
 	useEffect(() => {
-		if (ref2.current || !project) return;
+		if (state || !project) return;
 		const winbox = new WinBox(terminal.title || 'Untitled', {
 			root: element,
-			...getTerminalPosition(terminal, element),
+			...getTerminalPosition(terminal, {
+				parent: element,
+				shouldCenter: project.terminalLayout !== 'automatic',
+			}),
 		});
 		const $title = winbox.dom.querySelector('.wb-title') as HTMLDivElement;
 		$title.contentEditable = 'true';
 		winbox.window.dataset.terminalId = terminal.id.toString();
 		const { xterm, addons } = createTerminal(winbox.body, {
 			fontSize: project.fontSize,
+			scrollback: project.scrollback || 1000,
 			theme: convertToITheme(project.terminalTheme),
 		});
-		winbox.body.addEventListener('dblclick', () => {
+		winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
+			if (e.target.parentElement?.classList?.contains('searchBar') || e.target.classList.contains('searchBar')) return;
 			setIsCommandEditorVisible(true);
 		});
 		winbox.onmove = debounce(function resize(x: number, y: number) {
 			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
 				body: {
 					// multiply by 100 to make default 1% instead of 100
-					x: getPercent(x, element?.offsetWidth || x * 100),
-					y: getPercent(y, element?.offsetHeight || x * 100),
+					x,
+					y,
 				},
 				forget: true,
 			});
@@ -260,27 +286,29 @@ export const MyTerminal = ({
 			xterm.write(log);
 		});
 
-		xterm.onResize(({ cols, rows }) => {
-			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
-				body: {
-					meta: {
-						cols: cols,
-						rows: rows,
+		xterm.onResize(
+			debounce(({ cols, rows }) => {
+				client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
+					body: {
+						meta: {
+							cols: cols,
+							rows: rows,
+						},
 					},
-				},
-				forget: true,
-			});
-		});
+					forget: true,
+				});
+			}, 250)
+		);
 		winbox.onresize = debounce(function resize(width: number = 1, height: number = 1) {
 			addons.fit.fit();
 			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
 				body: {
-					height: getPercent(height, element?.offsetHeight || height),
-					width: getPercent(width, element?.offsetWidth || width),
+					height,
+					width,
 				},
 				forget: true,
 			});
-		}, 200);
+		}, 250);
 
 		winbox.fullscreen = () => {
 			setPatchTerminalId(terminal.id);
@@ -290,13 +318,18 @@ export const MyTerminal = ({
 			if (window.confirm('Really delete the terminal with all settings?')) deleteTerminal();
 			return true;
 		};
-		xterm.attachCustomKeyEventHandler((arg) => {
-			if (arg.ctrlKey && arg.code === 'KeyC' && arg.type === 'keydown') {
+		xterm.attachCustomKeyEventHandler((event) => {
+			if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
 				const selection = xterm.getSelection();
 				if (selection) {
 					copyText(selection);
 					return false;
 				}
+			}
+			showSearchBarOnKeyboard(event);
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
+				setSearchBar(false);
+				event.preventDefault();
 			}
 			return true;
 		});
@@ -309,42 +342,33 @@ export const MyTerminal = ({
 				forget: true,
 			});
 		});
-		ref2.current = {
-			winbox,
-			xterm,
-			addons,
-		};
+		dispatch({
+			type: 'set',
+			payload: {
+				winbox,
+				xterm,
+				addons,
+			},
+		});
 		return () => {
 			// xterm.dispose();
 		};
-	}, [deleteTerminal, element, project, projectId, terminal, setPatchTerminalId]);
+	}, [deleteTerminal, element, project, projectId, terminal, setPatchTerminalId, state, showSearchBarOnKeyboard]);
 	useEffect(() => {
-		if (!project.fontSize || !ref2.current) return;
-		ref2.current.xterm.options.fontSize = project.fontSize;
-		ref2.current.addons.fit.fit();
+		if (!project.fontSize || !state) return;
+		state.xterm.options.fontSize = project.fontSize;
+		state.addons.fit.fit();
 
 		client.patch('/projects/' + project.id + '/terminals/' + terminal.id, {
 			body: {
 				meta: {
-					cols: ref2.current.xterm.cols,
-					rows: ref2.current.xterm.rows,
+					cols: state.xterm.cols,
+					rows: state.xterm.rows,
 				},
 			},
 			forget: true,
 		});
-	}, [project.fontSize, project.id, terminal.id]);
-
-	useEffect(() => {
-		const handler = debounce(() => {
-			const position = getTerminalPosition(terminal, element);
-			ref2.current?.winbox.move(position.x, position.y);
-			ref2.current?.winbox.resize(position.width, position.height);
-		}, 250);
-		window.addEventListener('resize', handler);
-		return () => {
-			window.removeEventListener('resize', handler);
-		};
-	}, [element, terminal]);
+	}, [project.fontSize, project.id, terminal.id, state]);
 
 	const handleSearch = (value: string) => {
 		setCommandQuery(value);
@@ -355,9 +379,50 @@ export const MyTerminal = ({
 		setEditorCommand(value);
 	};
 
-	const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
+	useEffect(() => {
+		if (!state) return;
+		state.addons.search.findNext(searchValue, {
+			incremental: true,
+		});
+	}, [searchValue, state]);
+	if (!state) return null;
 	return (
 		<>
+			{searchBar &&
+				createPortal(
+					<div className="searchBar" style={{}}>
+						<input
+							autoFocus
+							onChange={(e) => {
+								setSearchValue(e.target.value.trim());
+							}}
+							onKeyDown={showSearchBarOnKeyboard}
+						/>
+						<button
+							onClick={(e) => {
+								state.addons.search.findPrevious(searchValue, {});
+							}}
+						>
+							&uarr;
+						</button>
+						<button
+							onClick={(e) => {
+								state.addons.search.findNext(searchValue, {});
+							}}
+						>
+							&darr;
+						</button>
+						<button
+							onClick={(e) => {
+								setSearchBar(false);
+							}}
+						>
+							&#x2715;
+						</button>
+					</div>,
+					state.winbox.body,
+					terminal.title
+				)}
 			<Modal
 				open={isCommandEditorVisible}
 				onCancel={() => {

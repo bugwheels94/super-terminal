@@ -51,6 +51,7 @@ export const ProjectForm = ({
 			return {
 				slug: '',
 				fontSize: 14,
+				numberOfLogsToRestore: 100,
 				terminalTheme: JSON.stringify(defaultTheme, null, 2),
 				terminalLayout: 'automatic',
 			};
@@ -89,6 +90,24 @@ export const ProjectForm = ({
 
 					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Font Size" name="fontSize">
 						<Slider min={6} max={25} />
+					</Form.Item>
+					<Form.Item
+						colon={false}
+						labelAlign="left"
+						labelCol={{ span: 12 }}
+						label="Number of Logs to Restore"
+						name="numberOfLogsToRestore"
+					>
+						<Slider min={500} max={10000} step={100} />
+					</Form.Item>
+					<Form.Item
+						colon={false}
+						labelAlign="left"
+						labelCol={{ span: 12 }}
+						label="Number of Lines that can be scrolled"
+						name="scrollback"
+					>
+						<Slider min={1000} max={50000} step={100} />
 					</Form.Item>
 					<Form.Item
 						colon={false}

@@ -39,10 +39,10 @@ export function createTerminal(terminalContainer: HTMLElement, options: ITermina
 	// while (terminalContainer.children.length) {
 	// 	terminalContainer.removeChild(terminalContainer.children[0])
 	// }
-
 	const isWindows = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
 	const term = new Terminal({
 		fontSize: 13,
+		scrollback: options.scrollback,
 		theme: {
 			name: 'Breeze',
 			black: '#31363b',

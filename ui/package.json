@@ -7,7 +7,7 @@
 	],
 	"homepage": ".",
 	"scripts": {
-		"start:watch": "PORT=7000 BROWSER=none craco start",
+		"start:watch": "BROWSER=none craco start",
 		"build": "BUILD_PATH='./dist' craco build",
 		"eject": "craco eject"
 	},
@@ -30,11 +30,12 @@
 		]
 	},
 	"syncWorkspaceDependencies": {
-		"restify-websocket": {
+		"soxtend": {
 			"type": "npm"
 		}
 	},
 	"devDependencies": {
+		"@babel/plugin-proposal-private-property-in-object": "latest",
 		"@craco/craco": "^6.4.3",
 		"@lytejs/query-string": "^0.2.18",
 		"@types/jest": "^27.4.1",
@@ -60,11 +61,11 @@
 		"react-query": "^3.39.0",
 		"react-router-dom": "^6.3.0",
 		"react-scripts": "5.0.1",
-		"restify-websocket": "^1.0.0",
+		"soxtend": "^1.0.0",
 		"typescript": "^4.8.3",
 		"uuid": "^8.3.2",
 		"web-vitals": "^2.1.4",
-		"winbox": "^0.2.1",
+		"winbox": "0.2.6",
 		"xterm": "^4.18.0",
 		"xterm-addon-attach": "^0.6.0",
 		"xterm-addon-fit": "^0.5.0",

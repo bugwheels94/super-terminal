@@ -16,9 +16,9 @@
 		"build": "run-p build:types build:code",
 		"build:types": "tsc --project ./tsconfig.json",
 		"build:watch": "run-p build:code:watch build:types:watch",
-		"start:nodemon": "cross-env PORT=3878 nodemon --watch 'dist/**/*' dist/run-server.js",
+		"start:nodemon": "nodemon --watch 'dist/**/*' dist/run-server.js",
 		"test": "run-s build test:*",
-		"start": "cross-env PORT=3878 node dist/run-server.js",
+		"start": "node dist/run-server.js",
 		"start:watch": "run-p build:watch start:nodemon",
 		"typeorm": "typeorm-ts-node-commonjs",
 		"prepare": "husky install",
@@ -63,7 +63,6 @@
 		"babel": "^6.23.0",
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
-		"cross-env": "^7.0.3",
 		"define-lazy-prop": "^3.0.0",
 		"electron": "^24.1.1",
 		"fast-glob": "^3.2.12",
@@ -77,14 +76,13 @@
 		"npm-run-all": "^4.1.5",
 		"prettier": "^2.7.1",
 		"reflect-metadata": "^0.1.13",
-		"restify-websocket": "^1.0.0",
 		"rollup": "^3.21.5",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
 		"semantic-release": "^19.0.2",
+		"soxtend": "^1.0.0",
 		"ts-node": "10.7.0",
 		"typescript": "^4.8.3",
 		"ws": "^8.5.0"
-
 	},
 	"pkg": {
 		"assets": [
@@ -97,18 +95,19 @@
 		"dist",
 		"CHANGELOG.md",
 		"LICENSE",
-		"README.md"
+		"README.md",
+		"ui"
 	],
 	"publishConfig": {
 		"access": "public"
 	},
 	"dependencies": {
+		"better-sqlite3": "^8.7.0",
 		"electron-squirrel-startup": "^1.0.0",
 		"express": "^4.18.1",
 		"node-pty": "^0.10.1",
 		"tcp-port-used": "^1.0.2",
-		"typeorm": "^0.3.15",
-		"better-sqlite3": "^8.3.0"
+		"typeorm": "^0.3.15"
 	},
 	"prettier": {
 		"singleQuote": true,
@@ -119,7 +118,7 @@
 		"**/*": "prettier --write --ignore-unknown"
 	},
 	"syncWorkspaceDependencies": {
-		"restify-websocket": {
+		"soxtend": {
 			"type": "npm"
 		}
 	},

@@ -1,5 +1,5 @@
 <h1 align="center">Super Terminal</h1>
-<p align="center">Manage Terminals Easy! Save Time!</p>
+<p align="center">Manage Terminals Easy! And Save Time!</p>
 <p align="center">
 	<img src="super-terminal.png" />
 </p>

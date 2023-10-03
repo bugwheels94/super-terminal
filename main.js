@@ -39,7 +39,7 @@ const dockMenu = Menu.buildFromTemplate([
 		},
 	},
 ]);
-main();
+main(0, '');
 app
 	.whenReady()
 	.then(() => {

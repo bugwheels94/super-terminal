@@ -1,5 +1,5 @@
 import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
-import { Router, RouterResponse } from 'restify-websocket/server';
+import { Router, RouterResponse } from 'soxtend/server';
 import { Terminal } from '../entity/Terminal';
 import os from 'os';
 import yaml from 'js-yaml';
@@ -25,22 +25,13 @@ type PutTerminalRequest = {
 	startupCommands?: string;
 	startupEnvironmentVariables?: string;
 };
-export function getNewFullSizeTerminal() {
+export function createNewTerminal() {
 	return {
 		title: 'New Terminal',
-		height: 100,
-		width: 100,
+		height: 250,
+		width: 400,
 		x: 0,
 		y: 0,
-	} as Terminal;
-}
-export function getNewHalfSizeTerminal() {
-	return {
-		title: 'New Terminal',
-		height: 50,
-		width: 50,
-		x: 25,
-		y: 25,
 	} as Terminal;
 }
 export const addTerminalRoutes = (router: Router) => {
@@ -58,7 +49,7 @@ export const addTerminalRoutes = (router: Router) => {
 		const project = await ProjectRepository.findOneOrFail({
 			where: { id },
 		});
-		const terminal = getNewHalfSizeTerminal();
+		const terminal = createNewTerminal();
 		terminal.project = project;
 
 		await TerminalRepository.save(terminal);
@@ -76,7 +67,7 @@ export const addTerminalRoutes = (router: Router) => {
 		});
 		const terminal = await TerminalRepository.save({
 			...oldTerminal,
-			...getNewHalfSizeTerminal(),
+			...createNewTerminal(),
 			id: undefined,
 			title: oldTerminal.title + '-clone',
 		});
@@ -123,12 +114,6 @@ export const addTerminalRoutes = (router: Router) => {
 		if (Object.keys(terminal).length) {
 			await TerminalRepository.update(id, terminal);
 		}
-		if (Object.keys(terminal).length === 2 && 'x' in terminal && 'y' in terminal) {
-			return;
-		}
-		if (Object.keys(terminal).length === 2 && 'height' in terminal && 'width' in terminal) {
-			return;
-		}
 		res
 			.group(projectId.toString())
 			.status(200)
@@ -164,7 +149,7 @@ export const addTerminalRoutes = (router: Router) => {
 						terminalId: terminal.id,
 					},
 					order: { createdAt: -1 },
-					take: 1000,
+					take: project.numberOfLogsToRestore,
 				});
 				return {
 					...terminal,
