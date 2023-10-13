@@ -1,10 +1,11 @@
-import { AppDataSource, ProjectRepository, TerminalRepository, TerminalLogRepository } from '../data-source';
-import { Router, RouterResponse } from 'soxtend/server';
-import { Terminal } from '../entity/Terminal';
-import os from 'os';
 import yaml from 'js-yaml';
-import { spawn } from 'node-pty';
 import { throttle, uniqBy } from 'lodash';
+import { spawn } from 'node-pty';
+import os from 'os';
+import { Router, RouterResponse } from 'soxtend/server';
+import kill from 'tree-kill';
+import { AppDataSource, ProjectRepository, TerminalLogRepository, TerminalRepository } from '../data-source';
+import { Terminal } from '../entity/Terminal';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
 type PutTerminalRequest = {
@@ -104,6 +105,7 @@ export const addTerminalRoutes = (router: Router) => {
 					schema: yaml.JSON_SCHEMA,
 				});
 			} catch (e) {
+				console.log('error', e);
 				throw new Error('Invalid YAML for startup Environment Variables');
 			}
 		}
@@ -205,15 +207,15 @@ function createPtyTerminal({
 		: process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
-	try {
-		const doc = yaml.load(terminal.startupEnvironmentVariables, {
-			schema: yaml.JSON_SCHEMA,
-		}) as Record<string, string>;
-
-		env = { ...(process.env as Record<string, string>), ...doc };
-	} catch (e) {
-		throw new Error('Invalid YAML for startup Environment Variables');
-	}
+	if (terminal.startupEnvironmentVariables)
+		try {
+			const doc = yaml.load(terminal.startupEnvironmentVariables, {
+				schema: yaml.JSON_SCHEMA,
+			}) as Record<string, string>;
+			env = { ...(process.env as Record<string, string>), ...doc };
+		} catch (e) {
+			throw new Error('Invalid YAML for startup Environment Variables');
+		}
 	let cwd = terminal.cwd;
 	if (cwd) {
 		const envVariableInCwd = cwd.match(/\$[A-Za-z0-9_]+/g);
@@ -260,7 +262,12 @@ function createPtyTerminal({
 function killPtyProcess(terminalId: number) {
 	const ptyProcess = ptyProcesses.get(terminalId);
 	if (ptyProcess) {
-		ptyProcess.process.kill();
+		try {
+			kill(ptyProcess.process.pid);
+			// ptyProcess.process.kill();
+		} catch (e) {
+			console.log('error', e);
+		}
 	}
 	ptyProcesses.delete(terminalId);
 }
