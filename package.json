@@ -4,7 +4,7 @@
 	"description": "Terminal Manager",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/super-terminal/super-terminal.git"
+		"url": "git+https://github.com/bugwheels94/super-terminal.git"
 	},
 	"license": "MIT",
 	"keywords": [],
