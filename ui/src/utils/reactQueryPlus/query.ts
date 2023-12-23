@@ -14,7 +14,7 @@ export const useQueryPlus = <
 >(
 	queryKey: TQueryKey,
 	queryFn: QueryFunction<PromiseResolutionData, TQueryKey>,
-	options: UseQueryOptions<PromiseResolutionData, TError, SelectedData, TQueryKey> & {
+	options: Omit<UseQueryOptions<PromiseResolutionData, TError, SelectedData, TQueryKey>, 'queryKey'> & {
 		hideGlobalLoader?: boolean;
 		hideGlobalError?: boolean;
 		hideGlobalFetcher?: boolean;
@@ -26,7 +26,10 @@ export const useQueryPlus = <
 	const hash = useMemo(() => stableValueHash(actualKey), temp);
 	const { hideGlobalError, hideGlobalLoader, hideGlobalFetcher, ...reactQueryOptions } = options;
 	const setState = useReactQueryPlusSetter();
-	const result = useQuery<PromiseResolutionData, TError, SelectedData, TQueryKey>(queryKey, queryFn, {
+	const result = useQuery<PromiseResolutionData, TError, SelectedData, TQueryKey>({
+		queryKey,
+		queryFn,
+
 		retry: (_, error) => {
 			if (error.status >= 400 && error.status <= 500) return false;
 			return true;

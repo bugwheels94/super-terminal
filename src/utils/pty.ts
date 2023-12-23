@@ -1,6 +1,6 @@
 import { IPty } from 'node-pty';
 
-export type ProcessObject = { process: IPty; currentCommand: string };
+export type ProcessObject = { process: IPty; currentCommand: string; projectId: number };
 import type { IPtyForkOptions } from 'node-pty';
 export const ptyProcesses: Map<number, ProcessObject> = new Map();
 

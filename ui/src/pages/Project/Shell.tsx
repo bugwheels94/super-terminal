@@ -70,7 +70,7 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 			<Form.Item name="script" label="Script" rules={[{ required: true }]} labelCol={{ span: 6 }}>
 				<Input.TextArea
 					placeholder={`any script in your default shell
-echo _parameter_name_
+echo {{parameter_name}}
 					`}
 					onChange={(e) => {
 						const value = e.target.value;

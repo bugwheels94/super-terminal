@@ -1,48 +1,42 @@
-import React, { ReactNode, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ReactNode, forwardRef, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import 'winbox/dist/css/winbox.min.css';
 import 'xterm/css/xterm.css';
-import {
-	getTerminalQueryKey,
-	PatchTerminalRequest,
-	Terminal,
-	useCloneTerminal,
-	useGetTerminals,
-	usePostTerminal,
-} from '../../services/terminals';
-import {
-	BsPlusLg,
-	BsGear,
-	BsGrid1X2,
-	BsHouseDoor,
-	BsPlay,
-	BsTerminal,
-	BsTrash,
-	BsArrowRepeat,
-	BsFolder,
-} from 'react-icons/bs';
+import { createContext } from 'react';
+
+import { getTerminalQueryKey, Terminal, useGetTerminals, usePostTerminal } from '../../services/terminals';
+import { BsPlusLg, BsGear, BsGrid1X2, BsHouseDoor, BsPlay, BsTerminal, BsTrash, BsFolder } from 'react-icons/bs';
 import {
 	usePutProject,
 	usePatchProject,
 	getProjectQueryKey,
 	Project,
-	usePostProject,
 	PatchProjectRequest,
 	PostProjectRequest,
 	useGetProjects,
+	useDeleteProject,
+	useDeleteProjectRunningStatus,
+	useGetProjectRunningStatus,
+	useGetProject,
+	getProjectsQueryKey,
 } from '../../services/project';
-import { useDeleteLogsArchive, usePutSocketGroup } from '../../services/group';
+import { useDeleteLogsArchive } from '../../services/group';
 import { MyTerminal } from '../MyTerminal/MyTerminal';
 import './Project.css';
 import { useQueryClient } from 'react-query';
 import { client } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ShellScriptComp } from './ShellScript';
-import { FiCopy } from 'react-icons/fi';
 import { ProjectForm } from './Form';
-import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
-import { Drawer } from 'antd';
-import { ShellScriptExecution } from '../MyTerminal/ShellScriptExecution';
+import { Modal } from 'antd';
 import { debounce } from 'lodash';
+
+export const ContextMenuContext = createContext({
+	addItems: (_: ItemType[]) => {},
+	items: [] as ItemType[],
+	removeAllItems: () => {},
+	id: 0,
+});
+
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
 const getWindowDimensions = () => {
 	const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
@@ -51,22 +45,64 @@ const getWindowDimensions = () => {
 };
 
 function Project2() {
-	const { projectSlug, projectId } = useParams<'projectSlug'>() as { projectSlug: string; projectId?: number };
-	const { data: project } = usePutProject(projectSlug, projectId);
+	const { projectSlug = '' } = useParams<'projectSlug'>() as { projectSlug: string; projectId?: number };
+	const { data: projectId } = usePutProject(projectSlug);
+	const { data: project } = useGetProject(projectId);
+	type State = { items: ItemType[]; id: number };
+	type Action =
+		| {
+				type: 'add';
+				value: ItemType[];
+		  }
+		| { type: 'removeAll' };
+
+	function reducer(state: State, action: Action): State {
+		switch (action.type) {
+			case 'removeAll':
+				return {
+					...state,
+					id: state.id + 1,
+					items: [],
+				};
+			case 'add':
+				return {
+					items: state.items.filter((item) => !action.value.find((i) => i.title === item.title)).concat(action.value),
+					id: state.id + 1,
+				};
+			default: {
+				return state;
+			}
+		}
+	}
+	const [contextMenuItems, setContextMenuItems] = useReducer(reducer, { items: [], id: 0 });
+
 	if (!project) return null;
-	return <ProjectPage project={project} projectId={projectId} />;
+	return (
+		<ContextMenuContext.Provider
+			value={{
+				addItems: (newItems: ItemType[]) => {
+					setContextMenuItems({ value: newItems, type: 'add' });
+				},
+				removeAllItems: () => {
+					setContextMenuItems({
+						type: 'removeAll',
+					});
+				},
+				...contextMenuItems,
+			}}
+		>
+			<ProjectPage project={project} projectId={project.id} />
+		</ContextMenuContext.Provider>
+	);
 }
-function ProjectPage({ project, projectId }: { project: Project; projectId?: number }) {
+function ProjectPage({ project, projectId }: { project: Project; projectId: number }) {
 	const [scriptvisible, setScriptVisible] = useState(false);
 	const [projectFormOpen, setProjectFormOpen] = useState(false);
 	const [currentProject, setCurrentProject] = useState<null | Project>(null);
 	const [mainCommandCounter, setMainCommandCounter] = useState(0);
-	const [activeTerminal, setActiveTerminal] = useState<number | null>(null);
-	const [terminalPatchers, setTerminalPatchers] = useState<Record<number, PatchTerminalRequest | null>>({});
-	const [rightClickPosition, setRightClickPosition] = useState<null | { left: number; top: number }>(null);
+	const [contextMenuPosition, setContextMenuPosition] = useState<null | { left: number; top: number }>(null);
 	const [triggerArrangeTerminals, setTriggerArrangeTerminals] = useState(0);
 	const reff = useRef<HTMLDivElement>(null);
-
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { mutateAsync: deleteLogsArchive } = useDeleteLogsArchive();
@@ -76,20 +112,11 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 			setProjectFormOpen(false);
 		},
 	});
-	const { mutateAsync: postProject } = usePostProject({
-		onSuccess: () => {
-			setProjectFormOpen(false);
-		},
-	});
-	const { mutateAsync: cloneTerminal } = useCloneTerminal(project.id);
 	const { mutateAsync: postTerminal } = usePostTerminal(project.id);
 
-	const { mutateAsync: putSocketGroup } = usePutSocketGroup(project.id);
-	const { data: projectScripts } = useGetProjectScripts(project.id);
-	const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
+	const contextMenuContext = useContext(ContextMenuContext);
 
 	const { data: terminals } = useGetTerminals(project.id, {});
-
 	useEffect(() => {
 		const handler = debounce(() => {
 			if (project.terminalLayout === 'automatic') {
@@ -102,23 +129,13 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		};
 	}, [project.terminalLayout]);
 
-	const setTerminalPatcher = useCallback(
-		(terminalId: number, terminal: PatchTerminalRequest | null) => {
-			setTerminalPatchers((s) => ({ ...s, [terminalId]: terminal }));
-		},
-		[setTerminalPatchers]
-	);
-
 	useEffect(() => {
-		if (projectId) return;
-		navigate(`/${project.slug}/${project.id}`, {
+		navigate(`/${project.slug}`, {
 			replace: true,
 		});
-	}, [navigate, project.id, project.slug, projectId]);
+		// eslint-disable-next-line
+	}, [project.slug]);
 
-	useEffect(() => {
-		putSocketGroup();
-	}, [putSocketGroup]);
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -126,10 +143,18 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 	}, [project.slug]);
 
 	useEffect(() => {
-		const slug = project.slug;
 		const listeners = client.addServerResponseListenerFor
+
 			.patch('/projects/:projectId', (request, response) => {
-				if (response.data) queryClient.setQueryData(getProjectQueryKey(slug), response.data);
+				if (response.data) queryClient.setQueryData(getProjectQueryKey(project.id), response.data);
+			})
+			.delete('/projects/:projectId', (request, response) => {
+				if (!response.data) return;
+				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
+				queryClient.setQueryData(
+					getProjectsQueryKey(),
+					oldData.filter((p) => p.id !== response.data)
+				);
 			})
 			.post('/projects/:projectId/terminals', (request, response) => {
 				if (!response.data) return;
@@ -152,7 +177,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 					getTerminalQueryKey(projectId),
 					oldData.map((terminal) => {
 						if (terminal.id === Number(request.params.terminalId)) {
-							return response.data;
+							return { ...terminal, ...response.data };
 						}
 						return terminal;
 					})
@@ -177,46 +202,11 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [queryClient]);
-	const [patchTerminalId, setPatchTerminalId] = useState<number | null>(null);
 	const data = useMemo(
 		() =>
 			[
-				...(activeTerminal
-					? [
-							{
-								heading: 'Terminal Actions',
-								title: 'Reload Terminal',
-								icon: <BsArrowRepeat style={{ verticalAlign: 'middle' }} />,
-								onClick: () => setTerminalPatcher(activeTerminal, { restart: true }),
-							},
-							{
-								title: 'Clone Terminal',
-								icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
-								onClick: () => cloneTerminal({ id: activeTerminal }),
-							},
-							{
-								title: 'Terminal Settings',
-								icon: <BsGear style={{ verticalAlign: 'middle' }} />,
-								onClick: () => setPatchTerminalId(activeTerminal),
-							},
-							{
-								title: 'Execute Shell Script',
-								icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
-								children: projectScripts?.map((script) => {
-									return {
-										title: script.name,
-										icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
-										onClick: () => {
-											setExecutionScript(script);
-										},
-									};
-								}),
-								placeholder: 'Please create a shell script first.',
-							},
-					  ]
-					: []),
 				{
-					heading: 'Project Actions',
+					heading: `Project Actions(${project.slug || 'Unsaved Project'})`,
 					title: 'New Terminal',
 					icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
 					onClick: () => postTerminal({}),
@@ -253,34 +243,48 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 						}, 0);
 					},
 				},
-				{
-					heading: 'Global Actions',
-					title: 'Home',
-					icon: <BsHouseDoor style={{ verticalAlign: 'middle' }} />,
-					onClick: () => {
-						window.location.href = '/';
-					},
-				},
-				{
-					title: 'Create New Project',
-					icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
-					onClick: () => {
-						setCurrentProject(null);
-						setProjectFormOpen(true);
-					},
-				},
-				{
-					title: 'Switch Project',
-					icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
-					children: (projects || []).map((project) => {
-						return {
-							title: project.slug,
-							icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
-							onClick: () => {
-								navigate(`/${project.slug}/${project.id}`);
+				...(project.slug !== ''
+					? [
+							{
+								heading: 'Global Actions',
+								title: 'Open Default Project',
+								icon: <BsHouseDoor style={{ verticalAlign: 'middle' }} />,
+								onClick: () => {
+									navigate('/');
+								},
 							},
-						};
-					}),
+					  ]
+					: [
+							{
+								heading: 'Global Actions',
+
+								title: 'Save Project As',
+								icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
+								onClick: () => {
+									setCurrentProject(null);
+									setProjectFormOpen(true);
+								},
+							},
+					  ]),
+
+				{
+					title: 'Manage Saved Projects',
+					icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
+					children: (projects || [])
+						.filter((p) => !!p.slug)
+						.map((thisProject) => {
+							return {
+								title: thisProject.slug,
+								icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
+								child: (
+									<ManageProject
+										setContextMenuPosition={setContextMenuPosition}
+										project={thisProject}
+										currentProjectId={projectId}
+									/>
+								),
+							};
+						}),
 					onClick: () => {},
 				},
 				{
@@ -293,96 +297,75 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 					},
 				},
 			] as ItemType[],
-		[
-			setMainCommandCounter,
-			postTerminal,
-			activeTerminal,
-			deleteLogsArchive,
-			setTerminalPatcher,
-			projects,
-			cloneTerminal,
-			navigate,
-			project,
-			projectScripts,
-		]
+		[projectId, setMainCommandCounter, postTerminal, deleteLogsArchive, projects, navigate, project]
 	);
-	useEffect(() => {
-		window.addEventListener(
-			'contextmenu',
-			(e) => {
-				e.preventDefault();
-				if (e.target instanceof HTMLElement) {
-					const box = e.target?.closest('.winbox');
-					if (box instanceof HTMLElement) {
-						setActiveTerminal(Number(box.dataset.terminalId));
-					} else {
-						setActiveTerminal(null);
-					}
-				} else {
-					setActiveTerminal(null);
-				}
 
-				if (!reff.current) return;
-				const { width, height } = getWindowDimensions();
-				if (width - e.x > reff.current.offsetWidth) {
-					if (height - e.y > reff.current.offsetHeight) {
-						setRightClickPosition({ left: e.x, top: e.y });
-						return;
-					} else {
-						setRightClickPosition({ left: e.x, top: e.y - reff.current.offsetHeight });
-						return;
-					}
+	useEffect(() => {
+		function onContextMenu(e: MouseEvent) {
+			e.preventDefault();
+
+			if (!reff.current) return;
+			const { width, height } = getWindowDimensions();
+			contextMenuContext.addItems(data);
+			reff.current.focus();
+			if (reff.current) {
+				reff.current?.addEventListener('blur', onContextMenuOut);
+			}
+			if (width - e.x > reff.current.offsetWidth) {
+				if (height - e.y > reff.current.offsetHeight) {
+					setContextMenuPosition({ left: e.x, top: e.y });
+					return;
 				} else {
-					if (height - e.y > reff.current.offsetHeight) {
-						setRightClickPosition({ left: e.x - reff.current.offsetWidth, top: e.y });
-						return;
-					} else {
-						setRightClickPosition({ left: e.x - reff.current.offsetWidth, top: e.y - reff.current.offsetHeight });
-						return;
-					}
+					setContextMenuPosition({ left: e.x, top: e.y - reff.current.offsetHeight });
+					return;
 				}
-			},
-			false
-		);
-		document.addEventListener('click', (e) => {
-			if (reff.current?.contains(e.target as Node) || reff.current === e.target) return;
-			setRightClickPosition(null);
-		});
-	}, []);
+			} else {
+				if (height - e.y > reff.current.offsetHeight) {
+					setContextMenuPosition({ left: e.x - reff.current.offsetWidth, top: e.y });
+					return;
+				} else {
+					setContextMenuPosition({ left: e.x - reff.current.offsetWidth, top: e.y - reff.current.offsetHeight });
+					return;
+				}
+			}
+		}
+		function onContextMenuOut() {
+			setContextMenuPosition(null);
+			contextMenuContext.removeAllItems();
+		}
+		window.addEventListener('contextmenu', onContextMenu);
+		const value = reff.current;
+		return () => {
+			window.removeEventListener('contextmenu', onContextMenu);
+			value?.removeEventListener('blur', onContextMenuOut);
+		};
+	}, [data, contextMenuContext]);
+	const shouldContextMenuOpenLeftSide = useMemo(() => {
+		if (!contextMenuPosition) return false;
+		const window = getWindowDimensions();
+		const box = reff.current?.getBoundingClientRect();
+		if (!box) return false;
+		return contextMenuPosition?.left > window.width - contextMenuPosition.left - box.width;
+	}, [contextMenuPosition]);
 
 	if (!projects || !projectId) return null;
 	return (
 		<>
-			{
-				<Drawer open={!!activeTerminal && !!executionScript} onClose={() => setExecutionScript(null)}>
-					{executionScript && activeTerminal && (
-						<ShellScriptExecution
-							script={executionScript}
-							terminalId={activeTerminal}
-							onClose={() => {
-								setExecutionScript(null);
-							}}
-						/>
-					)}
-				</Drawer>
-			}
 			<ShellScriptComp projectId={projectId} visible={scriptvisible} onVisibleChange={setScriptVisible} />
 			<ListItems
+				key={contextMenuContext.id}
 				ref={reff}
-				items={data}
-				rightClickPosition={rightClickPosition}
-				setRightClickPosition={setRightClickPosition}
+				tabIndex={1}
+				items={contextMenuContext.items}
+				position={contextMenuPosition}
+				setContextMenuPosition={setContextMenuPosition}
+				shouldContextMenuOpenLeftSide={shouldContextMenuOpenLeftSide}
 			/>
 			<ProjectForm
 				onOpenChange={setProjectFormOpen}
 				open={projectFormOpen}
 				onProjectChange={(value: PostProjectRequest | PatchProjectRequest) => {
-					if ('id' in value) {
-						patchProject(value);
-					} else {
-						// @ts-ignore
-						postProject(value);
-					}
+					patchProject(value);
 				}}
 				project={currentProject}
 			></ProjectForm>
@@ -392,10 +375,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 				terminals?.map((terminal, index) => {
 					return (
 						<MyTerminal
-							patchTerminalId={patchTerminalId}
-							setPatchTerminalId={setPatchTerminalId}
-							terminalPatcher={terminalPatchers[terminal.id]}
-							setTerminalPatcher={setTerminalPatcher}
 							key={terminal.id}
 							mainCommandCounter={mainCommandCounter}
 							projectId={project.id}
@@ -411,74 +390,87 @@ function ProjectPage({ project, projectId }: { project: Project; projectId?: num
 		</>
 	);
 }
-type ItemType = {
+export type ItemType = {
 	icon: ReactNode;
 	onClick: () => void;
 	title: string;
 	children?: ItemType[];
+	child?: ReactNode;
 	heading?: string;
 	placeholder?: string;
 };
 type Position = { left: number; top: number } | null;
 const ListItem = ({
 	item,
-	isVisible,
-	setRightClickPosition,
+	childrenPosition,
+	setChildrenPosition,
+	setContextMenuPosition,
+	shouldContextMenuOpenLeftSide,
 }: {
-	isVisible: boolean;
 	item: ItemType;
-	setRightClickPosition: (_: null) => void;
+	shouldContextMenuOpenLeftSide: boolean;
+	childrenPosition: any;
+	setChildrenPosition: any;
+	setContextMenuPosition: (_: Position | null) => void;
 }) => {
 	const ref = useRef<HTMLDivElement>(null);
-	const [childrenPosition, setChildrenPosition] = useState<Position>(null);
-	useEffect(() => {
-		setChildrenPosition(null);
-	}, [isVisible]);
 	const ref2 = useRef<HTMLDivElement>(null);
 	return (
 		<>
 			<div
 				className="list-item"
+				onBlur={() => {
+					setChildrenPosition({ left: -10000, top: 0 });
+				}}
 				onClick={
-					item.children
+					item.children || item.child
 						? () => {
 								if (!ref.current) return;
 								const rect = ref.current.getBoundingClientRect();
-								if (childrenPosition) {
-									setChildrenPosition(null);
+								if (!ref2.current) return;
+								const newRect = ref2.current.getBoundingClientRect();
+
+								if (!shouldContextMenuOpenLeftSide) {
+									setChildrenPosition({
+										left: rect.width + 6,
+										top: 0,
+										id: item.title,
+									});
 								} else {
-									const { width } = getWindowDimensions();
-									if (!ref2.current) return;
-									const newRect = ref2.current.getBoundingClientRect();
-									if (width - (rect.left + rect.width) > newRect.width) {
-										setChildrenPosition({
-											left: rect.width + 6,
-											top: 0,
-										});
-									} else {
-										setChildrenPosition({
-											left: 0 - newRect.width - 6,
-											top: 0,
-										});
-									}
+									setChildrenPosition({
+										left: 0 - newRect.width - 6,
+										top: 0,
+										id: item.title,
+									});
 								}
 						  }
 						: () => {
 								item.onClick();
-								setRightClickPosition(null);
+								ref.current?.blur();
+								setContextMenuPosition(null);
 						  }
 				}
 				ref={ref}
 			>
 				{item.icon}
 				<span style={{ fontSize: '1.3rem', paddingLeft: '1rem' }}>{item.title}</span>
-				{item.children && isVisible ? (
+				{item.children || item.child ? (
 					<ListItems
+						tabIndex={undefined}
+						shouldContextMenuOpenLeftSide={shouldContextMenuOpenLeftSide}
 						ref={ref2}
 						placeholder={item.placeholder}
 						items={item.children}
-						setRightClickPosition={setRightClickPosition}
-						rightClickPosition={childrenPosition}
+						child={item.child}
+						setContextMenuPosition={setContextMenuPosition}
+						position={
+							childrenPosition.id === item.title
+								? childrenPosition
+								: {
+										left: -10000,
+										top: 0,
+								  }
+						}
 					/>
 				) : null}
 			</div>
@@ -488,15 +480,24 @@ const ListItem = ({
 const ListItems = forwardRef<
 	HTMLDivElement,
 	{
-		setRightClickPosition: (_: null) => void;
-		rightClickPosition: Position | null;
-		items: ItemType[];
+		tabIndex?: number;
+		position: Position | null;
+		setContextMenuPosition: (_: Position | null) => void;
+		items?: ItemType[];
 		placeholder?: string;
+		child?: ReactNode;
+		shouldContextMenuOpenLeftSide: boolean;
 	}
->(({ items, placeholder, rightClickPosition, setRightClickPosition }, ref) => {
+>(({ tabIndex, items, placeholder, position, child, setContextMenuPosition, shouldContextMenuOpenLeftSide }, ref) => {
+	const [childrenPosition, setChildrenPosition] = useState<Position & { itemId: string }>({
+		left: -10000,
+		top: 0,
+		itemId: '',
+	});
+
 	return (
-		<div ref={ref} className="list-items" style={rightClickPosition ? rightClickPosition : { left: '-5000px' }}>
-			{items.length ? (
+		<div tabIndex={tabIndex} ref={ref} className="list-items" style={position ? position : { left: '-5000px' }}>
+			{items?.length ? (
 				items.map((item, index) => {
 					return (
 						<React.Fragment key={item.title}>
@@ -506,17 +507,77 @@ const ListItems = forwardRef<
 								</div>
 							)}
 							<ListItem
+								shouldContextMenuOpenLeftSide={shouldContextMenuOpenLeftSide}
+								setContextMenuPosition={setContextMenuPosition}
 								item={item}
-								isVisible={rightClickPosition !== null}
-								setRightClickPosition={setRightClickPosition}
+								childrenPosition={childrenPosition}
+								setChildrenPosition={setChildrenPosition}
 							/>
 						</React.Fragment>
 					);
 				})
+			) : child ? (
+				child
 			) : (
 				<em>{placeholder}</em>
 			)}
 		</div>
 	);
 });
+function ManageProject({
+	project,
+	currentProjectId,
+	setContextMenuPosition,
+}: {
+	project: Project;
+	currentProjectId: number;
+	setContextMenuPosition: (_: Position | null) => void;
+}) {
+	const { mutateAsync } = useDeleteProject(project.id);
+	const { data: isRunning } = useGetProjectRunningStatus(project.id);
+	const { mutateAsync: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const navigate = useNavigate();
+	//* reloading cause the context menu is not behaving */
+	return (
+		<>
+			{currentProjectId !== project.id && (
+				<div
+					className="list-item"
+					onClick={() => {
+						navigate(`/${project.slug}`);
+						setContextMenuPosition(null);
+					}}
+				>
+					Open
+				</div>
+			)}
+			{isRunning && (
+				<div className="list-item" onClick={() => deleteProjectRunningStatus()}>
+					Close all Running Terminals
+				</div>
+			)}
+			<div
+				className="list-item"
+				onClick={() => {
+					setContextMenuPosition(null);
+
+					setIsModalOpen(true);
+				}}
+			>
+				Delete
+			</div>
+
+			<Modal
+				open={isModalOpen}
+				title="Are you sure you want to delete the project？"
+				onCancel={() => setIsModalOpen(false)}
+				onOk={() => {
+					mutateAsync();
+					setIsModalOpen(false);
+				}}
+			></Modal>
+		</>
+	);
+}
 export default Project2;

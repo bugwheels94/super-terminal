@@ -1,5 +1,5 @@
 import { debounce } from 'lodash';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { memo, useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
 import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
@@ -12,12 +12,17 @@ import {
 	usePatchTerminal,
 	useDeleteTerminal,
 	useGetTerminalCommands,
-	PatchTerminalRequest,
+	useCloneTerminal,
 } from '../../services/terminals';
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
 import { createPortal } from 'react-dom';
+import { BsArrowRepeat, BsGear, BsTerminal } from 'react-icons/bs';
+import { FiCopy } from 'react-icons/fi';
+import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
+import { ShellScriptExecution } from './ShellScriptExecution';
+import { ContextMenuContext, ItemType } from '../Project/Project';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
@@ -108,420 +113,471 @@ const getTerminalCoordinates = (terminalOrder: number, terminalCount: number) =>
 	};
 };
 
-export const MyTerminal = ({
-	terminal,
-	element,
-	projectId,
-	mainCommandCounter,
-	project,
-	terminalPatcher,
-	setTerminalPatcher,
-	terminalOrder,
-	terminalsCount,
-	triggerArrangeTerminals,
-	patchTerminalId,
-	setPatchTerminalId,
-}: {
-	patchTerminalId: number | null;
-	setPatchTerminalId: (_: number | null) => void;
-	triggerArrangeTerminals: number;
-	terminalsCount: number;
-	terminalOrder: number;
-	project: Project;
-	terminal: Terminal;
-	element: HTMLDivElement;
-	projectId: number;
-	mainCommandCounter: number;
-	terminalPatcher: PatchTerminalRequest | null;
-	setTerminalPatcher: (terminalId: number, terminalPatcher: PatchTerminalRequest | null) => void;
-}) => {
-	const visible = useMemo(() => patchTerminalId === terminal.id, [patchTerminalId, terminal.id]);
-	const [editorCommand, setEditorCommand] = useState('');
-	const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
-	const [searchValue, setSearchValue] = useState('');
-	const [commandQuery, setCommandQuery] = useState('');
-	const [isCommandEditorVisible, setIsCommandEditorVisible] = useState(false);
-	const { data } = useGetTerminalCommands(terminal.id, commandQuery, {
-		initialData: [],
-	});
+export const MyTerminal = memo(
+	({
+		terminal,
+		element,
+		projectId,
+		mainCommandCounter,
+		project,
+		terminalOrder,
+		terminalsCount,
+		triggerArrangeTerminals,
+	}: {
+		triggerArrangeTerminals: number;
+		terminalsCount: number;
+		terminalOrder: number;
+		project: Project;
+		terminal: Terminal;
+		element: HTMLDivElement;
+		projectId: number;
+		mainCommandCounter: number;
+	}) => {
+		const [isPatching, setIsPatching] = useState(false);
+		const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
 
-	type Action = { type: 'set'; payload: State };
-
-	// Define the state type
-	type State = {
-		xterm: XTerm;
-		winbox: any;
-		addons: Addons;
-	} | null;
-
-	// Reducer function
-	function reducer(state: State, action: Action): State {
-		switch (action.type) {
-			case 'set':
-				return action.payload;
-			default:
-				return state;
-		}
-	}
-	const [state, dispatch] = useReducer(reducer, null);
-
-	const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
-	useEffect(() => {
-		return () => {
-			if (!state) return;
-			state.xterm.dispose();
-			state.winbox.close(true);
-		};
-	}, [state]);
-	useEffect(() => {
-		if (!terminalPatcher || !state) return;
-		patchTerminal({
-			...terminalPatcher,
-			meta: {
-				cols: state.xterm.cols,
-				rows: state.xterm.rows,
-			},
+		const [editorCommand, setEditorCommand] = useState('');
+		const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
+		const [searchValue, setSearchValue] = useState('');
+		const [commandQuery, setCommandQuery] = useState('');
+		const [isCommandEditorVisible, setIsCommandEditorVisible] = useState(false);
+		const { data } = useGetTerminalCommands(terminal.id, commandQuery, {
+			initialData: [],
 		});
-		setTerminalPatcher(terminal.id, null);
-	}, [terminalPatcher, patchTerminal, setTerminalPatcher, terminal.id, state]);
-	const { mutateAsync: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
-	useEffect(() => {
-		if (!state) return;
-		state.xterm.options.theme = convertToITheme(project.terminalTheme);
-	}, [project.terminalTheme, state]);
-	useEffect(() => {
-		if (mainCommandCounter === 0 || terminal.mainCommand == null) return;
-		client.post('/terminal-command', {
-			body: {
-				command: terminal.mainCommand + '\r\n',
-				terminalId: terminal.id,
-			},
-			forget: true,
-		});
-	}, [mainCommandCounter, terminal.id, terminal.mainCommand]);
-
-	useEffect(() => {
-		if (!state) return;
-		const listeners = client.addServerResponseListenerFor.post<{ terminalId: string }>(
-			'/terminals/:terminalId/terminal-data',
-			async (req, res) => {
-				const terminalId = Number(req.params.terminalId);
-				const data = res.data;
-				if (terminalId !== terminal.id) return;
-				state.xterm.write(data);
-			}
-		);
-		return () => {
-			listeners.stopListening();
-		};
-	}, [terminal.id, state]);
-	useEffect(() => {
-		if (triggerArrangeTerminals === 0 && project.terminalLayout !== 'automatic') return;
-		if (!state) return;
-		const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
-		const winbox = state.winbox;
-		if (winbox.max) {
-			winbox.restore();
-		}
-		winbox.move(arrangement.x, arrangement.y);
-		winbox.resize(arrangement.width, arrangement.height);
-	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
-	useEffect(() => {
-		return () => {
-			if (!state) return;
-			// eslint-disable-next-line react-hooks/exhaustive-deps
-			// this condition means that user has not destroyed
-			if (state.winbox.dom !== null) state.winbox.close(true);
-			state.xterm.dispose();
-			// @ts-ignore
-		};
-	}, [state]);
-	const [searchBar, setSearchBar] = useState(false);
-	useEffect(() => {
-		if (!state) return;
-		if (terminal.title) state.winbox.setTitle(terminal.title);
-	}, [terminal.title, state]);
-	const showSearchBarOnKeyboard = useCallback(
-		(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
-				setSearchBar(true);
-				if (searchValue && state) state.addons.search.findNext(searchValue);
-				event.preventDefault();
-			}
-		},
-		[searchValue, state]
-	);
-	useEffect(() => {
-		if (state || !project) return;
-		const winbox = new WinBox(terminal.title || 'Untitled', {
-			root: element,
-			...getTerminalPosition(terminal, {
-				parent: element,
-				shouldCenter: project.terminalLayout !== 'automatic',
-			}),
-		});
-		const $title = winbox.dom.querySelector('.wb-title') as HTMLDivElement;
-		$title.contentEditable = 'true';
-		winbox.window.dataset.terminalId = terminal.id.toString();
-		const { xterm, addons } = createTerminal(winbox.body, {
-			fontSize: project.fontSize,
-			scrollback: project.scrollback || 1000,
-			theme: convertToITheme(project.terminalTheme),
-		});
-		winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
-			if (e.target.parentElement?.classList?.contains('searchBar') || e.target.classList.contains('searchBar')) return;
-			setIsCommandEditorVisible(true);
-		});
-		winbox.onmove = debounce(function resize(x: number, y: number) {
-			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
-				body: {
-					// multiply by 100 to make default 1% instead of 100
-					x,
-					y,
-				},
-				forget: true,
-			});
-		}, 1000);
-		terminal.logs?.reverse().forEach(({ log }) => {
-			xterm.write(log);
-		});
-
-		xterm.onResize(
-			debounce(({ cols, rows }) => {
-				client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
-					body: {
-						meta: {
-							cols: cols,
-							rows: rows,
-						},
+		const { mutateAsync: cloneTerminal } = useCloneTerminal(project.id);
+		const { data: projectScripts } = useGetProjectScripts(project.id);
+		const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
+		const data2 = useMemo(
+			() =>
+				[
+					{
+						heading: 'Terminal Actions',
+						title: 'Reload Terminal',
+						icon: <BsArrowRepeat style={{ verticalAlign: 'middle' }} />,
+						onClick: () => patchTerminal({ restart: true }),
 					},
-					forget: true,
-				});
-			}, 250)
+					{
+						title: 'Clone Terminal',
+						icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
+						onClick: () => cloneTerminal({ id: terminal.id }),
+					},
+					{
+						title: 'Terminal Settings',
+						icon: <BsGear style={{ verticalAlign: 'middle' }} />,
+						onClick: () => setIsPatching(true),
+					},
+					{
+						title: 'Execute Shell Script',
+						icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+						children: projectScripts?.map((script) => {
+							return {
+								title: script.name,
+								icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+								onClick: () => {
+									setExecutionScript(script);
+								},
+							};
+						}),
+						placeholder: 'Please create a shell script first.',
+					},
+				] as ItemType[],
+			[cloneTerminal, projectScripts, patchTerminal, terminal.id]
 		);
-		winbox.onresize = debounce(function resize(width: number = 1, height: number = 1) {
-			addons.fit.fit();
-			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
-				body: {
-					height,
-					width,
-				},
-				forget: true,
-			});
-		}, 250);
 
-		winbox.fullscreen = () => {
-			setPatchTerminalId(terminal.id);
-		};
-		winbox.onclose = function (force?: boolean) {
-			if (force) return false;
-			if (window.confirm('Really delete the terminal with all settings?')) deleteTerminal();
-			return true;
-		};
-		xterm.attachCustomKeyEventHandler((event) => {
-			if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
-				const selection = xterm.getSelection();
-				if (selection) {
-					copyText(selection);
-					return false;
-				}
-			}
-			showSearchBarOnKeyboard(event);
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
-				setSearchBar(false);
-				event.preventDefault();
-			}
-			return true;
-		});
-		xterm.onData((message: string) => {
-			client.post('/terminal-command', {
-				body: {
-					command: message,
-					terminalId: terminal.id,
-				},
-				forget: true,
-			});
-		});
-		dispatch({
-			type: 'set',
-			payload: {
-				winbox,
-				xterm,
-				addons,
-			},
-		});
-		return () => {
-			// xterm.dispose();
-		};
-	}, [deleteTerminal, element, project, projectId, terminal, setPatchTerminalId, state, showSearchBarOnKeyboard]);
-	useEffect(() => {
-		if (!project.fontSize || !state) return;
-		state.xterm.options.fontSize = project.fontSize;
-		state.addons.fit.fit();
+		type Action = { type: 'set'; payload: State };
 
-		client.patch('/projects/' + project.id + '/terminals/' + terminal.id, {
-			body: {
+		// Define the state type
+		type State = {
+			xterm: XTerm;
+			winbox: any;
+			addons: Addons;
+		} | null;
+		const contextMenuContext = useContext(ContextMenuContext);
+		// Reducer function
+		function reducer(state: State, action: Action): State {
+			switch (action.type) {
+				case 'set':
+					return action.payload;
+				default:
+					return state;
+			}
+		}
+		const [state, dispatch] = useReducer(reducer, null);
+		useEffect(() => {
+			if (!state?.winbox) return;
+			state.winbox.body.addEventListener('contextmenu', (e: MouseEvent) => {
+				contextMenuContext?.addItems(data2);
+			});
+		}, [data2, state?.winbox, contextMenuContext]);
+
+		useEffect(() => {
+			return () => {
+				if (!state) return;
+				state.xterm.dispose();
+				state.winbox.close(true);
+			};
+		}, [state]);
+		useEffect(() => {
+			if (!state) return;
+			patchTerminal({
 				meta: {
 					cols: state.xterm.cols,
 					rows: state.xterm.rows,
 				},
+			});
+		}, [patchTerminal, terminal.id, state]);
+		const { mutateAsync: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
+		useEffect(() => {
+			if (!state) return;
+			state.xterm.options.theme = convertToITheme(project.terminalTheme);
+		}, [project.terminalTheme, state]);
+		useEffect(() => {
+			if (mainCommandCounter === 0 || terminal.mainCommand == null) return;
+			client.post('/terminal-command', {
+				body: {
+					command: terminal.mainCommand + '\r\n',
+					terminalId: terminal.id,
+				},
+				forget: true,
+			});
+		}, [mainCommandCounter, terminal.id, terminal.mainCommand]);
+
+		useEffect(() => {
+			if (!state) return;
+			const listeners = client.addServerResponseListenerFor.post<{ terminalId: string }>(
+				'/terminals/:terminalId/terminal-data',
+				async (req, res) => {
+					const terminalId = Number(req.params.terminalId);
+					const data = res.data;
+					if (terminalId !== terminal.id) return;
+					state.xterm.write(data);
+				}
+			);
+			return () => {
+				listeners.stopListening();
+			};
+		}, [terminal.id, state]);
+		useEffect(() => {
+			if (triggerArrangeTerminals === 0 && project.terminalLayout !== 'automatic') return;
+			if (!state) return;
+			const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
+			const winbox = state.winbox;
+			if (winbox.max) {
+				winbox.restore();
+			}
+			winbox.move(arrangement.x, arrangement.y);
+			winbox.resize(arrangement.width, arrangement.height);
+		}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
+		useEffect(() => {
+			return () => {
+				if (!state) return;
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+				// this condition means that user has not destroyed
+				if (state.winbox.dom !== null) state.winbox.close(true);
+				state.xterm.dispose();
+				// @ts-ignore
+			};
+		}, [state]);
+		const [searchBar, setSearchBar] = useState(false);
+		useEffect(() => {
+			if (!state) return;
+			if (terminal.title) state.winbox.setTitle(terminal.title);
+		}, [terminal.title, state]);
+		const showSearchBarOnKeyboard = useCallback(
+			(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
+				if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
+					setSearchBar(true);
+					if (searchValue && state) state.addons.search.findNext(searchValue);
+					event.preventDefault();
+				}
 			},
-			forget: true,
-		});
-	}, [project.fontSize, project.id, terminal.id, state]);
+			[searchValue, state]
+		);
+		useEffect(() => {
+			if (state || !project) return;
+			const winbox = new WinBox(terminal.title || 'Untitled', {
+				root: element,
+				...getTerminalPosition(terminal, {
+					parent: element,
+					shouldCenter: project.terminalLayout !== 'automatic',
+				}),
+			});
+			const $title = winbox.dom.querySelector('.wb-title') as HTMLDivElement;
+			$title.contentEditable = 'true';
+			winbox.window.dataset.terminalId = terminal.id.toString();
+			const { xterm, addons } = createTerminal(winbox.body, {
+				fontSize: project.fontSize,
+				scrollback: project.scrollback || 1000,
+				theme: convertToITheme(project.terminalTheme),
+			});
+			winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
+				if (e.target.parentElement?.classList?.contains('searchBar') || e.target.classList.contains('searchBar'))
+					return;
+				setIsCommandEditorVisible(true);
+			});
+			winbox.onmove = debounce(function resize(x: number, y: number) {
+				client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
+					body: {
+						// multiply by 100 to make default 1% instead of 100
+						x,
+						y,
+					},
+					forget: true,
+				});
+			}, 1000);
+			terminal.logs?.reverse().forEach(({ log }) => {
+				xterm.write(log);
+			});
 
-	const handleSearch = (value: string) => {
-		setCommandQuery(value);
-		setEditorCommand(value);
-	};
+			xterm.onResize(
+				debounce(({ cols, rows }) => {
+					client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
+						body: {
+							meta: {
+								cols: cols,
+								rows: rows,
+							},
+						},
+						forget: true,
+					});
+				}, 250)
+			);
+			winbox.onresize = debounce(function resize(width: number = 1, height: number = 1) {
+				addons.fit.fit();
+				client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
+					body: {
+						height,
+						width,
+					},
+					forget: true,
+				});
+			}, 250);
 
-	const onSelect = (value: string) => {
-		setEditorCommand(value);
-	};
+			winbox.fullscreen = () => {
+				setIsPatching(true);
+			};
+			winbox.onclose = function (force?: boolean) {
+				if (force) return false;
+				if (window.confirm('Really delete the terminal with all settings?')) deleteTerminal();
+				return true;
+			};
+			xterm.attachCustomKeyEventHandler((event) => {
+				if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
+					const selection = xterm.getSelection();
+					if (selection) {
+						copyText(selection);
+						return false;
+					}
+				}
+				showSearchBarOnKeyboard(event);
+				if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
+					setSearchBar(false);
+					event.preventDefault();
+				}
+				return true;
+			});
+			xterm.onData((message: string) => {
+				client.post('/terminal-command', {
+					body: {
+						command: message,
+						terminalId: terminal.id,
+					},
+					forget: true,
+				});
+			});
+			dispatch({
+				type: 'set',
+				payload: {
+					winbox,
+					xterm,
+					addons,
+				},
+			});
+			return () => {
+				// xterm.dispose();
+			};
+		}, [deleteTerminal, element, project, projectId, terminal, state, showSearchBarOnKeyboard]);
+		useEffect(() => {
+			if (!project.fontSize || !state) return;
+			state.xterm.options.fontSize = project.fontSize;
+			state.addons.fit.fit();
 
-	useEffect(() => {
-		if (!state) return;
-		state.addons.search.findNext(searchValue, {
-			incremental: true,
-		});
-	}, [searchValue, state]);
-	if (!state) return null;
-	return (
-		<>
-			{searchBar &&
-				createPortal(
-					<div className="searchBar" style={{}}>
-						<input
-							autoFocus
-							onChange={(e) => {
-								setSearchValue(e.target.value.trim());
+			client.patch('/projects/' + project.id + '/terminals/' + terminal.id, {
+				body: {
+					meta: {
+						cols: state.xterm.cols,
+						rows: state.xterm.rows,
+					},
+				},
+				forget: true,
+			});
+		}, [project.fontSize, project.id, terminal.id, state]);
+
+		const handleSearch = (value: string) => {
+			setCommandQuery(value);
+			setEditorCommand(value);
+		};
+
+		const onSelect = (value: string) => {
+			setEditorCommand(value);
+		};
+
+		useEffect(() => {
+			if (!state) return;
+			state.addons.search.findNext(searchValue, {
+				incremental: true,
+			});
+		}, [searchValue, state]);
+		if (!state) return null;
+		return (
+			<>
+				<Drawer open={!!executionScript} onClose={() => setExecutionScript(null)}>
+					{executionScript && (
+						<ShellScriptExecution
+							script={executionScript}
+							terminalId={terminal.id}
+							onClose={() => {
+								setExecutionScript(null);
 							}}
-							onKeyDown={showSearchBarOnKeyboard}
 						/>
-						<button
-							onClick={(e) => {
-								state.addons.search.findPrevious(searchValue, {});
-							}}
-						>
-							&uarr;
-						</button>
-						<button
-							onClick={(e) => {
-								state.addons.search.findNext(searchValue, {});
-							}}
-						>
-							&darr;
-						</button>
-						<button
-							onClick={(e) => {
-								setSearchBar(false);
-							}}
-						>
-							&#x2715;
-						</button>
-					</div>,
-					state.winbox.body,
-					terminal.title
-				)}
-			<Modal
-				open={isCommandEditorVisible}
-				onCancel={() => {
-					setIsCommandEditorVisible(false);
-				}}
-				footer={null}
-				closable={false}
-			>
-				<AutoComplete
-					onDropdownVisibleChange={setIsCommandSuggestionOpen}
-					options={(data || []).map((command) => ({
-						value: command.command,
-					}))}
-					open={isCommandSuggestionOpen}
-					value={editorCommand}
-					style={{ width: '100%' }}
-					onSelect={onSelect}
-					onSearch={handleSearch}
-					autoFocus={true}
+					)}
+				</Drawer>
+
+				{searchBar &&
+					createPortal(
+						<div className="searchBar" style={{}}>
+							<input
+								autoFocus
+								onChange={(e) => {
+									setSearchValue(e.target.value.trim());
+								}}
+								onKeyDown={showSearchBarOnKeyboard}
+							/>
+							<button
+								onClick={(e) => {
+									state.addons.search.findPrevious(searchValue, {});
+								}}
+							>
+								&uarr;
+							</button>
+							<button
+								onClick={(e) => {
+									state.addons.search.findNext(searchValue, {});
+								}}
+							>
+								&darr;
+							</button>
+							<button
+								onClick={(e) => {
+									setSearchBar(false);
+								}}
+							>
+								&#x2715;
+							</button>
+						</div>,
+						state.winbox.body,
+						terminal.title
+					)}
+				<Modal
+					open={isCommandEditorVisible}
+					onCancel={() => {
+						setIsCommandEditorVisible(false);
+					}}
+					footer={null}
+					closable={false}
 				>
-					<Input.TextArea
-						autoSize={{
-							minRows: 4,
-							maxRows: 25,
-						}}
-						placeholder="Easily enter multiline commands here"
-						className="custom"
-						style={{ height: 50 }}
-						onKeyDown={(e) => {
-							if (e.key !== 'Enter' || e.shiftKey || (isCommandSuggestionOpen && data?.length)) return;
-							client.post('/terminal-command', {
-								body: {
-									command: editorCommand + '\r\n',
-									terminalId: terminal.id,
-								},
-								forget: true,
-							});
-							setEditorCommand('');
-							setIsCommandEditorVisible(false);
-							e.preventDefault();
-						}}
-					/>
-				</AutoComplete>
-			</Modal>
-			<Drawer
-				size="large"
-				title="Terminal Settings"
-				placement="right"
-				onClose={() => {
-					setPatchTerminalId(null);
-				}}
-				open={visible}
-				destroyOnClose={true}
-			>
-				<Form
-					requiredMark={false}
-					initialValues={terminal}
-					onValuesChange={debounce((_, v) => {
-						patchTerminal(v);
-					}, 1000)}
+					<AutoComplete
+						onDropdownVisibleChange={setIsCommandSuggestionOpen}
+						options={(data || []).map((command) => ({
+							value: command.command,
+						}))}
+						open={isCommandSuggestionOpen}
+						value={editorCommand}
+						style={{ width: '100%' }}
+						onSelect={onSelect}
+						onSearch={handleSearch}
+						autoFocus={true}
+					>
+						<Input.TextArea
+							autoSize={{
+								minRows: 4,
+								maxRows: 25,
+							}}
+							placeholder="Easily enter multiline commands here"
+							className="custom"
+							style={{ height: 50 }}
+							onKeyDown={(e) => {
+								if (e.key !== 'Enter' || e.shiftKey || (isCommandSuggestionOpen && data?.length)) return;
+								client.post('/terminal-command', {
+									body: {
+										command: editorCommand + '\r\n',
+										terminalId: terminal.id,
+									},
+									forget: true,
+								});
+								setEditorCommand('');
+								setIsCommandEditorVisible(false);
+								e.preventDefault();
+							}}
+						/>
+					</AutoComplete>
+				</Modal>
+				<Drawer
+					size="large"
+					title="Terminal Settings"
+					placement="right"
+					onClose={() => {
+						setIsPatching(false);
+					}}
+					open={isPatching}
+					destroyOnClose={true}
 				>
-					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Terminal Title" name="title">
-						<Input placeholder="Terminal Title" />
-					</Form.Item>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Current Working Directory"
-						name="cwd"
+					<Form
+						requiredMark={false}
+						initialValues={terminal}
+						onValuesChange={debounce((_, v) => {
+							patchTerminal(v);
+						}, 1000)}
 					>
-						<Input placeholder="Current Working Directory" />
-					</Form.Item>
-					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Shell Location" name="shell">
-						<Input placeholder="/usr/bin/bash" />
-					</Form.Item>
-					<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Main Command" name="mainCommand">
-						<Input placeholder="like 'npm run start'" />
-					</Form.Item>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Startup Command"
-						name="startupCommands"
-					>
-						<Input.TextArea placeholder="command that you run always at start" />
-					</Form.Item>
-					<Form.Item
-						colon={false}
-						labelAlign="left"
-						labelCol={{ span: 12 }}
-						label="Startup Environment Variables"
-						name="startupEnvironmentVariables"
-					>
-						<Input.TextArea placeholder="Yaml syntax(KEY: VALUE)" />
-					</Form.Item>
-				</Form>
-			</Drawer>
-		</>
-	);
-};
+						<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Terminal Title" name="title">
+							<Input placeholder="Terminal Title" />
+						</Form.Item>
+						<Form.Item
+							colon={false}
+							labelAlign="left"
+							labelCol={{ span: 12 }}
+							label="Current Working Directory"
+							name="cwd"
+						>
+							<Input placeholder="Current Working Directory" />
+						</Form.Item>
+						<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Shell Location" name="shell">
+							<Input placeholder="/usr/bin/bash" />
+						</Form.Item>
+						<Form.Item colon={false} labelAlign="left" labelCol={{ span: 12 }} label="Main Command" name="mainCommand">
+							<Input placeholder="like 'npm run start'" />
+						</Form.Item>
+						<Form.Item
+							colon={false}
+							labelAlign="left"
+							labelCol={{ span: 12 }}
+							label="Startup Command"
+							name="startupCommands"
+						>
+							<Input.TextArea placeholder="command that you run always at start" />
+						</Form.Item>
+						<Form.Item
+							colon={false}
+							labelAlign="left"
+							labelCol={{ span: 12 }}
+							label="Startup Environment Variables"
+							name="startupEnvironmentVariables"
+						>
+							<Input.TextArea placeholder="Yaml syntax(KEY: VALUE)" />
+						</Form.Item>
+					</Form>
+				</Drawer>
+			</>
+		);
+	}
+);

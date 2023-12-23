@@ -5,11 +5,15 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ReactQueryPlusProvider } from './utils/reactQueryPlus/provider';
 import { HashRouter } from 'react-router-dom';
+
+// @ts-ignore
+import { ReactQueryDevtools } from 'react-query/devtools';
 ReactDOM.render(
 	<ReactQueryPlusProvider>
 		<HashRouter>
 			<App />
 		</HashRouter>
+		<ReactQueryDevtools initialIsOpen={false} />
 	</ReactQueryPlusProvider>,
 	document.getElementById('root') as HTMLElement
 );

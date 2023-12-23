@@ -41,10 +41,6 @@ export const addTerminalRoutes = (router: Router) => {
 	// 		ptyProcess.clients.delete(client);
 	// 	});
 	// });
-	router.put('/groups/:groupId', async (req, res) => {
-		// await res.leaveAllGroups()
-		res.joinGroup(req.params.groupId);
-	});
 	router.post('/projects/:id/terminals', async (req, res) => {
 		const id = Number(req.params.id);
 		const project = await ProjectRepository.findOneOrFail({
@@ -235,6 +231,7 @@ function createPtyTerminal({
 	const ptyProcessObject = {
 		process: ptyProcess,
 		currentCommand: '',
+		projectId,
 	};
 	ptyProcess.onData((data) => {
 		res.group(projectId.toString()).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
@@ -259,7 +256,7 @@ function createPtyTerminal({
 		ptyProcess.write(terminal.startupCommands + '\n');
 	}
 }
-function killPtyProcess(terminalId: number) {
+export function killPtyProcess(terminalId: number) {
 	const ptyProcess = ptyProcesses.get(terminalId);
 	if (ptyProcess) {
 		try {

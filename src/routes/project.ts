@@ -1,7 +1,8 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
 import { Router } from 'soxtend/server';
 import { Project } from '../entity/Project';
-import { createNewTerminal } from './terminal';
+import { createNewTerminal, killPtyProcess } from './terminal';
+import { ptyProcesses } from '../utils/pty';
 const defaultTheme = {
 	name: 'Breeze',
 	black: '#31363b',
@@ -43,6 +44,7 @@ export const addProjectRoutes = (router: Router) => {
 
 	router.get('/projects', async (_req, res) => {
 		const p = await ProjectRepository.find();
+
 		// No need to send to all tabs as this is general request
 		res.status(200).send(p);
 	});
@@ -84,18 +86,12 @@ export const addProjectRoutes = (router: Router) => {
 		res.send(projectRecord);
 		res.group('global').send(projectRecord);
 	});
-	router.put('/projects/:projectSlug/:id?', async ({ params }, res) => {
+	router.put('/projects/:projectSlug?', async ({ params }, res) => {
 		const project = new Project();
 		const query: Record<string, string | number> = {};
-		const id = Number(params.id);
-		const slug = params.projectSlug;
-		if (id) {
-			project.id = id;
-			query.id = id;
-		} else {
-			project.slug = slug;
-			query.slug = slug;
-		}
+		const slug = params.projectSlug || '';
+		project.slug = slug;
+		query.slug = slug;
 		project.fontSize = 14;
 		project.scrollback = 1000;
 		project.terminalTheme = defaultTheme;
@@ -122,11 +118,26 @@ export const addProjectRoutes = (router: Router) => {
 		// 		throw e;
 		// 	}
 		// }
-		res.send(projectRecord);
+		res.send(projectRecord.id);
 	});
 	router.delete('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
+		closeProject(id);
 		await ProjectRepository.delete(id);
+		res.group('global').status(200).send(id);
+	});
+	router.get('/projects/:id', async (req, res) => {
+		const id = Number(req.params.id);
+		const projectRecord = await ProjectRepository.findOneOrFail({
+			where: { id },
+		});
+		res.joinGroup(`${id}`);
+
+		res.send(projectRecord);
+	});
+	router.delete('/projects/:id/running-status', async (req, res) => {
+		const id = Number(req.params.id);
+		closeProject(id);
 		res.group('global').status(200).send();
 	});
 
@@ -140,4 +151,19 @@ export const addProjectRoutes = (router: Router) => {
 			.status(200)
 			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});
+
+	router.get('/projects/:id/running-status', async (req, res) => {
+		const projectId = Number(req.params.id);
+		let isRunning = false;
+		ptyProcesses.forEach((process) => {
+			if (process.projectId === projectId) isRunning = true;
+		});
+		res.status(200).send(isRunning);
+	});
 };
+function closeProject(id: number) {
+	ptyProcesses.forEach((process, terminalId) => {
+		if (process.projectId !== id) return;
+		killPtyProcess(terminalId);
+	});
+}
