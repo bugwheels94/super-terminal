@@ -18,6 +18,7 @@ import {
 	useGetProjectRunningStatus,
 	useGetProject,
 	getProjectsQueryKey,
+	getProjectStatusQueryKey,
 } from '../../services/project';
 import { useDeleteLogsArchive } from '../../services/group';
 import { MyTerminal } from '../MyTerminal/MyTerminal';
@@ -144,9 +145,18 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 
 	useEffect(() => {
 		const listeners = client.addServerResponseListenerFor
-
+			.delete(`/projects/:projectId/running-status`, (request) => {
+				const projectId = Number(request.params.projectId);
+				queryClient.setQueryData(getProjectStatusQueryKey(projectId), false);
+			})
 			.patch('/projects/:projectId', (request, response) => {
-				if (response.data) queryClient.setQueryData(getProjectQueryKey(project.id), response.data);
+				if (!response.data) return;
+				queryClient.setQueryData(getProjectQueryKey(project.id), response.data);
+				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
+				queryClient.setQueryData(
+					getProjectsQueryKey(),
+					oldData.map((p) => (p.id !== response.data.id ? p : response.data))
+				);
 			})
 			.delete('/projects/:projectId', (request, response) => {
 				if (!response.data) return;
