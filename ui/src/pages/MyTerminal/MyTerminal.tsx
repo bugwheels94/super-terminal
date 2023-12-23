@@ -205,9 +205,13 @@ export const MyTerminal = memo(
 		const [state, dispatch] = useReducer(reducer, null);
 		useEffect(() => {
 			if (!state?.winbox) return;
-			state.winbox.body.addEventListener('contextmenu', (e: MouseEvent) => {
+			const temp = (e: MouseEvent) => {
 				contextMenuContext?.addItems(data2);
-			});
+			};
+			state.winbox.body.addEventListener('contextmenu', temp);
+			return () => {
+				state.winbox.body.removeEventListener('contextmenu', temp);
+			};
 		}, [data2, state?.winbox, contextMenuContext]);
 
 		useEffect(() => {

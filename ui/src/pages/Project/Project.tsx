@@ -306,10 +306,9 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 
 			if (!reff.current) return;
 			const { width, height } = getWindowDimensions();
+
 			contextMenuContext.addItems(data);
-			reff.current.focus();
 			if (reff.current) {
-				reff.current?.addEventListener('blur', onContextMenuOut);
 			}
 			if (width - e.x > reff.current.offsetWidth) {
 				if (height - e.y > reff.current.offsetHeight) {
@@ -329,15 +328,17 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 				}
 			}
 		}
-		function onContextMenuOut() {
+		function onContextMenuOut(e: MouseEvent) {
+			if (reff.current?.contains(e.target as Node) || reff.current === e.target) return;
 			setContextMenuPosition(null);
 			contextMenuContext.removeAllItems();
 		}
 		window.addEventListener('contextmenu', onContextMenu);
-		const value = reff.current;
+		window.addEventListener('click', onContextMenuOut);
+
 		return () => {
 			window.removeEventListener('contextmenu', onContextMenu);
-			value?.removeEventListener('blur', onContextMenuOut);
+			window.removeEventListener('click', onContextMenuOut);
 		};
 	}, [data, contextMenuContext]);
 	const shouldContextMenuOpenLeftSide = useMemo(() => {
