@@ -151,7 +151,7 @@ export const addProjectRoutes = (router: Router) => {
 			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});
 
-	router.get('/running-projects', async (req, res) => {
+	router.get('/running-projects', async (_, res) => {
 		res.status(200).send(getRunningProjects());
 	});
 };

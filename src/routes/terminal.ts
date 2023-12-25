@@ -8,7 +8,6 @@ import { AppDataSource, ProjectRepository, TerminalLogRepository, TerminalReposi
 import { Terminal } from '../entity/Terminal';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
-import { getRunningProjects } from './project';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
