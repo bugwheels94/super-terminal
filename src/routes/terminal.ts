@@ -8,6 +8,7 @@ import { AppDataSource, ProjectRepository, TerminalLogRepository, TerminalReposi
 import { Terminal } from '../entity/Terminal';
 import { TerminalLog } from '../entity/TerminalLog';
 import { ptyProcesses } from '../utils/pty';
+import { getRunningProjects } from './project';
 type PutTerminalRequest = {
 	restart?: true;
 	id: number;
@@ -160,6 +161,13 @@ export const addTerminalRoutes = (router: Router) => {
 		});
 
 		res.status(200).send(data);
+		res
+			.group('global')
+			.status(200)
+			.send(id, {
+				url: '/projects/' + id + '/running-status',
+				method: 'post',
+			});
 	});
 	router.post('/terminal-command', async (req) => {
 		const { terminalId, command } = req.body as {

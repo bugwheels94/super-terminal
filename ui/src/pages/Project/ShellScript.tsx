@@ -11,7 +11,7 @@ import { client } from '../../utils/socket';
 import { Shell } from './Shell';
 const { Panel } = Collapse;
 
-export const ShellScriptComp = ({
+const ShellScriptComponent = ({
 	projectId,
 	visible,
 	onVisibleChange,
@@ -108,3 +108,4 @@ export const ShellScriptComp = ({
 		</>
 	);
 };
+export default ShellScriptComponent;

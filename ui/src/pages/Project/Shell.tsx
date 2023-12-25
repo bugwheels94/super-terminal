@@ -41,10 +41,12 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 		const options: {
 			value: number | null;
 			label: string;
-		}[] = projects.map((project) => ({
-			value: project.id,
-			label: project.slug,
-		}));
+		}[] = projects
+			.map((project) => ({
+				value: project.id,
+				label: project.slug,
+			}))
+			.filter(({ label }) => label);
 		options.unshift({
 			value: 0,
 			label: 'Shared among All Projects',

@@ -110,14 +110,6 @@ export const addProjectRoutes = (router: Router) => {
 			terminal.project = projectRecord;
 			await TerminalRepository.save(terminal);
 		}
-		// VERY SLOW Constraint failure code
-		// try {
-		// 	await ProjectRepository.save(project);
-		// } catch (e) {
-		// 	if (!(e instanceof QueryFailedError) || e.driverError.code !== 'SQLITE_CONSTRAINT_UNIQUE') {
-		// 		throw e;
-		// 	}
-		// }
 		res.send(projectRecord.id);
 	});
 	router.delete('/projects/:id', async (req, res) => {
@@ -143,7 +135,14 @@ export const addProjectRoutes = (router: Router) => {
 
 	router.patch('/projects/:id', async (req, res) => {
 		const id = Number(req.params.id);
-		await ProjectRepository.update(id, req.body || {});
+		try {
+			await ProjectRepository.update(id, req.body || {});
+		} catch (e) {
+			if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+				res.status(400).send(`Project with this name already exists`);
+			} else throw e;
+			return;
+		}
 		res
 			.status(200)
 			.send({})
@@ -152,13 +151,8 @@ export const addProjectRoutes = (router: Router) => {
 			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
 	});
 
-	router.get('/projects/:id/running-status', async (req, res) => {
-		const projectId = Number(req.params.id);
-		let isRunning = false;
-		ptyProcesses.forEach((process) => {
-			if (process.projectId === projectId) isRunning = true;
-		});
-		res.status(200).send(isRunning);
+	router.get('/running-projects', async (req, res) => {
+		res.status(200).send(getRunningProjects());
 	});
 };
 function closeProject(id: number) {
@@ -166,4 +160,14 @@ function closeProject(id: number) {
 		if (process.projectId !== id) return;
 		killPtyProcess(terminalId);
 	});
+}
+export function getRunningProjects() {
+	const projectIds = [];
+	const map = {};
+	ptyProcesses.forEach((process) => {
+		if (map[process.projectId]) return;
+		projectIds.push(process.projectId);
+		map[process.projectId] = true;
+	});
+	return projectIds;
 }

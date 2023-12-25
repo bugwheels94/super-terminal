@@ -1,10 +1,10 @@
-import { Drawer, Input, Slider, Select, Button, Form } from 'antd';
+import { Drawer, Input, Slider, Select, Button, Form, Alert } from 'antd';
 import { PatchProjectRequest, PostProjectRequest, Project } from '../../services/project';
 import { useMemo } from 'react';
+import { ApiError } from '../../utils/error';
 const rules = [
 	{
 		message: 'Parameter Name can only contain alphabets, numbers, -, _',
-		required: true,
 		whitespace: false,
 		pattern: /^[A-Za-z0-9-_]+$/g,
 	},
@@ -33,16 +33,18 @@ const defaultTheme = {
 	cursorColor: '#eff0f1',
 };
 
-export const ProjectForm = ({
+const ProjectForm = ({
 	project,
 	onOpenChange,
 	open,
 	onProjectChange,
+	error,
 }: {
 	onProjectChange: (_: PostProjectRequest | PatchProjectRequest) => void;
 	project: Project | null;
 	open: boolean;
 	onOpenChange: (_: boolean) => void;
+	error: ApiError | null;
 }) => {
 	const initialValues = useMemo(() => {
 		if (project) {
@@ -57,6 +59,20 @@ export const ProjectForm = ({
 			};
 		}
 	}, [project]);
+	const linesToRestore = useMemo(() => {
+		let options = [];
+		for (let i = 500; i < 10000; i += 100) {
+			options.push({ value: i, label: i });
+		}
+		return options;
+	}, []);
+	const linesToScroll = useMemo(() => {
+		let options = [];
+		for (let i = 500; i < 50000; i += 500) {
+			options.push({ value: i, label: i });
+		}
+		return options;
+	}, []);
 	return (
 		<Drawer
 			title={project ? 'Edit Project' : 'Create New Project'}
@@ -98,7 +114,7 @@ export const ProjectForm = ({
 						label="Number of Logs to Restore"
 						name="numberOfLogsToRestore"
 					>
-						<Slider min={500} max={10000} step={100} />
+						<Select options={linesToRestore}></Select>
 					</Form.Item>
 					<Form.Item
 						colon={false}
@@ -107,7 +123,7 @@ export const ProjectForm = ({
 						label="Number of Lines that can be scrolled"
 						name="scrollback"
 					>
-						<Slider min={1000} max={50000} step={100} />
+						<Select options={linesToScroll}></Select>
 					</Form.Item>
 					<Form.Item
 						colon={false}
@@ -138,11 +154,14 @@ export const ProjectForm = ({
 							]}
 						/>
 					</Form.Item>
-					<Button htmlType="submit" type="primary">
+					<Button htmlType="submit" type="primary" style={{ marginBottom: '2rem' }}>
 						Save
 					</Button>
+
+					{error && <Alert message={error?.message} type="error" />}
 				</Form>
 			)}
 		</Drawer>
 	);
 };
+export default ProjectForm;

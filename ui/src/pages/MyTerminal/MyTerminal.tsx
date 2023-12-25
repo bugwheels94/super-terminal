@@ -1,4 +1,4 @@
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { memo, useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
