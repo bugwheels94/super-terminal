@@ -391,6 +391,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 		return () => {
 			contextMenuContext.removeItems(data);
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [data, contextMenuPosition]);
 	const shouldContextMenuOpenLeftSide = useMemo(() => {
 		if (!contextMenuPosition) return false;
