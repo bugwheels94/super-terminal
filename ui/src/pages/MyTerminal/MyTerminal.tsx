@@ -296,7 +296,7 @@ export const MyTerminal = ({
 			}
 			return true;
 		});
-	}, [showSearchBarOnKeyboard]);
+	}, [showSearchBarOnKeyboard, state?.xterm]);
 	useEffect(() => {
 		if (!project) return;
 		const winbox = new WinBox(terminal.title || 'Untitled', {
@@ -386,6 +386,7 @@ export const MyTerminal = ({
 			if (winbox.dom !== null) winbox.close(true);
 			xterm.dispose();
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [deleteTerminal, element, project, projectId, terminal.id]);
 
 	useEffect(() => {

@@ -16,28 +16,28 @@
     "react-dom": "^18.2.0"
   },
   "syncWorkspaceDependencies": {
-		"soxtend": {
-			"type": "npm"
-		}
-	},
+    "soxtend": {
+      "type": "npm"
+    }
+  },
   "eslintConfig": {
-		"extends": [
-			"react-app",
-			"react-app/jest"
-		]
-	},
-	"browserslist": {
-		"production": [
-			">0.2%",
-			"not dead",
-			"not op_mini all"
-		],
-		"development": [
-			"last 1 chrome version",
-			"last 1 firefox version",
-			"last 1 safari version"
-		]
-	},
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
     "@lytejs/query-string": "^0.2.18",
     "@types/lodash-es": "^4.17.12",
@@ -52,6 +52,7 @@
     "antd": "^5.12.8",
     "browserify-fs": "^1.0.0",
     "eslint": "^8.55.0",
+    "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "isomorphic-ws": "^4.0.1",
