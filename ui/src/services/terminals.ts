@@ -130,7 +130,7 @@ export const useDeleteTerminal = (
 ) => {
 	return useMutationPlus(
 		getTerminalQueryKey(projectId, id),
-		(body) =>
+		() =>
 			fetchSocket(`/projects/${projectId}/terminals/${id}`, {
 				method: 'delete',
 			}),

@@ -15,7 +15,7 @@ const targetDir = path.join(os.homedir(), '.config', 'super-terminal');
 fs.mkdirSync(targetDir, { recursive: true });
 export const AppDataSource = new DataSource({
 	type: 'better-sqlite3',
-	database: path.join(targetDir, 'database.sqlite'),
+	database: process.env.SUPER_TERMINAL_DB || path.join(targetDir, 'database.sqlite'),
 	synchronize: true,
 	logging: ['error'],
 	entities: [Project, Terminal, TerminalSetting, TerminalLog, TerminalLogArchive, HistoryHash, ShellScript],

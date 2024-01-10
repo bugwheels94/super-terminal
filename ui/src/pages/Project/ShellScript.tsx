@@ -54,7 +54,7 @@ const ShellScriptComponent = ({
 					})
 				);
 			})
-			.delete('/projects/:projectId/scripts/:scriptId', (request, response) => {
+			.delete('/projects/:projectId/scripts/:scriptId', (request) => {
 				const projectId = Number(request.params.projectId);
 
 				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];

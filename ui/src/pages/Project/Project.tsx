@@ -95,7 +95,6 @@ function Project2() {
 		}
 	}
 	const [contextMenuItems, setContextMenuItems] = useReducer(reducer, { items: [], id: 0 });
-
 	if (!project) return null;
 	return (
 		<ContextMenuContext.Provider
@@ -181,9 +180,12 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 			.post(`/projects/:projectId/running-status`, (request) => {
 				const projectId = Number(request.params.projectId);
 				const oldData = queryClient.getQueryData('/running-projects') as number[];
-				queryClient.setQueryData('/running-projects', oldData.concat([projectId]));
+				queryClient.setQueryData(
+					'/running-projects',
+					oldData.includes(projectId) ? oldData : oldData.concat([projectId])
+				);
 			})
-			.patch('/projects/:projectId', (request, response) => {
+			.patch('/projects/:projectId', (_, response) => {
 				if (!response.data) return;
 				queryClient.setQueryData(getProjectQueryKey(project.id), response.data);
 				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
@@ -192,7 +194,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 					oldData.map((p) => (p.id !== response.data.id ? p : response.data))
 				);
 			})
-			.delete('/projects/:projectId', (request, response) => {
+			.delete('/projects/:projectId', (_, response) => {
 				if (!response.data) return;
 				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
 				queryClient.setQueryData(
@@ -202,6 +204,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 			})
 			.post('/projects/:projectId/terminals', (request, response) => {
 				if (!response.data) return;
+
 				const projectId = Number(request.params.projectId);
 				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
 				queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
@@ -227,7 +230,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 					})
 				);
 			})
-			.delete('/projects/:projectId/terminals/:terminalId', (request, response) => {
+			.delete('/projects/:projectId/terminals/:terminalId', (request) => {
 				const projectId = Number(request.params.projectId);
 				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
 				queryClient.setQueryData(
@@ -314,24 +317,24 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 					  ]),
 
 				{
-					title: `Manage Saved Projects (${(runningProjects || []).length} running)`,
+					title: `Manage Projects (${(runningProjects || []).length} running)`,
 					icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
-					children: (projects || [])
-						.filter((p) => !!p.slug)
-						.map((thisProject) => {
-							return {
-								title: `${thisProject.slug}${(runningProjects || []).includes(thisProject.id) ? ' (Running)' : ''}`,
-								icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
-								child: (
-									<ManageProject
-										setContextMenuPosition={setContextMenuPosition}
-										project={thisProject}
-										currentProjectId={projectId}
-										runningProjects={runningProjects || []}
-									/>
-								),
-							};
-						}),
+					children: (projects || []).map((thisProject) => {
+						return {
+							title: `${thisProject.slug || 'Untitled Project'}${
+								(runningProjects || []).includes(thisProject.id) ? ' (Running)' : ''
+							}`,
+							icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
+							child: (
+								<ManageProject
+									setContextMenuPosition={setContextMenuPosition}
+									project={thisProject}
+									currentProjectId={projectId}
+									runningProjects={runningProjects || []}
+								/>
+							),
+						};
+					}),
 					onClick: () => {},
 				},
 				{
@@ -400,7 +403,6 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 		if (!box) return false;
 		return contextMenuPosition?.left > window.width - contextMenuPosition.left - box.width;
 	}, [contextMenuPosition]);
-
 	if (!projects || !projectId) return null;
 	return (
 		<>
@@ -556,7 +558,7 @@ const ListItems = forwardRef<
 	return (
 		<div tabIndex={tabIndex} ref={ref} className="list-items" style={position ? position : { left: '-5000px' }}>
 			{items?.length ? (
-				items.map((item, index) => {
+				items.map((item) => {
 					return (
 						<React.Fragment key={item.title}>
 							{item.heading && (
@@ -616,16 +618,18 @@ function ManageProject({
 					Terminate all Running Terminals
 				</div>
 			)}
-			<div
-				className="list-item"
-				onClick={() => {
-					setContextMenuPosition(null);
+			{project.slug && (
+				<div
+					className="list-item"
+					onClick={() => {
+						setContextMenuPosition(null);
 
-					setIsModalOpen(true);
-				}}
-			>
-				Delete
-			</div>
+						setIsModalOpen(true);
+					}}
+				>
+					Delete
+				</div>
+			)}
 
 			<Modal
 				open={isModalOpen}
