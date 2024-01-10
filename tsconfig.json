@@ -5,7 +5,7 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"moduleResolution": "node16",
-		"module": "es2015",
+		"module": "Node16",
 		"declaration": true,
 		"inlineSourceMap": true,
 		"esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
@@ -28,7 +28,6 @@
 		// "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
 
 		"lib": ["esnext", "dom"],
-		"types": ["node"],
 		"typeRoots": ["@types", "src/types"],
 		"emitDeclarationOnly": true,
 		"noEmit": false,
