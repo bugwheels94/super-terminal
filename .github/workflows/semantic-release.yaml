@@ -35,6 +35,8 @@ jobs:
       varsion: ${{ steps.set_var.outputs.version }}
     steps:
       - uses: actions/checkout@v3
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
       - run: npx semantic-release --dry-run
         id: set_var
