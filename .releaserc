@@ -30,7 +30,7 @@
 		[
 			"@semantic-release/exec",
 			{
-				"notifyCmd": "echo ${nextRelease.version} > .version_semantic_info_workaround"
+				"verifyReleaseCmd": "echo \"version=${nextRelease.version}\" >> \"$GITHUB_OUTPUT\""
 			}
 		]
 	]

@@ -28,9 +28,23 @@ jobs:
             ui/package.json
             ui/dist
 
+  semantic-release-version-retrieval:
+    name: semantic-release-version-retrieval
+    runs-on: ubuntu-22.04
+    outputs:
+      varsion: ${{ steps.set_var.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: npx semantic-release --dry-run
+        id: set_var
+        env:
+          HUSKY: 0
+          NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   windows:
     name: release-windows
-    needs: [ui]
+    needs: [ui, semantic-release-version-retrieval]
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -46,6 +60,9 @@ jobs:
       - run: npm cache clean --force
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
+      - run: npm version $VERSION
+        env:
+          VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
       - run: npm run build
       - run: npm run build:electron
       - run: tree out /f | more
@@ -58,7 +75,7 @@ jobs:
 
   mac:
     name: release-mac
-    needs: [ui]
+    needs: [ui, semantic-release-version-retrieval]
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
@@ -71,6 +88,10 @@ jobs:
       - run: npm i -g @lytejs/mesh@beta appdmg
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
+      - run: npm version $VERSION
+        env:
+          VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
+
       - run: npm run build
       - run: npm run build:electron
       - run: npm run build:electron:dmg
@@ -84,7 +105,7 @@ jobs:
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
-    needs: [ui]
+    needs: [ui, semantic-release-version-retrieval]
     steps:
       - uses: actions/checkout@v3
       - run: rm -rf ui
@@ -97,6 +118,10 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
       - run: npm i -g electron-installer-debian electron-installer-redhat
+      - run: npm version $VERSION
+        env:
+          VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
+
       - run: npm run build
       - run: npm run build:electron
       - run: find out -type f
