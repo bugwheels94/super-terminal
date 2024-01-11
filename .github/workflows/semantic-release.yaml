@@ -63,7 +63,7 @@ jobs:
       - run: npm cache clean --force
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
-      - run: npm version $VERSION
+      - run: npm --no-git-tag-version version $VERSION
         env:
           VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
       - run: npm run build
@@ -91,7 +91,7 @@ jobs:
       - run: npm i -g @lytejs/mesh@beta appdmg
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
-      - run: npm version $VERSION
+      - run: npm --no-git-tag-version version $VERSION
         env:
           VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
 
@@ -121,7 +121,7 @@ jobs:
       - run: npm i --legacy-peer-deps
       - run: sudo apt -y install rpm
       - run: npm i -g electron-installer-debian electron-installer-redhat
-      - run: npm version $VERSION
+      - run: npm --no-git-tag-version version $VERSION
         env:
           VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
 
