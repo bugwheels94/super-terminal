@@ -44,7 +44,7 @@ export const useGetProjects = () => {
 };
 export const usePutProject = (projectSlug: string) => {
 	return useQueryPlus<number>(
-		[`/projects/${projectSlug}`],
+		`/projects/${projectSlug}`,
 		() =>
 			fetchSocket<number>(`/projects/${projectSlug}`, {
 				method: 'put',

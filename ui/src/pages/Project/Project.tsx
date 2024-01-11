@@ -247,8 +247,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 		return () => {
 			listeners.stopListening();
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [queryClient]);
+	}, [queryClient, project.id]);
 	const { data: runningProjects } = useGetRunningProjects();
 
 	const data = useMemo(
