@@ -469,6 +469,7 @@ export type ItemType = {
 	child?: ReactNode;
 	heading?: string;
 	placeholder?: string;
+	key?: string;
 };
 type Position = { left: number; top: number } | null;
 const ListItem = ({
@@ -571,7 +572,7 @@ const ListItems = forwardRef<
 			{items?.length ? (
 				items.map((item) => {
 					return (
-						<React.Fragment key={item.title}>
+						<React.Fragment key={item.key || item.title}>
 							{item.heading && (
 								<div className="list-item-heading">
 									<strong>{item.heading}</strong>

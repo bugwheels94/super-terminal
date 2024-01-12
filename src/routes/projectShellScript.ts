@@ -14,7 +14,9 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 			where: { id },
 		});
 		const shellScript = new ShellScript();
-		shellScript.project = project;
+		if (project.slug) {
+			shellScript.project = project;
+		}
 		shellScript.script = req.body.script;
 		shellScript.parameters = req.body.parameters;
 		shellScript.name = 'untitled-script';

@@ -167,6 +167,7 @@ export const MyTerminal = ({
 					icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
 					children: projectScripts?.map((script) => {
 						return {
+							key: script.id,
 							title: script.name,
 							icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
 							onClick: () => {
