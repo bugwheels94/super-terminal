@@ -39,13 +39,14 @@ import { Modal } from 'antd';
 import { debounce } from 'lodash-es';
 const ShellScriptComponent = React.lazy(() => import('./ShellScript'));
 const ProjectForm = React.lazy(() => import('./Form'));
-
+type Coordinates = { x: number; y: number };
 export const ContextMenuContext = createContext({
-	addItems: (_: ItemType[]) => {},
-	items: [] as ItemType[],
+	addItems: (_: ItemType[], _key: string) => {},
+	setCoordinates: (_: Coordinates | undefined) => {},
+	items: new Map() as Map<string, ItemType[]>,
 	removeAllItems: () => {},
-	removeItems: (_: ItemType[]) => {},
 	id: 0,
+	coordinates: undefined as Coordinates | undefined,
 });
 
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
@@ -59,60 +60,81 @@ function Project2() {
 	const { projectSlug = '' } = useParams<'projectSlug'>() as { projectSlug: string; projectId?: number };
 	const { data: projectId } = usePutProject(projectSlug);
 	const { data: project } = useGetProject(projectId);
-	type State = { items: ItemType[]; id: number };
+	type State = { items: Map<string, ItemType[]>; id: number; coordinates: Coordinates | undefined };
 	type Action =
+		| {
+				type: 'set-coordinates';
+				value: Coordinates | undefined;
+		  }
 		| {
 				type: 'add';
 				value: ItemType[];
-		  }
-		| {
-				type: 'remove';
-				value: ItemType[];
+				key: string;
 		  }
 		| { type: 'removeAll' };
 
 	function reducer(state: State, action: Action): State {
 		switch (action.type) {
 			case 'removeAll':
+				let items = new Map();
+				state.items.forEach((_, key) => items.set(key, []));
 				return {
 					...state,
 					id: state.id + 1,
-					items: [],
+					items,
+				};
+			case 'set-coordinates':
+				return {
+					...state,
+
+					coordinates: action.value,
 				};
 			case 'add':
+				let items2 = new Map();
+				state.items.forEach((value, key) => {
+					if (key === action.key) items2.set(key, action.value);
+					else items2.set(key, value);
+				});
+
 				return {
-					items: state.items.filter((item) => !action.value.find((i) => i.title === item.title)).concat(action.value),
+					...state,
+					items: items2,
 					id: state.id + 1,
 				};
-			case 'remove':
-				return {
-					items: state.items.filter((item) => !action.value.includes(item)),
-					id: state.id + 1,
-				};
+
 			default: {
 				return state;
 			}
 		}
 	}
-	const [contextMenuItems, setContextMenuItems] = useReducer(reducer, { items: [], id: 0 });
+	const [contextMenuItems, setContextMenuItems] = useReducer(reducer, {
+		items: new Map([
+			['child', []],
+
+			['parent', []],
+		]),
+		id: 0,
+		coordinates: undefined,
+	});
 	if (!project) return null;
 	return (
 		<ContextMenuContext.Provider
 			value={{
-				addItems: (newItems: ItemType[]) => {
-					setContextMenuItems({ value: newItems, type: 'add' });
+				setCoordinates: (coordinates: Coordinates | undefined) => {
+					setContextMenuItems({
+						type: 'set-coordinates',
+						value: coordinates,
+					});
+				},
+				addItems: (newItems: ItemType[], key: string) => {
+					setContextMenuItems({ value: newItems, type: 'add', key });
 				},
 				removeAllItems: () => {
 					setContextMenuItems({
 						type: 'removeAll',
 					});
 				},
-				removeItems: (items: ItemType[]) => {
-					setContextMenuItems({
-						type: 'remove',
-						value: items,
-					});
-				},
+
 				...contextMenuItems,
 			}}
 		>
@@ -250,7 +272,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 	}, [queryClient, project.id]);
 	const { data: runningProjects } = useGetRunningProjects();
 
-	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
+	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id, {});
 
 	const data = useMemo(
 		() =>
@@ -338,7 +360,7 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 							icon: <BsFolder style={{ verticalAlign: 'middle' }} />,
 							child: (
 								<ManageProject
-									setContextMenuPosition={setContextMenuPosition}
+									hideContextMenu={() => contextMenuContext.setCoordinates(undefined)}
 									project={thisProject}
 									currentProjectId={projectId}
 									runningProjects={runningProjects || []}
@@ -358,17 +380,28 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 					},
 				},
 			] as ItemType[],
-		[projectId, setMainCommandCounter, postTerminal, deleteLogsArchive, projects, navigate, project, runningProjects]
+		[
+			project,
+			runningProjects,
+			projects,
+			postTerminal,
+			deleteProjectRunningStatus,
+			navigate,
+			projectId,
+			deleteLogsArchive,
+		]
 	);
 	useEffect(() => {
-		function onContextMenu(e: MouseEvent) {
-			e.preventDefault();
+		if (!contextMenuContext.coordinates) {
+			setContextMenuPosition(null);
+			return;
+		}
 
+		if (contextMenuContext.items.get('parent')?.length === 0) return;
+		const onContextMenu = function (e: Coordinates) {
 			if (!reff.current) return;
 			const { width, height } = getWindowDimensions();
 
-			if (reff.current) {
-			}
 			if (width - e.x > reff.current.offsetWidth) {
 				if (height - e.y > reff.current.offsetHeight) {
 					setContextMenuPosition({ left: e.x, top: e.y });
@@ -386,27 +419,34 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 					return;
 				}
 			}
-		}
-		function onContextMenuOut(e: MouseEvent) {
-			if (reff.current?.contains(e.target as Node) || reff.current === e.target) return;
-			setContextMenuPosition(null);
-		}
-		window.addEventListener('contextmenu', onContextMenu);
-		window.addEventListener('click', onContextMenuOut);
-
-		return () => {
-			window.removeEventListener('contextmenu', onContextMenu);
-			window.removeEventListener('click', onContextMenuOut);
 		};
-	}, [data, contextMenuContext]);
+		onContextMenu(contextMenuContext.coordinates);
+		return () => {};
+	}, [contextMenuContext.coordinates, contextMenuContext.items]);
 
 	useEffect(() => {
-		if (contextMenuPosition) contextMenuContext.addItems(data);
-		return () => {
-			contextMenuContext.removeItems(data);
+		if (!contextMenuContext.coordinates) return;
+		contextMenuContext.addItems(data, 'parent');
+	}, [contextMenuContext.coordinates, data]);
+
+	useEffect(() => {
+		const temp = (e: MouseEvent) => {
+			e.preventDefault();
+			contextMenuContext.setCoordinates({ x: e.clientX, y: e.clientY });
+			contextMenuContext.removeAllItems();
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [data, contextMenuPosition]);
+		function onContextMenuOut(e: MouseEvent) {
+			if (reff.current?.contains(e.target as Node) || reff.current === e.target) return;
+			contextMenuContext.setCoordinates(undefined);
+		}
+		window.addEventListener('contextmenu', temp, true);
+		window.addEventListener('mousedown', onContextMenuOut);
+		return () => {
+			window.removeEventListener('mousedown', onContextMenuOut);
+
+			window.removeEventListener('contextmenu', temp, true);
+		};
+	}, []);
 	const shouldContextMenuOpenLeftSide = useMemo(() => {
 		if (!contextMenuPosition) return false;
 		const window = getWindowDimensions();
@@ -414,6 +454,10 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 		if (!box) return false;
 		return contextMenuPosition?.left > window.width - contextMenuPosition.left - box.width;
 	}, [contextMenuPosition]);
+	let iitems: ItemType[] = [];
+	contextMenuContext.items.forEach((value) => {
+		iitems.push(...value);
+	});
 	if (!projects || !projectId) return null;
 	return (
 		<>
@@ -424,9 +468,9 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 				key={contextMenuContext.id}
 				ref={reff}
 				tabIndex={1}
-				items={contextMenuContext.items}
+				items={iitems}
 				position={contextMenuPosition}
-				setContextMenuPosition={setContextMenuPosition}
+				hideContextMenu={() => contextMenuContext.setCoordinates(undefined)}
 				shouldContextMenuOpenLeftSide={shouldContextMenuOpenLeftSide}
 			/>
 			<Suspense fallback={<>...</>}>
@@ -476,14 +520,14 @@ const ListItem = ({
 	item,
 	childrenPosition,
 	setChildrenPosition,
-	setContextMenuPosition,
+	hideContextMenu,
 	shouldContextMenuOpenLeftSide,
 }: {
 	item: ItemType;
 	shouldContextMenuOpenLeftSide: boolean;
 	childrenPosition: any;
 	setChildrenPosition: any;
-	setContextMenuPosition: (_: Position | null) => void;
+	hideContextMenu: () => void;
 }) => {
 	const ref = useRef<HTMLDivElement>(null);
 	const ref2 = useRef<HTMLDivElement>(null);
@@ -505,13 +549,13 @@ const ListItem = ({
 								if (!shouldContextMenuOpenLeftSide) {
 									setChildrenPosition({
 										left: rect.width + 6,
-										top: 0,
+										bottom: 0,
 										id: item.title,
 									});
 								} else {
 									setChildrenPosition({
 										left: 0 - newRect.width - 6,
-										top: 0,
+										bottom: 0,
 										id: item.title,
 									});
 								}
@@ -519,7 +563,7 @@ const ListItem = ({
 						: () => {
 								item.onClick();
 								ref.current?.blur();
-								setContextMenuPosition(null);
+								hideContextMenu();
 						  }
 				}
 				ref={ref}
@@ -534,7 +578,7 @@ const ListItem = ({
 						placeholder={item.placeholder}
 						items={item.children}
 						child={item.child}
-						setContextMenuPosition={setContextMenuPosition}
+						hideContextMenu={hideContextMenu}
 						position={
 							childrenPosition.id === item.title
 								? childrenPosition
@@ -554,13 +598,13 @@ const ListItems = forwardRef<
 	{
 		tabIndex?: number;
 		position: Position | null;
-		setContextMenuPosition: (_: Position | null) => void;
+		hideContextMenu: () => void;
 		items?: ItemType[];
 		placeholder?: string;
 		child?: ReactNode;
 		shouldContextMenuOpenLeftSide: boolean;
 	}
->(({ tabIndex, items, placeholder, position, child, setContextMenuPosition, shouldContextMenuOpenLeftSide }, ref) => {
+>(({ tabIndex, items, placeholder, position, child, hideContextMenu, shouldContextMenuOpenLeftSide }, ref) => {
 	const [childrenPosition, setChildrenPosition] = useState<Position & { itemId: string }>({
 		left: -10000,
 		top: 0,
@@ -580,7 +624,7 @@ const ListItems = forwardRef<
 							)}
 							<ListItem
 								shouldContextMenuOpenLeftSide={shouldContextMenuOpenLeftSide}
-								setContextMenuPosition={setContextMenuPosition}
+								hideContextMenu={hideContextMenu}
 								item={item}
 								childrenPosition={childrenPosition}
 								setChildrenPosition={setChildrenPosition}
@@ -599,16 +643,18 @@ const ListItems = forwardRef<
 function ManageProject({
 	project,
 	currentProjectId,
-	setContextMenuPosition,
+	hideContextMenu,
 	runningProjects,
 }: {
 	runningProjects: number[];
 	project: Project;
 	currentProjectId: number;
-	setContextMenuPosition: (_: Position | null) => void;
+	hideContextMenu: () => void;
 }) {
 	const { mutate } = useDeleteProject(project.id);
-	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
+	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id, {
+		onSuccess: () => {},
+	});
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const navigate = useNavigate();
 	//* reloading cause the context menu is not behaving */
@@ -619,7 +665,7 @@ function ManageProject({
 					className="list-item"
 					onClick={() => {
 						navigate(`/${project.slug}`);
-						setContextMenuPosition(null);
+						hideContextMenu();
 					}}
 				>
 					Open
@@ -634,9 +680,8 @@ function ManageProject({
 				<div
 					className="list-item"
 					onClick={() => {
-						setContextMenuPosition(null);
-
 						setIsModalOpen(true);
+						hideContextMenu();
 					}}
 				>
 					Delete

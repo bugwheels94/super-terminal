@@ -116,6 +116,13 @@ export const addProjectRoutes = (router: Router) => {
 		const id = Number(req.params.id);
 		closeProject(id);
 		await ProjectRepository.delete(id);
+		res
+			.group('global')
+			.status(200)
+			.send(id, {
+				url: '/projects/' + id + '/running-status',
+				method: 'delete',
+			});
 		res.group('global').status(200).send(id);
 	});
 	router.get('/projects/:id', async (req, res) => {

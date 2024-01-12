@@ -1,4 +1,4 @@
-import { UseMutationOptions, useMutation } from 'react-query';
+import { UseMutationOptions, useMutation, useQueryClient } from 'react-query';
 import { ITheme } from 'xterm';
 import { fetchSocket } from '../utils/fetch';
 import { useMutationPlus } from '../utils/reactQueryPlus/mutation';
@@ -35,14 +35,18 @@ export const usePatchProject = (
 };
 
 export const useGetProjects = () => {
-	return useQueryPlus(getProjectsQueryKey(), () =>
-		fetchSocket<Project[]>(`/projects`, {
-			body: '',
-			method: 'get',
-		})
+	return useQueryPlus(
+		getProjectsQueryKey(),
+		() =>
+			fetchSocket<Project[]>(`/projects`, {
+				body: '',
+				method: 'get',
+			}),
+		{ refetchOnMount: true }
 	);
 };
 export const usePutProject = (projectSlug: string) => {
+	const queryClient = useQueryClient();
 	return useQueryPlus<number>(
 		`/projects/${projectSlug}`,
 		() =>
@@ -52,6 +56,9 @@ export const usePutProject = (projectSlug: string) => {
 			}),
 		{
 			keepPreviousData: true,
+			onSuccess: () => {
+				queryClient.invalidateQueries(getProjectsQueryKey());
+			},
 		}
 	);
 };
@@ -87,11 +94,13 @@ export const useGetRunningProjects = () => {
 		}
 	);
 };
-export const useDeleteProjectRunningStatus = (projectId: number) => {
-	return useMutation(() =>
-		fetchSocket<Project>(`/projects/${projectId}/running-status`, {
-			method: 'delete',
-			body: {},
-		})
+export const useDeleteProjectRunningStatus = (projectId: number, options: UseMutationOptions<Project, ApiError>) => {
+	return useMutation(
+		() =>
+			fetchSocket<Project>(`/projects/${projectId}/running-status`, {
+				method: 'delete',
+				body: {},
+			}),
+		options
 	);
 };

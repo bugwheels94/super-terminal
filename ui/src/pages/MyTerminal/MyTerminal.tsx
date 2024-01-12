@@ -205,13 +205,13 @@ export const MyTerminal = ({
 	useEffect(() => {
 		if (!state?.winbox) return;
 		const temp = () => {
-			contextMenuContext?.addItems(data2);
+			contextMenuContext.addItems(data2, 'child');
 		};
-		state.winbox.body?.addEventListener('contextmenu', temp);
+		state.winbox.body?.addEventListener('contextmenu', temp, true);
 		return () => {
-			state.winbox.body?.removeEventListener('contextmenu', temp);
+			state.winbox.body?.removeEventListener('contextmenu', temp, true);
 		};
-	}, [data2, state?.winbox, contextMenuContext]);
+	}, [data2, state?.winbox]);
 
 	useEffect(() => {
 		if (!state) return;
@@ -422,7 +422,6 @@ export const MyTerminal = ({
 		});
 	}, [searchValue, state]);
 	if (!state) return null;
-	console.log(error);
 	return (
 		<>
 			<Drawer open={!!executionScript} onClose={() => setExecutionScript(null)}>
