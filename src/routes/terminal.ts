@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { throttle, uniqBy } from 'lodash';
 import { spawn } from 'node-pty';
 import os from 'os';
-import { Router, RouterResponse } from 'soxtend/server';
+import { ApiError, Router, RouterResponse } from 'soxtend/server';
 import kill from 'tree-kill';
 import { AppDataSource, ProjectRepository, TerminalLogRepository, TerminalRepository } from '../data-source';
 import { Terminal } from '../entity/Terminal';
@@ -97,12 +97,12 @@ export const addTerminalRoutes = (router: Router) => {
 		if (Object.keys(terminal).length === 0) return;
 		if (terminal.startupEnvironmentVariables) {
 			try {
-				yaml.load(terminal.startupEnvironmentVariables, {
+				const doc = yaml.load(terminal.startupEnvironmentVariables, {
 					schema: yaml.JSON_SCHEMA,
 				});
+				if (typeof doc !== 'object') throw new ApiError('Invalid YAML for startup Environment Variables', 400);
 			} catch (e) {
-				console.log('error', e);
-				throw new Error('Invalid YAML for startup Environment Variables');
+				throw new ApiError('Invalid YAML for startup Environment Variables', 400);
 			}
 		}
 		// This prevents from updating terminal object in the triggering app unnecessary.
@@ -217,7 +217,7 @@ function createPtyTerminal({
 			}) as Record<string, string>;
 			env = { ...(process.env as Record<string, string>), ...doc };
 		} catch (e) {
-			throw new Error('Invalid YAML for startup Environment Variables');
+			console.log(e);
 		}
 	let cwd = terminal.cwd;
 	if (cwd) {

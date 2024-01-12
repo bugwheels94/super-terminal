@@ -115,10 +115,6 @@ export const usePatchTerminal = (
 				method: 'patch',
 			}),
 		{
-			retry: (_, error) => {
-				if (error.status === 401) return false;
-				return true;
-			},
 			...options,
 		}
 	);

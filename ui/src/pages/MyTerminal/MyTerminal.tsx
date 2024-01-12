@@ -2,7 +2,7 @@ import { debounce } from 'lodash-es';
 import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
-import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
+import { Drawer, Input, Modal, AutoComplete, Form, Alert } from 'antd';
 import './MyTerminal.css';
 
 // @ts-ignore
@@ -130,7 +130,7 @@ export const MyTerminal = ({
 	mainCommandCounter: number;
 }) => {
 	const [isPatching, setIsPatching] = useState(false);
-	const { mutate: patchTerminal } = usePatchTerminal(projectId, terminal.id);
+	const { mutate: patchTerminal, error } = usePatchTerminal(projectId, terminal.id);
 
 	const [editorCommand, setEditorCommand] = useState('');
 	const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
@@ -422,6 +422,7 @@ export const MyTerminal = ({
 		});
 	}, [searchValue, state]);
 	if (!state) return null;
+	console.log(error);
 	return (
 		<>
 			<Drawer open={!!executionScript} onClose={() => setExecutionScript(null)}>
@@ -568,6 +569,7 @@ export const MyTerminal = ({
 					>
 						<Input.TextArea placeholder="Yaml syntax(KEY: VALUE)" />
 					</Form.Item>
+					{error && <Alert message={error?.message} type="error" />}
 				</Form>
 			</Drawer>
 		</>
