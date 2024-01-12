@@ -440,9 +440,10 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 			contextMenuContext.setCoordinates(undefined);
 		}
 		window.addEventListener('contextmenu', temp, true);
-		window.addEventListener('mousedown', onContextMenuOut);
+		// mousedown does not work cause winbox has probably stopped propagation
+		window.addEventListener('click', onContextMenuOut);
 		return () => {
-			window.removeEventListener('mousedown', onContextMenuOut);
+			window.removeEventListener('click', onContextMenuOut);
 
 			window.removeEventListener('contextmenu', temp, true);
 		};
