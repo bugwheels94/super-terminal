@@ -250,6 +250,8 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 	}, [queryClient, project.id]);
 	const { data: runningProjects } = useGetRunningProjects();
 
+	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
+
 	const data = useMemo(
 		() =>
 			[
@@ -291,11 +293,21 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 						}, 0);
 					},
 				},
+
 				...(project.slug !== ''
 					? [
 							{
-								heading: 'Global Actions',
 								title: 'Close Project',
+								icon: <BsFolderX style={{ verticalAlign: 'middle' }} />,
+								onClick: () => {
+									deleteProjectRunningStatus();
+									navigate('/');
+								},
+							},
+
+							{
+								heading: 'Global Actions',
+								title: <>Switch to Untitled Project</>,
 								icon: <BsFolderX style={{ verticalAlign: 'middle' }} />,
 								onClick: () => {
 									navigate('/');
@@ -594,8 +606,8 @@ function ManageProject({
 	currentProjectId: number;
 	setContextMenuPosition: (_: Position | null) => void;
 }) {
-	const { mutateAsync } = useDeleteProject(project.id);
-	const { mutateAsync: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
+	const { mutate } = useDeleteProject(project.id);
+	const { mutate: deleteProjectRunningStatus } = useDeleteProjectRunningStatus(project.id);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const navigate = useNavigate();
 	//* reloading cause the context menu is not behaving */
@@ -635,7 +647,7 @@ function ManageProject({
 				title="Are you sure you want to delete the project？"
 				onCancel={() => setIsModalOpen(false)}
 				onOk={() => {
-					mutateAsync();
+					mutate();
 					setIsModalOpen(false);
 				}}
 			></Modal>
