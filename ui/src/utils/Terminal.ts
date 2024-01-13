@@ -13,6 +13,9 @@ import { SearchAddon } from 'xterm-addon-search';
 import { SerializeAddon } from 'xterm-addon-serialize';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { WebglAddon } from 'xterm-addon-webgl';
+import { CanvasAddon } from 'xterm-addon-canvas';
+import { ImageAddon } from 'xterm-addon-image';
+import { LigaturesAddon } from 'xterm-addon-ligatures';
 import { Unicode11Addon } from 'xterm-addon-unicode11';
 
 // import { LigaturesAddon } from 'xterm-addon-ligatures'
@@ -43,6 +46,7 @@ export function createTerminal(terminalContainer: HTMLElement, options: ITermina
 	const term = new Terminal({
 		fontSize: 13,
 		scrollback: options.scrollback,
+		allowProposedApi: true,
 		theme: {
 			name: 'Breeze',
 			black: '#31363b',
@@ -77,12 +81,20 @@ export function createTerminal(terminalContainer: HTMLElement, options: ITermina
 	const typedTerm = term as TerminalType;
 
 	const addons = getAddons();
-	typedTerm.loadAddon(new WebLinksAddon());
+	term.open(terminalContainer);
+
+	typedTerm.loadAddon(addons.webLinks);
 	typedTerm.loadAddon(addons.fit);
 	typedTerm.loadAddon(addons.search);
 	typedTerm.loadAddon(addons.serialize);
 	typedTerm.loadAddon(addons.unicode11);
-	term.open(terminalContainer);
+	typedTerm.loadAddon(addons.canvas);
+	typedTerm.loadAddon(addons.webgl);
+	addons.webgl.onContextLoss(() => {
+		addons.webgl.dispose();
+	});
+	typedTerm.loadAddon(addons.image);
+	typedTerm.loadAddon(addons.ligatures);
 	term.focus();
 	addons.fit.fit();
 
@@ -99,6 +111,22 @@ function getAddons() {
 		search: new SearchAddon(),
 		serialize: new SerializeAddon(),
 		unicode11: new Unicode11Addon(),
+
+		canvas: new CanvasAddon(),
+		image: new ImageAddon({
+			enableSizeReports: true, // whether to enable CSI t reports (see below)
+			pixelLimit: 16777216, // max. pixel size of a single image
+			sixelSupport: true, // enable sixel support
+			sixelScrolling: true, // whether to scroll on image output
+			sixelPaletteLimit: 256, // initial sixel palette size
+			sixelSizeLimit: 25000000, // size limit of a single sixel sequence
+			storageLimit: 128, // FIFO storage limit in MB
+			showPlaceholder: true, // whether to show a placeholder for evicted images
+			iipSupport: true, // enable iTerm IIP support
+			iipSizeLimit: 20000000, // size limit of a single IIP sequence
+		}),
+		webLinks: new WebLinksAddon(),
+		ligatures: new LigaturesAddon(),
 	};
 }
 export type Addons = ReturnType<typeof getAddons>;
@@ -114,6 +142,7 @@ function initAddons(term: TerminalType, addons: ReturnType<typeof getAddons>): v
 		addons.webgl = undefined;
 	};
 	term.unicode.activeVersion = '11';
+	return;
 	if (window.WebGL2RenderingContext && document.createElement('canvas').getContext('webgl2')) {
 		addons.webgl = new WebglAddon();
 		addons.webgl.onContextLoss(() => {

@@ -37,8 +37,8 @@ import { client } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Modal } from 'antd';
 import { debounce } from 'lodash-es';
-const ShellScriptComponent = React.lazy(() => import('./ShellScript'));
-const ProjectForm = React.lazy(() => import('./Form'));
+import ShellScriptComponent from './ShellScript';
+import ProjectForm from './Form';
 type Coordinates = { x: number; y: number };
 export const ContextMenuContext = createContext({
 	addItems: (_: ItemType[], _key: string) => {},
