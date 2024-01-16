@@ -22,7 +22,7 @@ import { BsArrowRepeat, BsGear, BsTerminal } from 'react-icons/bs';
 import { FiCopy } from 'react-icons/fi';
 import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
 import { ShellScriptExecution } from './ShellScriptExecution';
-import { ContextMenuContext, ItemType } from '../Project/Project';
+import { ContextMenuContextProvider, ItemType } from '../Project/Project';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
@@ -189,7 +189,7 @@ export const MyTerminal = ({
 		winbox: any;
 		addons: Addons;
 	} | null;
-	const contextMenuContext = useContext(ContextMenuContext);
+	const contextMenuContextProvider = useContext(ContextMenuContextProvider);
 	// Reducer function
 	function reducer(state: State, action: Action): State {
 		switch (action.type) {
@@ -205,7 +205,7 @@ export const MyTerminal = ({
 	useEffect(() => {
 		if (!state?.winbox) return;
 		const temp = () => {
-			contextMenuContext.addItems(data2, 'child');
+			contextMenuContextProvider.addItems(data2, 'child');
 		};
 		state.winbox.body?.addEventListener('contextmenu', temp, true);
 		return () => {
@@ -261,6 +261,7 @@ export const MyTerminal = ({
 		if (winbox.max) {
 			winbox.restore();
 		}
+		console.log(winbox);
 		winbox.move(arrangement.x, arrangement.y);
 		winbox.resize(arrangement.width, arrangement.height);
 	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
@@ -387,8 +388,9 @@ export const MyTerminal = ({
 			if (winbox.dom !== null) winbox.close(true);
 			xterm.dispose();
 		};
+		//adding project as deps cause the winbox etc to be created again again
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [deleteTerminal, element, project, projectId, terminal.id]);
+	}, [deleteTerminal, element, projectId, terminal.id]);
 
 	useEffect(() => {
 		if (!project.fontSize || !state) return;
