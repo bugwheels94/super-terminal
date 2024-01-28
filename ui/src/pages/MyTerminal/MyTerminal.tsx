@@ -1,8 +1,8 @@
-import { debounce } from 'lodash';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { debounce } from 'lodash-es';
+import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
-import { Drawer, Input, Modal, AutoComplete, Form } from 'antd';
+import { Drawer, Input, Modal, AutoComplete, Form, Alert } from 'antd';
 import './MyTerminal.css';
 
 // @ts-ignore
@@ -12,21 +12,26 @@ import {
 	usePatchTerminal,
 	useDeleteTerminal,
 	useGetTerminalCommands,
-	PatchTerminalRequest,
+	useCloneTerminal,
 } from '../../services/terminals';
 import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
 import { createPortal } from 'react-dom';
+import { BsArrowRepeat, BsGear, BsTerminal, BsArrowUp, BsArrowDown } from 'react-icons/bs';
+import { FiCopy } from 'react-icons/fi';
+import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
+import { ShellScriptExecution } from './ShellScriptExecution';
+import { ContextMenuContextProvider, ItemType } from '../Project/Project';
+import { hasSomeParentTheClass } from '../../utils/dom';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
+	} else if (document.execCommand) {
+		document.execCommand('copy');
 	}
 }
-function getTerminalPosition(
-	terminal: Terminal,
-	{ parent, shouldCenter }: { shouldCenter?: boolean; parent: HTMLDivElement }
-) {
+function getTerminalPosition(terminal: Terminal, _: { shouldCenter?: boolean; parent: HTMLDivElement }) {
 	const position = {
 		height: terminal.height ? terminal.height : undefined,
 		width: terminal.width ? terminal.width : undefined,
@@ -114,16 +119,10 @@ export const MyTerminal = ({
 	projectId,
 	mainCommandCounter,
 	project,
-	terminalPatcher,
-	setTerminalPatcher,
 	terminalOrder,
 	terminalsCount,
 	triggerArrangeTerminals,
-	patchTerminalId,
-	setPatchTerminalId,
 }: {
-	patchTerminalId: number | null;
-	setPatchTerminalId: (_: number | null) => void;
 	triggerArrangeTerminals: number;
 	terminalsCount: number;
 	terminalOrder: number;
@@ -132,10 +131,10 @@ export const MyTerminal = ({
 	element: HTMLDivElement;
 	projectId: number;
 	mainCommandCounter: number;
-	terminalPatcher: PatchTerminalRequest | null;
-	setTerminalPatcher: (terminalId: number, terminalPatcher: PatchTerminalRequest | null) => void;
 }) => {
-	const visible = useMemo(() => patchTerminalId === terminal.id, [patchTerminalId, terminal.id]);
+	const [isPatching, setIsPatching] = useState(false);
+	const { mutate: patchTerminal, error } = usePatchTerminal(projectId, terminal.id);
+
 	const [editorCommand, setEditorCommand] = useState('');
 	const [isCommandSuggestionOpen, setIsCommandSuggestionOpen] = useState(false);
 	const [searchValue, setSearchValue] = useState('');
@@ -144,8 +143,48 @@ export const MyTerminal = ({
 	const { data } = useGetTerminalCommands(terminal.id, commandQuery, {
 		initialData: [],
 	});
+	const { mutate: cloneTerminal } = useCloneTerminal(project.id);
+	const { data: projectScripts } = useGetProjectScripts(project.id);
+	const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
+	const data2 = useMemo(
+		() =>
+			[
+				{
+					heading: 'Terminal Actions',
+					title: 'Reload Terminal',
+					icon: <BsArrowRepeat style={{ verticalAlign: 'middle' }} />,
+					onClick: () => patchTerminal({ restart: true }),
+				},
+				{
+					title: 'Clone Terminal',
+					icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
+					onClick: () => cloneTerminal({ id: terminal.id }),
+				},
+				{
+					title: 'Terminal Settings',
+					icon: <BsGear style={{ verticalAlign: 'middle' }} />,
+					onClick: () => setIsPatching(true),
+				},
+				{
+					title: 'Execute Shell Script',
+					icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+					children: projectScripts?.map((script) => {
+						return {
+							key: script.id,
+							title: script.name,
+							icon: <BsTerminal style={{ verticalAlign: 'middle' }} />,
+							onClick: () => {
+								setExecutionScript(script);
+							},
+						};
+					}),
+					placeholder: 'Please create a shell script first.',
+				},
+			] as ItemType[],
+		[cloneTerminal, projectScripts, patchTerminal, terminal.id]
+	);
 
-	type Action = { type: 'set'; payload: State };
+	type Action = { type: 'set'; payload: State } | { type: 'reset' };
 
 	// Define the state type
 	type State = {
@@ -153,38 +192,40 @@ export const MyTerminal = ({
 		winbox: any;
 		addons: Addons;
 	} | null;
-
+	const contextMenuContextProvider = useContext(ContextMenuContextProvider);
 	// Reducer function
 	function reducer(state: State, action: Action): State {
 		switch (action.type) {
 			case 'set':
 				return action.payload;
+			case 'reset':
+				return null;
 			default:
 				return state;
 		}
 	}
 	const [state, dispatch] = useReducer(reducer, null);
-
-	const { mutateAsync: patchTerminal } = usePatchTerminal(projectId, terminal.id);
 	useEffect(() => {
-		return () => {
-			if (!state) return;
-			state.xterm.dispose();
-			state.winbox.close(true);
+		if (!state?.winbox) return;
+		const temp = () => {
+			contextMenuContextProvider.addItems(data2, 'child');
 		};
-	}, [state]);
+		state.winbox.body?.addEventListener('contextmenu', temp, true);
+		return () => {
+			state.winbox.body?.removeEventListener('contextmenu', temp, true);
+		};
+	}, [data2, state?.winbox]);
+
 	useEffect(() => {
-		if (!terminalPatcher || !state) return;
+		if (!state) return;
 		patchTerminal({
-			...terminalPatcher,
 			meta: {
 				cols: state.xterm.cols,
 				rows: state.xterm.rows,
 			},
 		});
-		setTerminalPatcher(terminal.id, null);
-	}, [terminalPatcher, patchTerminal, setTerminalPatcher, terminal.id, state]);
-	const { mutateAsync: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
+	}, [patchTerminal, terminal.id, state]);
+	const { mutate: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
 	useEffect(() => {
 		if (!state) return;
 		state.xterm.options.theme = convertToITheme(project.terminalTheme);
@@ -226,33 +267,50 @@ export const MyTerminal = ({
 		winbox.move(arrangement.x, arrangement.y);
 		winbox.resize(arrangement.width, arrangement.height);
 	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
-	useEffect(() => {
-		return () => {
-			if (!state) return;
-			// eslint-disable-next-line react-hooks/exhaustive-deps
-			// this condition means that user has not destroyed
-			if (state.winbox.dom !== null) state.winbox.close(true);
-			state.xterm.dispose();
-			// @ts-ignore
-		};
-	}, [state]);
 	const [searchBar, setSearchBar] = useState(false);
 	useEffect(() => {
 		if (!state) return;
 		if (terminal.title) state.winbox.setTitle(terminal.title);
 	}, [terminal.title, state]);
-	const showSearchBarOnKeyboard = useCallback(
+	const showSearchBarOnKeyboard = useCallback((event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
+		if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
+			setSearchBar((s) => !s);
+			event.preventDefault();
+		}
+	}, []);
+	const searchNextOrPrevious = useCallback(
 		(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
-				setSearchBar(true);
-				if (searchValue && state) state.addons.search.findNext(searchValue);
-				event.preventDefault();
-			}
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF') return event.preventDefault();
+			if (event.key !== 'Enter' || !searchValue || !state?.addons) return;
+			if (event.shiftKey) {
+				state.addons.search.findPrevious(searchValue);
+			} else state.addons.search.findNext(searchValue);
 		},
-		[searchValue, state]
+		[searchValue, state?.addons]
 	);
 	useEffect(() => {
-		if (state || !project) return;
+		const xterm = state?.xterm;
+		if (!xterm) return;
+		xterm.attachCustomKeyEventHandler((event) => {
+			if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
+				const selection = xterm.getSelection();
+
+				if (selection) {
+					copyText(selection);
+					event.preventDefault();
+					return false;
+				}
+			}
+			showSearchBarOnKeyboard(event);
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
+				setSearchBar(false);
+				event.preventDefault();
+			}
+			return true;
+		});
+	}, [showSearchBarOnKeyboard, state?.xterm]);
+	useEffect(() => {
+		if (!project) return;
 		const winbox = new WinBox(terminal.title || 'Untitled', {
 			root: element,
 			...getTerminalPosition(terminal, {
@@ -269,7 +327,7 @@ export const MyTerminal = ({
 			theme: convertToITheme(project.terminalTheme),
 		});
 		winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
-			if (e.target.parentElement?.classList?.contains('searchBar') || e.target.classList.contains('searchBar')) return;
+			if (hasSomeParentTheClass(e.target, 'searchBar')) return;
 			setIsCommandEditorVisible(true);
 		});
 		winbox.onmove = debounce(function resize(x: number, y: number) {
@@ -287,7 +345,7 @@ export const MyTerminal = ({
 		});
 
 		xterm.onResize(
-			debounce(({ cols, rows }) => {
+			debounce(({ cols, rows }: { cols: number; rows: number }) => {
 				client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
 					body: {
 						meta: {
@@ -311,28 +369,13 @@ export const MyTerminal = ({
 		}, 250);
 
 		winbox.fullscreen = () => {
-			setPatchTerminalId(terminal.id);
+			setIsPatching(true);
 		};
 		winbox.onclose = function (force?: boolean) {
 			if (force) return false;
 			if (window.confirm('Really delete the terminal with all settings?')) deleteTerminal();
 			return true;
 		};
-		xterm.attachCustomKeyEventHandler((event) => {
-			if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
-				const selection = xterm.getSelection();
-				if (selection) {
-					copyText(selection);
-					return false;
-				}
-			}
-			showSearchBarOnKeyboard(event);
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
-				setSearchBar(false);
-				event.preventDefault();
-			}
-			return true;
-		});
 		xterm.onData((message: string) => {
 			client.post('/terminal-command', {
 				body: {
@@ -351,9 +394,14 @@ export const MyTerminal = ({
 			},
 		});
 		return () => {
-			// xterm.dispose();
+			dispatch({ type: 'reset' });
+			if (winbox.dom !== null) winbox.close(true);
+			xterm.dispose();
 		};
-	}, [deleteTerminal, element, project, projectId, terminal, setPatchTerminalId, state, showSearchBarOnKeyboard]);
+		//adding project as deps cause the winbox etc to be created again again
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [deleteTerminal, element, projectId, terminal.id]);
+
 	useEffect(() => {
 		if (!project.fontSize || !state) return;
 		state.xterm.options.fontSize = project.fontSize;
@@ -388,6 +436,18 @@ export const MyTerminal = ({
 	if (!state) return null;
 	return (
 		<>
+			<Drawer open={!!executionScript} onClose={() => setExecutionScript(null)}>
+				{executionScript && (
+					<ShellScriptExecution
+						script={executionScript}
+						terminalId={terminal.id}
+						onClose={() => {
+							setExecutionScript(null);
+						}}
+					/>
+				)}
+			</Drawer>
+
 			{searchBar &&
 				createPortal(
 					<div className="searchBar" style={{}}>
@@ -396,24 +456,25 @@ export const MyTerminal = ({
 							onChange={(e) => {
 								setSearchValue(e.target.value.trim());
 							}}
-							onKeyDown={showSearchBarOnKeyboard}
+							placeholder="Type to search"
+							onKeyDown={searchNextOrPrevious}
 						/>
 						<button
-							onClick={(e) => {
+							onClick={() => {
 								state.addons.search.findPrevious(searchValue, {});
 							}}
 						>
-							&uarr;
+							<BsArrowUp />
 						</button>
 						<button
-							onClick={(e) => {
+							onClick={() => {
 								state.addons.search.findNext(searchValue, {});
 							}}
 						>
-							&darr;
+							<BsArrowDown />
 						</button>
 						<button
-							onClick={(e) => {
+							onClick={() => {
 								setSearchBar(false);
 							}}
 						>
@@ -472,9 +533,9 @@ export const MyTerminal = ({
 				title="Terminal Settings"
 				placement="right"
 				onClose={() => {
-					setPatchTerminalId(null);
+					setIsPatching(false);
 				}}
-				open={visible}
+				open={isPatching}
 				destroyOnClose={true}
 			>
 				<Form
@@ -520,6 +581,7 @@ export const MyTerminal = ({
 					>
 						<Input.TextArea placeholder="Yaml syntax(KEY: VALUE)" />
 					</Form.Item>
+					{error && <Alert message={error?.message} type="error" />}
 				</Form>
 			</Drawer>
 		</>

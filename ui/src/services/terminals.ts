@@ -1,4 +1,4 @@
-import { UseMutationOptions, UseQueryOptions } from 'react-query';
+import { UseMutationOptions, useMutation } from 'react-query';
 import { ApiError } from '../utils/error';
 import { fetchSocket } from '../utils/fetch';
 import { useMutationPlus } from '../utils/reactQueryPlus/mutation';
@@ -42,7 +42,7 @@ export const getTerminalQueryKey = (projectId: number, terminalId?: number | str
 	`/projects/${projectId}/terminals${addPrefixIfNotEmpty(terminalId, '/')}`;
 export const getTerminalCommandsQueryKey = (terminalId: number, query?: string) =>
 	`/terminals${addPrefixIfNotEmpty(terminalId, '/')}${addPrefixIfNotEmpty(query, '/')}`;
-export const useGetTerminals = (projectId: number, options: UseQueryOptions<Terminal[], ApiError> = {}) => {
+export const useGetTerminals = (projectId: number, options = {}) => {
 	return useQueryPlus<Terminal[], ApiError>(
 		getTerminalQueryKey(projectId),
 		() =>
@@ -54,11 +54,7 @@ export const useGetTerminals = (projectId: number, options: UseQueryOptions<Term
 		options
 	);
 };
-export const useGetTerminalCommands = (
-	terminalId: number,
-	query: string,
-	options: UseQueryOptions<TerminalCommand[], ApiError> = {}
-) => {
+export const useGetTerminalCommands = (terminalId: number, query: string, options: {}) => {
 	return useQueryPlus<TerminalCommand[], ApiError>(
 		getTerminalCommandsQueryKey(terminalId, query),
 		() =>
@@ -110,24 +106,16 @@ export const useCloneTerminal = (
 export const usePatchTerminal = (
 	projectId: number,
 	id: number,
-	options: UseMutationOptions<unknown, ApiError, PatchTerminalRequest> = {}
+	options: UseMutationOptions<Terminal, ApiError, PatchTerminalRequest> = {}
 ) => {
-	return useMutationPlus(
-		getTerminalQueryKey(projectId, id),
+	return useMutation(
 		(body) =>
 			fetchSocket(`/projects/${projectId}/terminals/${id}`, {
 				body,
 				method: 'patch',
 			}),
 		{
-			retry: (_, error) => {
-				if (error.status === 401) return false;
-				return true;
-			},
 			...options,
-			onSuccess: (data, variables, c) => {
-				if (options.onSuccess) options.onSuccess(data, variables, c);
-			},
 		}
 	);
 };
@@ -138,7 +126,7 @@ export const useDeleteTerminal = (
 ) => {
 	return useMutationPlus(
 		getTerminalQueryKey(projectId, id),
-		(body) =>
+		() =>
 			fetchSocket(`/projects/${projectId}/terminals/${id}`, {
 				method: 'delete',
 			}),

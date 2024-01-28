@@ -41,10 +41,12 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 		const options: {
 			value: number | null;
 			label: string;
-		}[] = projects.map((project) => ({
-			value: project.id,
-			label: project.slug,
-		}));
+		}[] = projects
+			.map((project) => ({
+				value: project.id,
+				label: project.slug,
+			}))
+			.filter(({ label }) => label);
 		options.unshift({
 			value: 0,
 			label: 'Shared among All Projects',
@@ -70,7 +72,7 @@ export const Shell = ({ shellScript, projectId }: { shellScript: ShellScript; pr
 			<Form.Item name="script" label="Script" rules={[{ required: true }]} labelCol={{ span: 6 }}>
 				<Input.TextArea
 					placeholder={`any script in your default shell
-echo _parameter_name_
+echo {{parameter_name}}
 					`}
 					onChange={(e) => {
 						const value = e.target.value;

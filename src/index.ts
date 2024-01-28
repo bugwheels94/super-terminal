@@ -4,7 +4,9 @@ import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
 import { WebSocket } from 'ws';
-import { SoxtendServer, InMemoryMessageDistributor, Router } from 'soxtend/server';
+import { SoxtendServer } from 'soxtend/server';
+import { Router } from 'soxtend/router';
+import { InMemoryMessageDistributor } from 'soxtend/inMemoryDistributor';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
 import { addProjectRoutes } from './routes/project';
@@ -54,7 +56,7 @@ export function main(port: number, bindAddress: string) {
 			});
 			const router = new Router(server);
 			server.addListener('connection', (socket) => {
-				server.joinGroup('global', socket);
+				socket.joinGroup('global');
 			});
 			server.addListener('ready', () => {
 				const p = port || finalConfig.PORT;

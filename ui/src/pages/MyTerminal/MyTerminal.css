@@ -32,23 +32,31 @@
 .searchBar {
 	position: absolute;
 	display: flex;
-	width: 100%;
-	bottom: 0;
+	min-width: 150px;
+	padding: 3px;
+	top: 0;
+	right: 0;
 	z-index: 100;
 	border: solid 1px #efefef;
-	background-color: rgba(255, 255, 255, 0.8);
+	background-color: #efefef;
 }
 .searchBar > input {
 	flex-grow: 1;
-	background: none;
-	border: none;
+	border: solid 1px #dedede;
 	outline: none;
 }
 .searchBar > button {
 	outline: none;
-	border-left: solid 1px #efefef;
-	border-right: solid 1px #efefef;
+	border: none;
 	border-top: none;
+	background: none;
+
+	display: inline-flex;
+	align-items: center;
+	padding: 1px;
 	border-bottom: none;
-	border-radius: 4px;
+	border-radius: 0px;
+}
+.searchBar > button:last-child {
+	margin-left: 4px;
 }

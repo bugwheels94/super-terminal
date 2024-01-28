@@ -1,5 +1,5 @@
 import { Client, SoxtendClient } from 'soxtend/client';
-const url = process.env.REACT_APP_WS_URL;
+const url = import.meta.env.VITE_WS_URL;
 // @ts-ignore
 const isElectron = window.location.host === '';
 const calculatedUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;

@@ -1,5 +1,5 @@
 import path from 'path';
-import { Router } from 'soxtend/server';
+import { Router } from 'soxtend/router';
 import { AppDataSource, ProjectRepository, ShellScriptRepository } from '../data-source';
 import { ShellScript } from '../entity/ShellScript';
 import { targetDir } from '../utils/config';
@@ -14,7 +14,9 @@ export const addProjectSchellScriptRoutes = (router: Router) => {
 			where: { id },
 		});
 		const shellScript = new ShellScript();
-		shellScript.project = project;
+		if (project.slug) {
+			shellScript.project = project;
+		}
 		shellScript.script = req.body.script;
 		shellScript.parameters = req.body.parameters;
 		shellScript.name = 'untitled-script';

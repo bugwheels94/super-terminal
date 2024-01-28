@@ -11,7 +11,7 @@ import { client } from '../../utils/socket';
 import { Shell } from './Shell';
 const { Panel } = Collapse;
 
-export const ShellScriptComp = ({
+const ShellScriptComponent = ({
 	projectId,
 	visible,
 	onVisibleChange,
@@ -54,7 +54,7 @@ export const ShellScriptComp = ({
 					})
 				);
 			})
-			.delete('/projects/:projectId/scripts/:scriptId', (request, response) => {
+			.delete('/projects/:projectId/scripts/:scriptId', (request) => {
 				const projectId = Number(request.params.projectId);
 
 				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
@@ -108,3 +108,4 @@ export const ShellScriptComp = ({
 		</>
 	);
 };
+export default ShellScriptComponent;

@@ -2,7 +2,7 @@ import React, { ReactNode, Reducer, useContext, useMemo, useReducer, useState } 
 import { QueryClient, QueryClientProvider } from 'react-query';
 
 export const ReactQueryPlusSetter = React.createContext<React.Dispatch<{ type?: string; value: any; hash: string }>>(
-	(v) => {}
+	() => {}
 );
 export const ReactQueryPlusGetter = React.createContext<MyState>({
 	errors: [],

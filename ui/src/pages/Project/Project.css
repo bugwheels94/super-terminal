@@ -24,6 +24,9 @@
 	z-index: 10000;
 	box-shadow: 0px 0px 11px 0px rgba(0, 0, 0, 0.34);
 }
+.list-items:focus {
+	outline: none;
+}
 .list-item {
 	position: relative;
 	display: flex;
@@ -33,6 +36,7 @@
 	cursor: pointer;
 	white-space: nowrap;
 	border-radius: 10px;
+	color: #000;
 }
 body {
 	overflow: hidden;
@@ -58,4 +62,5 @@ body {
 	content: '';
 	width: 100%;
 	z-index: -1;
+	left: 0;
 }
