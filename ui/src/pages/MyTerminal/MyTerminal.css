@@ -11,9 +11,15 @@
 	transform: translateZ(0);
 	box-shadow: none;
 	border: solid 1px #c0c0c0;
-	border-radius: 1rem;
 	background: #f7f7f7;
 }
+.wb-max {
+	background-image: url(./fullScreen.svg);
+}
+.winbox.max .wb-max {
+	background-image: url(./fullScreenExit.svg);
+}
+
 .wb-header {
 	filter: invert(0.8);
 }
