@@ -10,6 +10,10 @@
 4. Is running a project requires you to **run multiple commands** in different folders and you wanna automate that?
 5. Do you want to open terminal from **other machine** over LAN using HTTP?
 
+## In Action
+
+<img src="action.gif" />
+
 ## Introduction
 
 Super Terminal is a terminal manager for developers who dont like repetition and work fast. If saving time is the basic decision maker for your actions then super terminal might suite you well.
@@ -45,7 +49,3 @@ Please go to latest release: [Latest Release](https://github.com/bugwheels94/sup
     npm i super-terminal
 
 Open in Browser at: http://localhost:3879
-
-## In Action
-
-<img src="action.png" />
