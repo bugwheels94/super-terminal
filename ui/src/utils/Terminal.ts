@@ -102,17 +102,6 @@ export function createTerminal(terminalContainer: HTMLElement, options: ITermina
 		initAddons(term, addons);
 	}, 0);
 
-	term.attachCustomKeyEventHandler(function (e) {
-		console.log(e);
-		// Ctrl + Shift + C
-		if (e.ctrlKey && e.shiftKey && e.keyCode === 3) {
-			var copySucceeded = document.execCommand('copy');
-			console.log('copy succeeded', copySucceeded);
-			e.preventDefault();
-			return false;
-		}
-	});
-
 	return { xterm: term, addons };
 }
 function getAddons() {
