@@ -13,6 +13,13 @@
 	border: solid 1px #c0c0c0;
 	background: #f7f7f7;
 }
+.wb-max {
+	background-image: url(./fullScreen.svg);
+}
+.winbox.max .wb-max {
+	background-image: url(./fullScreenExit.svg);
+}
+
 .wb-header {
 	filter: invert(0.8);
 }
