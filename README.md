@@ -48,4 +48,4 @@ Open in Browser at: http://localhost:3879
 
 ## In Action
 
-<img src="action.png" />
+<img src="action.gif" />
