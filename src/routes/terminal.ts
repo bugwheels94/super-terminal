@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { throttle, uniqBy } from 'lodash';
 import { spawn } from 'node-pty';
 import os from 'os';
-import { ApiError, Router, RouterResponse } from 'soxtend/server';
+import { ApiError, Router, RouterResponse } from 'soxtend/router';
 import kill from 'tree-kill';
 import { AppDataSource, ProjectRepository, TerminalLogRepository, TerminalRepository } from '../data-source';
 import { Terminal } from '../entity/Terminal';

@@ -18,14 +18,17 @@ import { ITheme, Terminal as XTerm } from 'xterm';
 import { useState } from 'react';
 import { Project } from '../../services/project';
 import { createPortal } from 'react-dom';
-import { BsArrowRepeat, BsGear, BsTerminal } from 'react-icons/bs';
+import { BsArrowRepeat, BsGear, BsTerminal, BsArrowUp, BsArrowDown } from 'react-icons/bs';
 import { FiCopy } from 'react-icons/fi';
 import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
 import { ShellScriptExecution } from './ShellScriptExecution';
 import { ContextMenuContextProvider, ItemType } from '../Project/Project';
+import { hasSomeParentTheClass } from '../../utils/dom';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
+	} else if (document.execCommand) {
+		document.execCommand('copy');
 	}
 }
 function getTerminalPosition(terminal: Terminal, _: { shouldCenter?: boolean; parent: HTMLDivElement }) {
@@ -261,7 +264,6 @@ export const MyTerminal = ({
 		if (winbox.max) {
 			winbox.restore();
 		}
-		console.log(winbox);
 		winbox.move(arrangement.x, arrangement.y);
 		winbox.resize(arrangement.width, arrangement.height);
 	}, [terminalsCount, terminalOrder, project.terminalLayout, triggerArrangeTerminals, state]);
@@ -270,13 +272,19 @@ export const MyTerminal = ({
 		if (!state) return;
 		if (terminal.title) state.winbox.setTitle(terminal.title);
 	}, [terminal.title, state]);
-	const showSearchBarOnKeyboard = useCallback(
+	const showSearchBarOnKeyboard = useCallback((event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
+		if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
+			setSearchBar((s) => !s);
+			event.preventDefault();
+		}
+	}, []);
+	const searchNextOrPrevious = useCallback(
 		(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
-				setSearchBar(true);
-				if (searchValue && state?.addons) state.addons.search.findNext(searchValue);
-				event.preventDefault();
-			}
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF') return event.preventDefault();
+			if (event.key !== 'Enter' || !searchValue || !state?.addons) return;
+			if (event.shiftKey) {
+				state.addons.search.findPrevious(searchValue);
+			} else state.addons.search.findNext(searchValue);
 		},
 		[searchValue, state?.addons]
 	);
@@ -286,8 +294,10 @@ export const MyTerminal = ({
 		xterm.attachCustomKeyEventHandler((event) => {
 			if (event.ctrlKey && event.code === 'KeyC' && event.type === 'keydown') {
 				const selection = xterm.getSelection();
+
 				if (selection) {
 					copyText(selection);
+					event.preventDefault();
 					return false;
 				}
 			}
@@ -317,7 +327,7 @@ export const MyTerminal = ({
 			theme: convertToITheme(project.terminalTheme),
 		});
 		winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
-			if (e.target.parentElement?.classList?.contains('searchBar') || e.target.classList.contains('searchBar')) return;
+			if (hasSomeParentTheClass(e.target, 'searchBar')) return;
 			setIsCommandEditorVisible(true);
 		});
 		winbox.onmove = debounce(function resize(x: number, y: number) {
@@ -446,21 +456,22 @@ export const MyTerminal = ({
 							onChange={(e) => {
 								setSearchValue(e.target.value.trim());
 							}}
-							onKeyDown={showSearchBarOnKeyboard}
+							placeholder="Type to search"
+							onKeyDown={searchNextOrPrevious}
 						/>
 						<button
 							onClick={() => {
 								state.addons.search.findPrevious(searchValue, {});
 							}}
 						>
-							&uarr;
+							<BsArrowUp />
 						</button>
 						<button
 							onClick={() => {
 								state.addons.search.findNext(searchValue, {});
 							}}
 						>
-							&darr;
+							<BsArrowDown />
 						</button>
 						<button
 							onClick={() => {

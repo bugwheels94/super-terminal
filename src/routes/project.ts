@@ -1,5 +1,5 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
-import { Router } from 'soxtend/server';
+import { Router } from 'soxtend/router';
 import { Project } from '../entity/Project';
 import { createNewTerminal, killPtyProcess } from './terminal';
 import { ptyProcesses } from '../utils/pty';
