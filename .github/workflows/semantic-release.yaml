@@ -141,7 +141,14 @@ jobs:
       - run: npm --no-git-tag-version version $VERSION
         env:
           VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
-
+      - run: npm run build
+      - run: npm run build:electron
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-arm64-out
+          path: |
+            out/make/zip/**/*.zip
   ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-22.04
