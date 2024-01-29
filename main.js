@@ -20,7 +20,7 @@ const createWindow = (url) => {
 		mainWindow.maximize();
 	});
 	// Open the DevTools.
-	mainWindow.webContents.openDevTools();
+	// mainWindow.webContents.openDevTools();
 	mainWindow.webContents.on('new-window', function (e, url) {
 		e.preventDefault();
 		shell.openExternal(url);
