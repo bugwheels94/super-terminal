@@ -1,7 +1,7 @@
 <h1 align="center">Super Terminal</h1>
 <p align="center">Manage Terminals Easy! And Save Time!</p>
 <p align="center">
-	<img src="super-terminal.png" />
+	<img src="icons/super-terminal.png" />
 </p>
 
 1. Do you find **opening terminal after reboot** boring?

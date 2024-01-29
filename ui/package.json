@@ -61,7 +61,7 @@
     "react-icons": "^4.3.1",
     "react-query": "^3.39.0",
     "react-router-dom": "^6.3.0",
-    "soxtend": "^1.0.0",
+    "soxtend": "^2.0.0",
     "typescript": "^5.3.3",
     "uuid": "^8.3.2",
     "vite": "^5.0.8",
