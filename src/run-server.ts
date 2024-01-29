@@ -15,10 +15,26 @@ else {
 		stdio: 'inherit',
 	});
 	const packageJson = require('../package.json');
-	spawnSync('gh', ['release', 'upload', 'v' + packageJson.version, 'out/make/zip/darwin/arm64/*.zip'], {
+
+	spawnSync('mv', ['out/make/zip/darwin/arm64/*.zip', `out/SuperTerminal-apple-arm64-${packageJson.version}.zip`], {
 		cwd: path.join(__dirname, '..'),
 		shell: true,
 		stdio: 'inherit',
 	});
-	console.log('released version', packageJson.version);
+	spawnSync(
+		'gh',
+		[
+			'release',
+			'upload',
+			'v' + packageJson.version,
+			`out/SuperTerminal-apple-arm64-${packageJson.version}.zip`,
+			'--repo',
+			'bugwheels94/super-terminal',
+		],
+		{
+			cwd: path.join(__dirname, '..'),
+			shell: true,
+			stdio: 'inherit',
+		}
+	);
 }
