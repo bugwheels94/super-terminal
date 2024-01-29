@@ -44,6 +44,12 @@ Super Terminal is a terminal manager for developers who dont like repetition and
 
 Please go to latest release: [Latest Release](https://github.com/bugwheels94/super-terminal/releases/latest)
 
+NOTE: If Apple Silicon build fails to run then please run the below command after extracting the zip
+
+```
+sudo xattr -d com.apple.quarantine SuperTerminal.app
+```
+
 ### Node.JS
 
     npm i super-terminal

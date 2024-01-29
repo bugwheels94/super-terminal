@@ -3,7 +3,5 @@
 	"CERT": "",
 	"KEY": "",
 	"UI": "",
-	"BIND_ADDRESS": "127.0.0.1",
-	"REMOTE_ADDRESS": "localhost",
-	"BROWSER": "chrome"
+	"HOST": "127.0.0.1"
 }
