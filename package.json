@@ -98,7 +98,8 @@
 		"CHANGELOG.md",
 		"LICENSE",
 		"README.md",
-		"ui"
+		"ui",
+		"icons"
 	],
 	"publishConfig": {
 		"access": "public"
@@ -135,7 +136,7 @@
 			"packagerConfig": {
 				"name": "SuperTerminal",
 				"executableName": "super-terminal",
-				"icon": "super-terminal"
+				"icon": "icons/super-terminal"
 			},
 			"makers": [
 				{

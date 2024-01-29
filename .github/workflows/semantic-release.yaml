@@ -123,6 +123,24 @@ jobs:
           name: mac-x64-out
           path: |
             out/make/zip/**/*.zip
+  mac-arm64:
+    name: release-mac-arm64
+    needs: [ui, semantic-release-version-retrieval]
+    runs-on: flyci-macos-large-latest-m1
+    steps:
+      - uses: actions/checkout@v3
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: sudo -H pip install setuptools
+      - run: npm i -g @lytejs/mesh@beta
+      - run: mesh -c sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm --no-git-tag-version version $VERSION
+        env:
+          VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
 
   ubuntu:
     name: release-ubuntu
