@@ -206,6 +206,10 @@ jobs:
           path: mac-x64-out
       - uses: actions/download-artifact@v3
         with:
+          name: mac-arm64-out
+          path: mac-arm64-out
+      - uses: actions/download-artifact@v3
+        with:
           name: ubuntu-out
           path: ubuntu-out
       - run: npx semantic-release
