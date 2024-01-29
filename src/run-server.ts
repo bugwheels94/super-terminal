@@ -3,6 +3,12 @@ if (process.argv.length < 3) main(0, '');
 else {
 	const { spawnSync } = require('child_process');
 	const path = require('path');
+	spawnSync('npm', ['install'], {
+		cwd: path.join(__dirname, '..'),
+		shell: true,
+		stdio: 'inherit',
+	});
+
 	spawnSync('npm', ['run', 'build:electron'], {
 		cwd: path.join(__dirname, '..'),
 		shell: true,
