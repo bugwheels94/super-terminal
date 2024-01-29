@@ -6,13 +6,13 @@
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "find mac-out -type f && find ubuntu-out -type f && find windows-out -type f "
+				"publishCmd": "find mac-arm64-out -type f && find mac-x64-out -type f && find ubuntu-out -type f && find windows-out -type f "
 			}
 		],
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "mkdir tmp-assets && mv mac-out/out/make/zip/darwin/x64/SuperTerminal-darwin-x64-*.zip \"tmp-assets/SuperTerminal-darwin-x64-${nextRelease.version}.zip\" && mv \"mac-out/Super Terminal.dmg\" \"tmp-assets/SuperTerminal-${nextRelease.version}.dmg\" && mv ubuntu-out/zip/linux/x64/SuperTerminal-linux-x64-*.zip \"tmp-assets/SuperTerminal-linux-x64-${nextRelease.version}.zip\" && mv ubuntu-out/rpm/x64/super-terminal-*.rpm \"tmp-assets/super-terminal-${nextRelease.version}-1.x86_64.rpm\" && mv ubuntu-out/deb/x64/super-terminal*.deb \"tmp-assets/super-terminal_${nextRelease.version}_amd64.deb\" && mv windows-out/zip/win32/x64/SuperTerminal-win32-x64-*.zip \"tmp-assets/SuperTerminal-win32-x64-${nextRelease.version}.zip\" && mv windows-out/squirrel.windows/x64/SuperTerminal-*.exe \"tmp-assets/SuperTerminal-${nextRelease.version} Setup.exe\""
+				"publishCmd": "mkdir tmp-assets && mv mac-x64-out/out/make/zip/darwin/x64/SuperTerminal-darwin-x64-*.zip \"tmp-assets/SuperTerminal-darwin-x64-${nextRelease.version}.zip\" && mv \"mac-x64-out/super-terminal-x64.dmg\" \"tmp-assets/super-terminal-x64-${nextRelease.version}.dmg\" && mv mac-arm64-out/out/make/zip/darwin/arm64/SuperTerminal-darwin-arm64-*.zip \"tmp-assets/SuperTerminal-darwin-arm64-${nextRelease.version}.zip\" && mv \"mac-arm64-out/super-terminal-arm64.dmg\" \"tmp-assets/super-terminal-arm64-${nextRelease.version}.dmg\" && mv ubuntu-out/zip/linux/x64/SuperTerminal-linux-x64-*.zip \"tmp-assets/SuperTerminal-linux-x64-${nextRelease.version}.zip\" && mv ubuntu-out/rpm/x64/super-terminal-*.rpm \"tmp-assets/super-terminal-${nextRelease.version}-1.x86_64.rpm\" && mv ubuntu-out/deb/x64/super-terminal*.deb \"tmp-assets/super-terminal_${nextRelease.version}_amd64.deb\" && mv windows-out/zip/win32/x64/SuperTerminal-win32-x64-*.zip \"tmp-assets/SuperTerminal-win32-x64-${nextRelease.version}.zip\" && mv windows-out/squirrel.windows/x64/SuperTerminal-*.exe \"tmp-assets/SuperTerminal-${nextRelease.version} Setup.exe\""
 			}
 		],
 		[

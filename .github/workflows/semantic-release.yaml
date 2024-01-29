@@ -76,8 +76,8 @@ jobs:
             out/make/zip/**/*.zip
             out/make/squirrel.windows/**/*.exe
 
-  mac:
-    name: release-mac
+  mac-x64:
+    name: release-mac-x64
     needs: [ui, semantic-release-version-retrieval]
     runs-on: macos-12
     steps:
@@ -97,11 +97,40 @@ jobs:
 
       - run: npm run build
       - run: npm run build:electron
-      - run: npm run build:electron:dmg
+      - run: npm run build:dmg:x64
       - run: find out -type f
       - uses: actions/upload-artifact@v3
         with:
-          name: mac-out
+          name: mac-x64-out
+          path: |
+            out/make/zip/**/*.zip
+            *.dmg
+  mac-arm64:
+    name: release-mac-arm64
+    needs: [ui, semantic-release-version-retrieval]
+    runs-on: flyci-macos-latest-m2
+    steps:
+      - uses: actions/checkout@v3
+      - run: rm -rf ui
+      - uses: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui
+      - run: sudo -H pip install setuptools
+      - run: npm i -g @lytejs/mesh@beta appdmg
+      - run: mesh -c sync dependencies
+      - run: npm i --legacy-peer-deps
+      - run: npm --no-git-tag-version version $VERSION
+        env:
+          VERSION: ${{needs.semantic-release-version-retrieval.outputs.version}}
+
+      - run: npm run build
+      - run: npm run build:electron
+      - run: npm run build:dmg:arm64
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-arm64-out
           path: |
             out/make/zip/**/*.zip
             *.dmg
@@ -138,7 +167,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, ubuntu, windows, ui]
+    needs: [mac-x64, mac-arm64, ubuntu, windows, ui]
     steps:
       - uses: actions/checkout@v3
       - run: rm -rf ui
@@ -155,8 +184,12 @@ jobs:
           path: windows-out
       - uses: actions/download-artifact@v3
         with:
-          name: mac-out
-          path: mac-out
+          name: mac-x64-out
+          path: mac-x64-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-arm64-out
+          path: mac-arm64-out
       - uses: actions/download-artifact@v3
         with:
           name: ubuntu-out

@@ -1,9 +1,8 @@
 const { app, BrowserWindow, Menu, shell } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const util = require('util');
-const { main } = require('./dist/index');
+const { main, getConfig } = require('./dist/index');
 const createWindow = (url) => {
+	const { finalConfig } = getConfig();
+
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
 		width: 800,
@@ -12,15 +11,16 @@ const createWindow = (url) => {
 			// preload: path.join(__dirname, 'preload.js'),
 		},
 	});
-
+	const finalUrl = url || 'http://' + finalConfig.HOST + ':' + finalConfig.PORT;
 	// and load the index.html of the app.
-	mainWindow.loadURL(url || 'http://localhost:3879');
+	console.log(finalConfig);
+	mainWindow.loadURL(finalUrl);
 	// mainWindow.loadFile('node_modules/super-terminal-ui/dist/index.html');
 	mainWindow.once('ready-to-show', () => {
 		mainWindow.maximize();
 	});
 	// Open the DevTools.
-	// mainWindow.webContents.openDevTools();
+	mainWindow.webContents.openDevTools();
 	mainWindow.webContents.on('new-window', function (e, url) {
 		e.preventDefault();
 		shell.openExternal(url);
@@ -35,7 +35,7 @@ const dockMenu = Menu.buildFromTemplate([
 	{
 		label: 'New Window',
 		click() {
-			createWindow('http://localhost:3879#/main-project');
+			createWindow();
 		},
 	},
 ]);

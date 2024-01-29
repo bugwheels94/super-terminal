@@ -17,7 +17,7 @@ import { getConfig } from './utils/config';
 // import ON_DEATH from 'death'; //this is intentionally ugly
 // import { ptyProcesses } from './utils/pty';
 
-export function main(port: number, bindAddress: string) {
+export function main(port: number, host: string) {
 	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
 
 	const app = express();
@@ -60,7 +60,7 @@ export function main(port: number, bindAddress: string) {
 			});
 			server.addListener('ready', () => {
 				const p = port || finalConfig.PORT;
-				const b = bindAddress || finalConfig.BIND_ADDRESS;
+				const b = host || finalConfig.HOST;
 				httpServer.listen(p, b, function listening() {
 					console.log(`Running at ${b}:${p}`);
 				});
@@ -138,3 +138,4 @@ export function main(port: number, bindAddress: string) {
 	// 	//clean up code here
 	// });
 }
+export { getConfig };

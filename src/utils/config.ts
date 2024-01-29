@@ -30,6 +30,8 @@ export function getConfig() {
 	const finalConfig = {
 		...config,
 		...(readYAMLFile(targetDir, 'config') as Record<string, string>),
+		...(process.env.HOST ? { HOST: process.env.HOST } : {}),
+		...(process.env.PORT ? { PORT: Number(process.env.PORT) } : {}),
 	};
 	return { finalConfig, userConfig };
 }
