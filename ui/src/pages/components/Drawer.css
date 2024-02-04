@@ -1,0 +1,30 @@
+.drawer {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate3d(-50%, -50%, 0);
+	z-index: 1;
+	border: solid 1px #ccc;
+	border-radius: 1rem;
+	margin: 0;
+	min-width: 50%;
+	max-width: 90%;
+	max-height: 90%;
+	overflow: auto;
+}
+.dialog-close {
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 0.7rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	outline: none;
+	cursor: pointer;
+}
+.dialog-title {
+	text-align: center;
+}

@@ -2,7 +2,7 @@ import { debounce } from 'lodash-es';
 import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { client } from '../../utils/socket';
 import { Addons, createTerminal } from '../../utils/Terminal';
-import { Drawer, Input, Modal, AutoComplete, Form, Alert } from 'antd';
+import { Input, Modal, AutoComplete, Form, Alert } from 'antd';
 import './MyTerminal.css';
 
 // @ts-ignore
@@ -24,6 +24,7 @@ import { ShellScript, useGetProjectScripts } from '../../services/shellScript';
 import { ShellScriptExecution } from './ShellScriptExecution';
 import { ContextMenuContextProvider, ItemType } from '../Project/Project';
 import { hasSomeParentTheClass } from '../../utils/dom';
+import { Drawer } from '../components/Drawer';
 function copyText(text: string) {
 	if (navigator?.clipboard?.writeText) {
 		navigator.clipboard.writeText(text);
@@ -122,6 +123,8 @@ export const MyTerminal = ({
 	terminalOrder,
 	terminalsCount,
 	triggerArrangeTerminals,
+	commandToExecute,
+	setCommandToExecute,
 }: {
 	triggerArrangeTerminals: number;
 	terminalsCount: number;
@@ -131,6 +134,8 @@ export const MyTerminal = ({
 	element: HTMLDivElement;
 	projectId: number;
 	mainCommandCounter: number;
+	commandToExecute: string;
+	setCommandToExecute: (_: string) => void;
 }) => {
 	const [isPatching, setIsPatching] = useState(false);
 	const { mutate: patchTerminal, error } = usePatchTerminal(projectId, terminal.id);
@@ -146,6 +151,37 @@ export const MyTerminal = ({
 	const { mutate: cloneTerminal } = useCloneTerminal(project.id);
 	const { data: projectScripts } = useGetProjectScripts(project.id);
 	const [executionScript, setExecutionScript] = useState<ShellScript | null>(null);
+	const { mutate: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
+
+	const executeCommand = useCallback(
+		(command: string) => {
+			switch (command) {
+				case 'restart':
+					patchTerminal({ restart: true });
+					break;
+				case 'clone':
+					cloneTerminal({ id: terminal.id });
+					break;
+				case 'settings':
+					setIsPatching(true);
+					break;
+				case 'delete':
+					deleteTerminal();
+					break;
+				case 'editor':
+					setIsCommandEditorVisible(true);
+					break;
+			}
+		},
+		[cloneTerminal, setIsPatching, deleteTerminal, patchTerminal, setIsCommandEditorVisible, terminal.id]
+	);
+	useEffect(() => {
+		if (commandToExecute) {
+			executeCommand(commandToExecute);
+			setCommandToExecute('');
+		}
+	}, [commandToExecute, executeCommand, setCommandToExecute]);
+
 	const data2 = useMemo(
 		() =>
 			[
@@ -153,17 +189,17 @@ export const MyTerminal = ({
 					heading: 'Terminal Actions',
 					title: 'Reload Terminal',
 					icon: <BsArrowRepeat style={{ verticalAlign: 'middle' }} />,
-					onClick: () => patchTerminal({ restart: true }),
+					onClick: () => executeCommand('restart'),
 				},
 				{
 					title: 'Clone Terminal',
 					icon: <FiCopy style={{ verticalAlign: 'middle' }} />,
-					onClick: () => cloneTerminal({ id: terminal.id }),
+					onClick: () => executeCommand('clone'),
 				},
 				{
 					title: 'Terminal Settings',
 					icon: <BsGear style={{ verticalAlign: 'middle' }} />,
-					onClick: () => setIsPatching(true),
+					onClick: () => executeCommand('settings'),
 				},
 				{
 					title: 'Execute Shell Script',
@@ -181,7 +217,7 @@ export const MyTerminal = ({
 					placeholder: 'Please create a shell script first.',
 				},
 			] as ItemType[],
-		[cloneTerminal, projectScripts, patchTerminal, terminal.id]
+		[projectScripts, executeCommand]
 	);
 
 	type Action = { type: 'set'; payload: State } | { type: 'reset' };
@@ -225,7 +261,6 @@ export const MyTerminal = ({
 			},
 		});
 	}, [patchTerminal, terminal.id, state]);
-	const { mutate: deleteTerminal } = useDeleteTerminal(projectId, terminal.id);
 	useEffect(() => {
 		if (!state) return;
 		state.xterm.options.theme = convertToITheme(project.terminalTheme);
@@ -274,19 +309,23 @@ export const MyTerminal = ({
 	}, [terminal.title, state]);
 	const showSearchBarOnKeyboard = useCallback((event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
 		if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown') {
-			setSearchBar((s) => !s);
+			setSearchBar(true);
 			event.preventDefault();
+			return true;
 		}
 	}, []);
 	const searchNextOrPrevious = useCallback(
 		(event: KeyboardEvent | React.KeyboardEvent<HTMLInputElement>) => {
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF') return event.preventDefault();
+			if (event.key === 'Escape') {
+				state?.xterm.focus();
+				return;
+			}
 			if (event.key !== 'Enter' || !searchValue || !state?.addons) return;
 			if (event.shiftKey) {
 				state.addons.search.findPrevious(searchValue);
 			} else state.addons.search.findNext(searchValue);
 		},
-		[searchValue, state?.addons]
+		[searchValue, state?.addons, state?.xterm]
 	);
 	useEffect(() => {
 		const xterm = state?.xterm;
@@ -301,14 +340,15 @@ export const MyTerminal = ({
 					return false;
 				}
 			}
-			showSearchBarOnKeyboard(event);
-			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF' && event.type === 'keydown' && event.shiftKey) {
+			if (showSearchBarOnKeyboard(event) === true) return false;
+
+			if (event.key === 'Escape' && searchBar) {
 				setSearchBar(false);
-				event.preventDefault();
+				return false;
 			}
 			return true;
 		});
-	}, [showSearchBarOnKeyboard, state?.xterm]);
+	}, [showSearchBarOnKeyboard, state?.xterm, searchBar]);
 	useEffect(() => {
 		if (!project) return;
 		const winbox = new WinBox(terminal.title || 'Untitled', {
@@ -328,7 +368,7 @@ export const MyTerminal = ({
 		});
 		winbox.body.addEventListener('dblclick', (e: { target: HTMLElement }) => {
 			if (hasSomeParentTheClass(e.target, 'searchBar')) return;
-			setIsCommandEditorVisible(true);
+			executeCommand('editor');
 		});
 		winbox.onmove = debounce(function resize(x: number, y: number) {
 			client.patch(`/projects/${projectId}/terminals/${terminal.id}`, {
@@ -340,7 +380,7 @@ export const MyTerminal = ({
 				forget: true,
 			});
 		}, 1000);
-		terminal.logs?.reverse().forEach(({ log }) => {
+		terminal.logs?.forEach(({ log }) => {
 			xterm.write(log);
 		});
 
@@ -373,7 +413,7 @@ export const MyTerminal = ({
 		};
 		winbox.onclose = function (force?: boolean) {
 			if (force) return false;
-			if (window.confirm('Really delete the terminal with all settings?')) deleteTerminal();
+			executeCommand('delete');
 			return true;
 		};
 		xterm.onData((message: string) => {
@@ -400,7 +440,7 @@ export const MyTerminal = ({
 		};
 		//adding project as deps cause the winbox etc to be created again again
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [deleteTerminal, element, projectId, terminal.id]);
+	}, [executeCommand, element, projectId, terminal.id]);
 
 	useEffect(() => {
 		if (!project.fontSize || !state) return;
@@ -436,7 +476,7 @@ export const MyTerminal = ({
 	if (!state) return null;
 	return (
 		<>
-			<Drawer open={!!executionScript} onClose={() => setExecutionScript(null)}>
+			<Drawer title="Execute Shell Script" open={!!executionScript} onClose={() => setExecutionScript(null)}>
 				{executionScript && (
 					<ShellScriptExecution
 						script={executionScript}
@@ -529,14 +569,11 @@ export const MyTerminal = ({
 				</AutoComplete>
 			</Modal>
 			<Drawer
-				size="large"
 				title="Terminal Settings"
-				placement="right"
 				onClose={() => {
 					setIsPatching(false);
 				}}
 				open={isPatching}
-				destroyOnClose={true}
 			>
 				<Form
 					requiredMark={false}

@@ -21,6 +21,8 @@ import { client } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import ProjectForm from './Form';
+import Drawer from '../components/Drawer';
+import { AutoComplete } from 'antd';
 const ContextMenu = lazy(() => import('./ContextMenu'));
 
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
@@ -250,10 +252,38 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 			listeners.stopListening();
 		};
 	}, [queryClient, project.id]);
+	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+	useEffect(() => {
+		window.addEventListener('keydown', (event) => {
+			// disable ctrol + F
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF') return event.preventDefault();
+			// disable browser command pallete
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyP' && event.shiftKey) {
+				event.preventDefault();
+				// setCommandPaletteOpen(true);
+			}
+			// console.log(e);
+		});
+	}, []);
 
 	if (!projectId) return null;
 	return (
 		<>
+			<Drawer title={'Run Commands'} open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)}>
+				<AutoComplete
+					className="autocomplete"
+					popupClassName="certain-category-search-dropdown"
+					popupMatchSelectWidth={500}
+					options={[
+						{ value: 'Burns Bay Road', label: 'hehe' },
+						{ value: 'Downing Street', label: 'hehe' },
+						{ value: 'Wall Street', label: 'hehe' },
+					]}
+					size="large"
+				>
+					<input></input>
+				</AutoComplete>
+			</Drawer>
 			<ProjectForm
 				onOpenChange={setProjectFormOpen}
 				open={projectFormOpen}

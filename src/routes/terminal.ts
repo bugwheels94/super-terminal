@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { throttle, uniqBy } from 'lodash';
+import { debounce, throttle, uniqBy } from 'lodash';
 import { spawn } from 'node-pty';
 import os from 'os';
 import { ApiError, Router, RouterResponse } from 'soxtend/router';
@@ -151,7 +151,7 @@ export const addTerminalRoutes = (router: Router) => {
 				});
 				return {
 					...terminal,
-					logs: logs.map(({ log }) => ({ log })),
+					logs: logs.reverse().map(({ log }) => ({ log })),
 				};
 			})
 		);
@@ -240,8 +240,20 @@ function createPtyTerminal({
 		currentCommand: '',
 		projectId,
 	};
+	let isReady = false;
+	const executeStartupCommands = debounce(() => {
+		if (terminal.startupCommands) {
+			ptyProcess.write(terminal.startupCommands + '\n');
+		}
+		isReady = true;
+	}, 200);
 	ptyProcess.onData((data) => {
 		res.group(projectId.toString()).send(data, { url: `/terminals/${terminal.id}/terminal-data`, method: 'post' });
+		chunk += data;
+		saveChunk();
+		if (!isReady) {
+			executeStartupCommands();
+		}
 	});
 	ptyProcesses.set(terminal.id, ptyProcessObject);
 	let chunk = '';
@@ -255,13 +267,6 @@ function createPtyTerminal({
 
 		TerminalLogRepository.save(terminalLog).catch(() => {});
 	}, 200);
-	ptyProcess.onData((data) => {
-		chunk += data;
-		saveChunk();
-	});
-	if (terminal.startupCommands) {
-		ptyProcess.write(terminal.startupCommands + '\n');
-	}
 }
 export function killPtyProcess(terminalId: number) {
 	const ptyProcess = ptyProcesses.get(terminalId);

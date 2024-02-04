@@ -64,3 +64,6 @@ body {
 	z-index: -1;
 	left: 0;
 }
+.autocomplete {
+	width: 100%;
+}

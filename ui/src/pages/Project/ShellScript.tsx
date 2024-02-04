@@ -1,4 +1,4 @@
-import { Button, Collapse, Drawer } from 'antd';
+import { Button, Collapse } from 'antd';
 import { useEffect } from 'react';
 import { useQueryClient } from 'react-query';
 import {
@@ -9,6 +9,7 @@ import {
 } from '../../services/shellScript';
 import { client } from '../../utils/socket';
 import { Shell } from './Shell';
+import Drawer from '../components/Drawer';
 const { Panel } = Collapse;
 
 const ShellScriptComponent = ({
@@ -76,13 +77,10 @@ const ShellScriptComponent = ({
 	return (
 		<>
 			<Drawer
-				size="large"
 				title="Executable Scripts"
-				placement="right"
 				onClose={() => {
 					onVisibleChange(false);
 				}}
-				destroyOnClose={true}
 				open={visible}
 			>
 				<Button
