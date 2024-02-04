@@ -309,6 +309,8 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 				terminals?.map((terminal, index) => {
 					return (
 						<MyTerminal
+							commandToExecute=""
+							setCommandToExecute={() => {}}
 							key={terminal.id}
 							mainCommandCounter={mainCommandCounter}
 							projectId={project.id}
