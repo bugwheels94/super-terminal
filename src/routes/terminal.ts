@@ -207,7 +207,7 @@ function createPtyTerminal({
 	if (ptyProcesses.get(terminal.id)) return;
 	const shell = terminal.shell
 		? terminal.shell
-		: process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
+		: process.env.SHELL || os.userInfo().shell || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
 
 	let env = process.env as Record<string, string>;
 	if (terminal.startupEnvironmentVariables)
