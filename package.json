@@ -64,7 +64,7 @@
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
 		"define-lazy-prop": "^3.0.0",
-		"electron": "^31.0.1",
+		"electron": "^29.0.0",
 		"fast-glob": "^3.2.12",
 		"is-docker": "^3.0.0",
 		"is-wsl": "^2.2.0",
@@ -102,7 +102,7 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"better-sqlite3": "^11.1.0",
+		"better-sqlite3": "^11.0.0",
 		"electron-squirrel-startup": "^1.0.0",
 		"express": "^4.18.1",
 		"node-pty": "^1.0.0",
