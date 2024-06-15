@@ -20,13 +20,15 @@ type Position = { left: number; top: number } | null;
 
 function ContextMenu({
 	project,
-	setTriggerArrangeTerminals,
+	rearrangeTerminals,
 	setMainCommandCounter,
 	setProjectFormOpen,
+	maxZIndex,
 }: {
 	project: Project;
+	maxZIndex: number;
 	setMainCommandCounter: React.Dispatch<React.SetStateAction<number>>;
-	setTriggerArrangeTerminals: React.Dispatch<React.SetStateAction<number>>;
+	rearrangeTerminals: (_: number) => void;
 	setProjectFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
 	const navigate = useNavigate();
@@ -49,14 +51,14 @@ function ContextMenu({
 	useEffect(() => {
 		const handler = debounce(() => {
 			if (project.terminalLayout === 'automatic') {
-				setTriggerArrangeTerminals((t) => t + 1);
+				rearrangeTerminals(0);
 			}
 		}, 250);
 		window.addEventListener('resize', handler);
 		return () => {
 			window.removeEventListener('resize', handler);
 		};
-	}, [project.terminalLayout, setTriggerArrangeTerminals]);
+	}, [project.terminalLayout, rearrangeTerminals]);
 	const data = useMemo(
 		() =>
 			[
@@ -64,13 +66,16 @@ function ContextMenu({
 					heading: `Project Actions(${project.slug || 'Untitled Project'})`,
 					title: 'New Terminal',
 					icon: <BsPlusLg style={{ verticalAlign: 'middle' }} />,
-					onClick: () => postTerminal({}),
+					onClick: () =>
+						postTerminal({
+							z: maxZIndex + 1,
+						}),
 				},
 				{
 					title: 'Arrange All Terminals Properly',
 					icon: <BsGrid1X2 style={{ verticalAlign: 'middle' }} />,
 					onClick: () => {
-						setTriggerArrangeTerminals((s) => s + 1);
+						rearrangeTerminals(0);
 					},
 				},
 				{

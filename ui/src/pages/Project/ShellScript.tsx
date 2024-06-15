@@ -7,7 +7,7 @@ import {
 	useGetProjectScripts,
 	usePostProjectScript,
 } from '../../services/shellScript';
-import { client } from '../../utils/socket';
+import { ws } from '../../utils/socket';
 import { Shell } from './Shell';
 import Drawer from '../components/Drawer';
 const { Panel } = Collapse;
@@ -26,51 +26,68 @@ const ShellScriptComponent = ({
 	const queryClient = useQueryClient();
 
 	useEffect(() => {
-		const listeners = client.addServerResponseListenerFor
-			.post('/projects/:projectId/scripts', (request, response) => {
-				if (!response.data) return;
-				const projectId = Number(request.params.projectId);
+		function listener(e: any) {
+			const message = e.detail;
 
-				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-				queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
-			})
-			.post('/projects/:projectId/scripts/:scriptId/copies', (request, response) => {
-				if (!response.data) return;
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-				queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, response.data]);
-			})
-			.patch('/projects/:projectId/scripts/:scriptId', (request, response) => {
-				if (!response.data) return;
-				const projectId = Number(request.params.projectId);
+			if (!message.name || !message.name.startsWith('response|')) return;
+			const prefix = 'response|';
 
-				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-				queryClient.setQueryData(
-					getProjectScriptQueryKey(projectId),
-					oldData.map((shellScript) => {
-						if (shellScript.id === Number(request.params.scriptId)) {
-							return response.data;
-						}
-						return shellScript;
-					})
-				);
-			})
-			.delete('/projects/:projectId/scripts/:scriptId', (request) => {
-				const projectId = Number(request.params.projectId);
+			// Use replace method with a regular expression
+			const name = message.name.replace(new RegExp(`^${prefix}`), '');
 
-				const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
-				queryClient.setQueryData(
-					getProjectScriptQueryKey(projectId),
-					oldData.filter((script) => {
-						if (Number(request.params.scriptId) === script.id) {
-							return false;
-						}
-						return true;
-					})
-				);
-			});
+			switch (name) {
+				case 'post:script': {
+					const projectId = Number(message.data.projectId);
+
+					const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+					queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, message.data.data]);
+
+					break;
+				}
+				case 'clone:script': {
+					const projectId = Number(message.data.projectId);
+					const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+					queryClient.setQueryData(getProjectScriptQueryKey(projectId), [...oldData, message.data.data]);
+
+					break;
+				}
+				case 'patch:script': {
+					const projectId = Number(message.data.projectId);
+
+					const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+					queryClient.setQueryData(
+						getProjectScriptQueryKey(projectId),
+						oldData.map((shellScript) => {
+							if (shellScript.id === Number(message.data.scriptId)) {
+								return message.data;
+							}
+							return shellScript;
+						})
+					);
+
+					break;
+				}
+				case 'delete:script': {
+					const projectId = Number(message.data.projectId);
+
+					const oldData = queryClient.getQueryData(getProjectScriptQueryKey(projectId)) as ShellScript[];
+					queryClient.setQueryData(
+						getProjectScriptQueryKey(projectId),
+						oldData.filter((script) => {
+							if (Number(message.data.scriptId) === script.id) {
+								return false;
+							}
+							return true;
+						})
+					);
+
+					break;
+				}
+			}
+		}
+		ws.addEventListener('message', listener);
 		return () => {
-			listeners.stopListening();
+			ws.removeEventListener('message', listener);
 		};
 	}, [queryClient]);
 

@@ -1,9 +1,12 @@
 .wb-full {
 	background-image: url(./cogwheel.png);
 }
-.wb-min {
-	display: none;
+.winbox.min {
+	z-index: 2147483647 !important;
 }
+/* .wb-min {
+	display: none;
+} */
 .winbox {
 	/* below props are to remove blurry text  */
 

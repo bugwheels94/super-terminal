@@ -26,9 +26,9 @@ export const usePatchProject = (
 	return useMutationPlus<Project, PatchProjectRequest>(
 		getProjectQueryKey(projectId),
 		(body) =>
-			fetchSocket<Project>(`/projects/${projectId}`, {
-				method: 'patch',
-				body: body as any,
+			fetchSocket<Project>(`patch:project`, {
+				data: { project: body as any, id: projectId },
+				namespace: 'project',
 			}).catch(),
 		options
 	);
@@ -38,11 +38,12 @@ export const useGetProjects = () => {
 	return useQueryPlus(
 		getProjectsQueryKey(),
 		() =>
-			fetchSocket<Project[]>(`/projects`, {
-				body: '',
-				method: 'get',
+			fetchSocket<Project[]>(`get:projects`, {
+				namespace: 'project',
 			}),
-		{ refetchOnMount: true }
+		{
+			refetchOnMount: true,
+		}
 	);
 };
 export const usePutProject = (projectSlug: string) => {
@@ -50,9 +51,9 @@ export const usePutProject = (projectSlug: string) => {
 	return useQueryPlus<number>(
 		`/projects/${projectSlug}`,
 		() =>
-			fetchSocket<number>(`/projects/${projectSlug}`, {
-				method: 'put',
-				body: {},
+			fetchSocket<number>(`put:project`, {
+				data: projectSlug,
+				namespace: 'project',
 			}),
 		{
 			keepPreviousData: true,
@@ -66,9 +67,9 @@ export const useGetProject = (id?: number) => {
 	return useQueryPlus(
 		getProjectQueryKey(id || -1),
 		() =>
-			fetchSocket<Project>(`/projects/${id}`, {
-				method: 'get',
-				body: {},
+			fetchSocket<Project>(`get:project`, {
+				namespace: 'project',
+				data: id,
 			}),
 		{ enabled: id !== undefined, keepPreviousData: true }
 	);
@@ -76,8 +77,9 @@ export const useGetProject = (id?: number) => {
 
 export const useDeleteProject = (id: number) => {
 	return useMutationPlus<'OK'>(getProjectQueryKey(id), () =>
-		fetchSocket(`/projects/${id}`, {
-			method: 'delete',
+		fetchSocket(`delete:project`, {
+			namespace: 'project',
+			data: id,
 		})
 	);
 };
@@ -85,9 +87,8 @@ export const useGetRunningProjects = () => {
 	return useQueryPlus(
 		'/running-projects',
 		() =>
-			fetchSocket<number[]>(`/running-projects`, {
-				method: 'get',
-				body: {},
+			fetchSocket<number[]>(`get:running-projects`, {
+				namespace: 'project',
 			}),
 		{
 			initialData: [],
@@ -97,9 +98,8 @@ export const useGetRunningProjects = () => {
 export const useDeleteProjectRunningStatus = (projectId: number, options: UseMutationOptions<Project, ApiError>) => {
 	return useMutation(
 		() =>
-			fetchSocket<Project>(`/projects/${projectId}/running-status`, {
-				method: 'delete',
-				body: {},
+			fetchSocket<Project>(`close:running-projecys`, {
+				data: projectId,
 			}),
 		options
 	);

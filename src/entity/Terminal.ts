@@ -31,10 +31,18 @@ export class Terminal {
 	width: number;
 
 	@Column({ nullable: true })
+	minimized: number;
+	@Column({ nullable: true })
+	maximized: boolean;
+
+	@Column({ nullable: true })
 	x: number;
 
 	@Column({ nullable: true })
 	y: number;
+
+	@Column({ nullable: true })
+	z: number;
 
 	@OneToMany('TerminalSetting', 'terminal', {
 		cascade: true,
