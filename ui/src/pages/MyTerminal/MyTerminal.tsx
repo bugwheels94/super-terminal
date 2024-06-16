@@ -304,6 +304,19 @@ export const MyTerminal = forwardRef<MyTerminalHandle, Props>(
 			() => ({
 				rearrange() {
 					if (!state) return;
+					if (terminal.maximized) {
+						console.log('maximini');
+						const transition = state.winbox.window.style.transition;
+						state.winbox.window.style.transition = undefined;
+						state.winbox.window.style.height = window.innerHeight + 'px';
+						state.winbox.window.style.width = window.innerWidth + 'px';
+						// setTimeout(() => {
+						state.addons.fit.fit();
+						state.winbox.window.style.transition = transition;
+						// }, 1000);
+						// state.winbox.restore();
+						// state.winbox.maximize();
+					}
 					if (terminal.minimized || terminal.maximized) return;
 					console.log('Arrangin 1');
 					const arrangement = getTerminalCoordinates(terminalOrder, terminalsCount);
@@ -399,6 +412,7 @@ export const MyTerminal = forwardRef<MyTerminalHandle, Props>(
 
 			xterm.onResize(
 				debounce(({ cols, rows }: { cols: number; rows: number }) => {
+					console.log('xterm resized', cols, rows);
 					fetchSocket(`patch:terminal`, {
 						data: {
 							id: terminal.id,
@@ -443,6 +457,9 @@ export const MyTerminal = forwardRef<MyTerminalHandle, Props>(
 					addons,
 				},
 			});
+			addons.fit.fit();
+			// @ts-ignore
+
 			return () => {
 				dispatch({ type: 'reset' });
 				if (winbox.dom !== null) winbox.close(true);
@@ -536,14 +553,12 @@ export const MyTerminal = forwardRef<MyTerminalHandle, Props>(
 			winbox.onresize = debounce(function resize(width: number = 1, height: number = 1) {
 				// window is minimized
 				if (winbox.min || height < 100) return;
-				console.log(1);
-				if (winbox.max || height === window.innerHeight) return;
-				console.log(12);
-				if (terminal.height === height && terminal.width === width) return;
-				console.log(13);
-				console.log('RESIZINE', winbox.max, height, window.innerHeight);
-
+				console.log('fitting xterm');
 				addons.fit.fit();
+
+				if (winbox.max) return;
+				if (terminal.height === height && terminal.width === width) return;
+				console.log('RESIZINE', winbox.max, height, window.innerHeight);
 
 				// minimize has triggered resize and no need to do anything
 				fetchSocket(`patch:terminal`, {
@@ -625,9 +640,9 @@ export const MyTerminal = forwardRef<MyTerminalHandle, Props>(
 							rows: state.xterm.rows,
 						},
 					},
-
 					// multiply by 100 to make default 1% instead of 100
 				},
+				namespace: 'terminal',
 				forget: true,
 			});
 		}, [project.fontSize, terminal.id, state, projectId]);

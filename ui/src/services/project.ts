@@ -98,8 +98,9 @@ export const useGetRunningProjects = () => {
 export const useDeleteProjectRunningStatus = (projectId: number, options: UseMutationOptions<Project, ApiError>) => {
 	return useMutation(
 		() =>
-			fetchSocket<Project>(`close:running-projecys`, {
+			fetchSocket<Project>(`close:running-projects`, {
 				data: projectId,
+				namespace: 'project',
 			}),
 		options
 	);
