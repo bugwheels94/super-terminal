@@ -1,80 +1,80 @@
 {
-  "name": "super-terminal-ui",
-  "private": true,
-  "version": "1.0.0",
-  "main": "dist/dummy-entry-coz-of-require-resolve.js",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --port 9111 --host 0.0.0.0",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "lodash-es": "^4.17.21",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "syncWorkspaceDependencies": {
-    "soxtend": {
-      "type": "npm"
-    }
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "@lytejs/query-string": "^0.2.18",
-    "@types/lodash-es": "^4.17.12",
-    "@types/ramda": "^0.28.13",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@types/uuid": "^8.3.4",
-    "@types/winbox": "^0.2.1",
-    "@typescript-eslint/eslint-plugin": "^6.14.0",
-    "@typescript-eslint/parser": "^6.14.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "antd": "^5.12.8",
-    "browserify-fs": "^1.0.0",
-    "eslint": "^8.55.0",
-    "eslint-config-react-app": "^7.0.1",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "isomorphic-ws": "^4.0.1",
-    "process": "^0.11.10",
-    "ramda": "^0.28.0",
-    "react-icons": "^4.3.1",
-    "react-query": "^3.39.0",
-    "react-router-dom": "^6.3.0",
-    "soxtend": "^2.0.0",
-    "typescript": "^5.3.3",
-    "uuid": "^8.3.2",
-    "vite": "^5.0.8",
-    "winbox": "0.2.6",
-    "xterm": "5.2.0",
-    "xterm-addon-canvas": "^0.5.0",
-    "xterm-addon-fit": "^0.8.0",
-    "xterm-addon-image": "^0.5.0",
-    "xterm-addon-ligatures": "^0.7.0",
-    "xterm-addon-search": "^0.13.0",
-    "xterm-addon-serialize": "^0.11.0",
-    "xterm-addon-unicode11": "^0.6.0",
-    "xterm-addon-web-links": "^0.9.0",
-    "xterm-addon-webgl": "^0.16.0"
-  }
+	"name": "ui",
+	"private": true,
+	"version": "1.0.0",
+	"main": "dist/dummy-entry-coz-of-require-resolve.js",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --port 9111 --host 0.0.0.0",
+		"build": "tsc && vite build",
+		"lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"lodash-es": "^4.17.21",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
+	},
+	"syncWorkspaceDependencies": {
+		"soxtend": {
+			"type": "npm"
+		}
+	},
+	"eslintConfig": {
+		"extends": [
+			"react-app",
+			"react-app/jest"
+		]
+	},
+	"browserslist": {
+		"production": [
+			">0.2%",
+			"not dead",
+			"not op_mini all"
+		],
+		"development": [
+			"last 1 chrome version",
+			"last 1 firefox version",
+			"last 1 safari version"
+		]
+	},
+	"devDependencies": {
+		"@lytejs/query-string": "^0.2.18",
+		"@types/lodash-es": "^4.17.12",
+		"@types/ramda": "^0.28.13",
+		"@types/react": "^18.2.43",
+		"@types/react-dom": "^18.2.17",
+		"@types/uuid": "^8.3.4",
+		"@types/winbox": "^0.2.1",
+		"@typescript-eslint/eslint-plugin": "^6.14.0",
+		"@typescript-eslint/parser": "^6.14.0",
+		"@vitejs/plugin-react": "^4.2.1",
+		"antd": "^5.12.8",
+		"browserify-fs": "^1.0.0",
+		"eslint": "^8.57.0",
+		"eslint-config-react-app": "^7.0.1",
+		"eslint-plugin-react-hooks": "^4.6.2",
+		"eslint-plugin-react-refresh": "^0.4.5",
+		"isomorphic-ws": "^4.0.1",
+		"process": "^0.11.10",
+		"ramda": "^0.28.0",
+		"react-icons": "^4.3.1",
+		"react-query": "^3.39.0",
+		"react-router-dom": "^6.3.0",
+		"soxtend": "^2.0.12-beta.2",
+		"typescript": "^5.3.3",
+		"uuid": "^8.3.2",
+		"vite": "^4.5.3",
+		"winbox": "0.2.6",
+		"xterm": "5.2.0",
+		"xterm-addon-canvas": "^0.5.0",
+		"xterm-addon-fit": "^0.8.0",
+		"xterm-addon-image": "^0.5.0",
+		"xterm-addon-ligatures": "^0.7.0",
+		"xterm-addon-search": "^0.13.0",
+		"xterm-addon-serialize": "^0.11.0",
+		"xterm-addon-unicode11": "^0.6.0",
+		"xterm-addon-web-links": "^0.9.0",
+		"xterm-addon-webgl": "^0.16.0"
+	}
 }

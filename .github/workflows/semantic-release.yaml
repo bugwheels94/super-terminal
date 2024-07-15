@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: ui/package.json
       - run: npm i -g @lytejs/mesh@beta
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: package.json
       - run: npm i -g @lytejs/mesh@beta
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: package.json
       - name: Remove File
@@ -99,7 +99,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: package.json
       - run: rm -rf ui
@@ -128,13 +128,21 @@ jobs:
     needs: [ui, semantic-release-version-retrieval]
     runs-on: flyci-macos-large-latest-m1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 'pypy3.9'
       - run: rm -rf ui
       - uses: actions/download-artifact@v3
         with:
           name: ui
           path: ui
-      - run: sudo -H pip install setuptools
+      - run: pip install setuptools
       - run: npm i -g @lytejs/mesh@beta
       - run: mesh -c sync dependencies
       - run: npm i --legacy-peer-deps
@@ -157,7 +165,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: package.json
       - run: rm -rf ui
@@ -192,7 +200,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: package.json
       - run: rm -rf ui

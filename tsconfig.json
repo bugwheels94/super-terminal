@@ -36,6 +36,6 @@
 	},
 	"compileOnSave": false,
 	// "include": ["./src/**/*"],
-	"files": ["./src/index.ts", "./src/run-server.ts"]
+	"files": ["src/index.ts", "src/run-server.ts"]
 	// "exclude": ["node_modules"]
 }

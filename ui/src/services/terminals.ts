@@ -11,6 +11,9 @@ export type Terminal = {
 	width: number | null;
 	x: number | null;
 	y: number | null;
+	z: number | null;
+	minimized: boolean | null;
+	maximized: boolean | null;
 	logs?: {
 		log: string;
 	}[];
@@ -36,6 +39,9 @@ export type PatchTerminalRequest = Partial<Omit<Terminal, 'id'>> & {
 };
 type CloneTerminalRequest = {
 	id: number;
+	terminal: {
+		z: number;
+	};
 };
 
 export const getTerminalQueryKey = (projectId: number, terminalId?: number | string) =>
@@ -46,10 +52,9 @@ export const useGetTerminals = (projectId: number, options = {}) => {
 	return useQueryPlus<Terminal[], ApiError>(
 		getTerminalQueryKey(projectId),
 		() =>
-			fetchSocket<Terminal[]>(`/projects/${projectId}/terminals`, {
-				method: 'get',
-			}).then((d) => {
-				return d;
+			fetchSocket<Terminal[]>(`get:terminals`, {
+				data: projectId,
+				namespace: 'terminal',
 			}),
 		options
 	);
@@ -58,8 +63,9 @@ export const useGetTerminalCommands = (terminalId: number, query: string, option
 	return useQueryPlus<TerminalCommand[], ApiError>(
 		getTerminalCommandsQueryKey(terminalId, query),
 		() =>
-			fetchSocket<TerminalCommand[]>(`/terminals/${terminalId}/terminal-commands/${query}`, {
-				method: 'get',
+			fetchSocket<TerminalCommand[]>(`get:terminal-commands`, {
+				data: query,
+				namespace: 'terminal',
 			}),
 		{
 			retry: (_, error) => {
@@ -73,10 +79,13 @@ export const useGetTerminalCommands = (terminalId: number, query: string, option
 };
 
 export const usePostTerminal = (id: number) => {
-	return useMutationPlus<Terminal, {}, ApiError>(getTerminalQueryKey(id), (body) =>
-		fetchSocket<Terminal>(`/projects/${id}/terminals`, {
-			body,
-			method: 'post',
+	return useMutationPlus<Terminal, { z: number }, ApiError>(getTerminalQueryKey(id), (terminal) =>
+		fetchSocket<Terminal>(`post:terminal`, {
+			namespace: 'terminal',
+			data: {
+				projectId: id,
+				terminal,
+			},
 		})
 	);
 };
@@ -87,9 +96,12 @@ export const useCloneTerminal = (
 	return useMutationPlus<Terminal, CloneTerminalRequest, ApiError>(
 		getTerminalQueryKey(projectId, `terminal/copies`),
 		(body) =>
-			fetchSocket<Terminal>(`/projects/${projectId}/terminals/${body.id}/copies`, {
-				body,
-				method: 'post',
+			fetchSocket<Terminal>(`clone:terminal`, {
+				namespace: 'terminal',
+				data: {
+					projectId,
+					...body,
+				},
 			}),
 		{
 			retry: (_, error) => {
@@ -109,10 +121,14 @@ export const usePatchTerminal = (
 	options: UseMutationOptions<Terminal, ApiError, PatchTerminalRequest> = {}
 ) => {
 	return useMutation(
-		(body) =>
-			fetchSocket(`/projects/${projectId}/terminals/${id}`, {
-				body,
-				method: 'patch',
+		(terminal) =>
+			fetchSocket(`patch:terminal`, {
+				namespace: 'terminal',
+				data: {
+					id,
+					projectId,
+					terminal,
+				},
 			}),
 		{
 			...options,
@@ -127,8 +143,12 @@ export const useDeleteTerminal = (
 	return useMutationPlus(
 		getTerminalQueryKey(projectId, id),
 		() =>
-			fetchSocket(`/projects/${projectId}/terminals/${id}`, {
-				method: 'delete',
+			fetchSocket(`delete:terminal`, {
+				namespace: 'terminal',
+				data: {
+					projectId,
+					id,
+				},
 			}),
 		{
 			retry: (_, error) => {

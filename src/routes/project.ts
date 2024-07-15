@@ -1,8 +1,8 @@
 import { AppDataSource, ProjectRepository, TerminalLogArchiveRepository, TerminalRepository } from '../data-source';
-import { Router } from 'soxtend/router';
 import { Project } from '../entity/Project';
 import { createNewTerminal, killPtyProcess } from './terminal';
 import { ptyProcesses } from '../utils/pty';
+import { JsonObject, Socket, SoxtendServer } from 'soxtend/server';
 const defaultTheme = {
 	name: 'Breeze',
 	black: '#31363b',
@@ -26,155 +26,184 @@ const defaultTheme = {
 	selectionBackground: '#eff0f1',
 	cursorColor: '#eff0f1',
 };
-export const addProjectRoutes = (router: Router) => {
+export const addProjectRoutes = async (server: SoxtendServer, socket: Socket, message: any) => {
 	// Implement query parameters
-	router.delete('/logs-archive/:days', async (req) => {
-		const days = Number(req.params.days) || 7;
-		var date = new Date();
-		date.setDate(date.getDate() - days);
-		await TerminalLogArchiveRepository.createQueryBuilder()
-			.delete()
-			.where('createdAt < :date', {
-				date,
-			})
-			.execute();
-		await AppDataSource.manager.query('vacuum');
-		// No need to send to all tabs as this is general request
-	});
-
-	router.get('/projects', async (_req, res) => {
-		const p = await ProjectRepository.find();
-
-		// No need to send to all tabs as this is general request
-		res.status(200).send(p);
-	});
-	router.post('/projects', async ({ body }, res) => {
-		const project = new Project();
-		project.slug = body.slug;
-		project.fontSize = body.fontSize;
-		project.terminalTheme = body.terminalTheme;
-		project.scrollback = body.scrollback;
-
-		const query: Record<string, string | number> = {};
-		const slug = body.slug;
-		query.slug = slug;
-		project.fontSize = 14;
-		project.terminalTheme = defaultTheme;
-		let projectRecord: Project;
-		try {
-			projectRecord = await ProjectRepository.findOneOrFail({
-				where: query,
-			});
-		} catch (e) {
-			await ProjectRepository.save(project);
-
-			projectRecord = await ProjectRepository.findOneOrFail({
-				where: query,
-			});
-			const terminal = createNewTerminal();
-			terminal.project = projectRecord;
-			await TerminalRepository.save(terminal);
+	switch (message.name) {
+		case 'delete:logs-archive': {
+			const days = Number(message.data.days) || 7;
+			var date = new Date();
+			date.setDate(date.getDate() - days);
+			await TerminalLogArchiveRepository.createQueryBuilder()
+				.delete()
+				.where('createdAt < :date', {
+					date,
+				})
+				.execute();
+			await AppDataSource.manager.query('vacuum');
+			break;
 		}
-		// VERY SLOW Constraint failure code
-		// try {
-		// 	await ProjectRepository.save(project);
-		// } catch (e) {
-		// 	if (!(e instanceof QueryFailedError) || e.driverError.code !== 'SQLITE_CONSTRAINT_UNIQUE') {
-		// 		throw e;
-		// 	}
-		// }
-		res.send(projectRecord);
-		res.group('global').send(projectRecord);
-	});
-	router.put('/projects/:projectSlug?', async ({ params }, res) => {
-		const project = new Project();
-		const query: Record<string, string | number> = {};
-		const slug = params.projectSlug || '';
-		project.slug = slug;
-		query.slug = slug;
-		project.fontSize = 14;
-		project.scrollback = 1000;
-		project.terminalTheme = defaultTheme;
-		let projectRecord: Project;
-		try {
-			projectRecord = await ProjectRepository.findOneOrFail({
-				where: query,
-			});
-		} catch (e) {
-			await ProjectRepository.save(project);
-
-			projectRecord = await ProjectRepository.findOneOrFail({
-				where: query,
-			});
-			const terminal = createNewTerminal();
-			terminal.project = projectRecord;
-			await TerminalRepository.save(terminal);
+		case 'get:projects': {
+			const p = await ProjectRepository.find();
+			socket.send(
+				JSON.stringify({
+					data: p as unknown as JsonObject,
+					id: message.id,
+				})
+			);
+			break;
 		}
-		res.send(projectRecord.id);
-	});
-	router.delete('/projects/:id', async (req, res) => {
-		const id = Number(req.params.id);
-		closeProject(id);
-		await ProjectRepository.delete(id);
-		res
-			.group('global')
-			.status(200)
-			.send(id, {
-				url: '/projects/' + id + '/running-status',
-				method: 'delete',
-			});
-		res.group('global').status(200).send(id);
-	});
-	router.get('/projects/:id', async (req, res) => {
-		const id = Number(req.params.id);
-		const projectRecord = await ProjectRepository.findOneOrFail({
-			where: { id },
-		});
-		res.joinGroup(`${id}`);
+		case 'post:project': {
+			const body = message.data;
+			const project = new Project();
+			project.slug = body.slug;
+			project.fontSize = body.fontSize;
+			project.terminalTheme = body.terminalTheme;
+			project.scrollback = body.scrollback;
 
-		res.send(projectRecord);
-	});
-	router.delete('/projects/:id/running-status', async (req, res) => {
-		const id = Number(req.params.id);
-		closeProject(id);
-		res.group('global').status(200).send();
-	});
+			const query: Record<string, string | number> = {};
+			const slug = body.slug;
+			query.slug = slug;
+			project.fontSize = 14;
+			project.terminalTheme = defaultTheme;
+			let projectRecord: Project;
+			try {
+				projectRecord = await ProjectRepository.findOneOrFail({
+					where: query,
+				});
+			} catch (e) {
+				await ProjectRepository.save(project);
 
-	router.patch('/projects/:id', async (req, res) => {
-		const id = Number(req.params.id);
-		try {
-			await ProjectRepository.update(id, req.body || {});
-		} catch (e) {
-			if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-				res.status(400).send(`Project with this name already exists`);
-			} else throw e;
-			return;
+				projectRecord = await ProjectRepository.findOneOrFail({
+					where: query,
+				});
+				const terminal = createNewTerminal();
+				terminal.project = projectRecord;
+				await TerminalRepository.save(terminal);
+			}
+			socket.send(
+				JSON.stringify({
+					id: message.id,
+				})
+			);
+			server.sendToGroup(
+				'global',
+				JSON.stringify({
+					data: projectRecord as unknown as JsonObject,
+					name: 'response|post:projects',
+				})
+			);
+			break;
 		}
-		res
-			.status(200)
-			.send({})
-			.group(id.toString())
-			.status(200)
-			.send(await ProjectRepository.findOneOrFail({ where: { id } }));
-	});
+		case 'put:project': {
+			const slug = message.data || '';
+			const project = new Project();
+			const query: Record<string, string | number> = {};
+			project.slug = slug;
+			query.slug = slug;
+			project.fontSize = 14;
+			project.scrollback = 1000;
+			project.terminalTheme = defaultTheme;
+			let projectRecord: Project;
+			try {
+				projectRecord = await ProjectRepository.findOneOrFail({
+					where: query,
+				});
+			} catch (e) {
+				await ProjectRepository.save(project);
 
-	router.get('/running-projects', async (_, res) => {
-		res.status(200).send(getRunningProjects());
-	});
+				projectRecord = await ProjectRepository.findOneOrFail({
+					where: query,
+				});
+				const terminal = createNewTerminal();
+				terminal.project = projectRecord;
+				await TerminalRepository.save(terminal);
+			}
+			socket.send(JSON.stringify({ data: projectRecord.id, id: message.id }));
+			break;
+		}
+		case 'delete:project': {
+			const id = Number(message.data);
+			closeProject(id);
+			await ProjectRepository.delete(id);
+			server.sendToGroup('global', JSON.stringify({ name: 'response|delete:project', data: id }));
+			server.sendToGroup(
+				'global',
+				JSON.stringify({
+					name: 'response|close:running-projects',
+					data: id,
+				})
+			);
+			break;
+		}
+		case 'get:project': {
+			const id = Number(message.data);
+			const projectRecord = await ProjectRepository.findOneOrFail({
+				where: { id },
+			});
+			socket.joinGroup(`${id}`);
+
+			socket.send(JSON.stringify({ data: projectRecord as unknown as JsonObject, id: message.id }));
+
+			break;
+		}
+		case 'close:running-projects': {
+			const id = Number(message.data);
+			closeProject(id);
+			server.sendToGroup(
+				'global',
+				JSON.stringify({
+					name: 'response|close:running-projects',
+					data: id,
+				})
+			);
+			break;
+		}
+		case 'patch:project': {
+			const id = Number(message.data.id);
+			try {
+				await ProjectRepository.update(id, message.data.project || {});
+			} catch (e) {
+				if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+					socket.send(
+						JSON.stringify({
+							error: 'Project with this name already exists',
+							id: message.id,
+						})
+					);
+				} else throw e;
+				return;
+			}
+			server.sendToGroup(
+				id.toString(),
+				JSON.stringify({
+					name: 'response|patch:project',
+					data: (await ProjectRepository.findOneOrFail({ where: { id } })) as unknown as JsonObject,
+				})
+			);
+
+			break;
+		}
+		case 'get:running-projects': {
+			const projectIds = [];
+			const map = {};
+			ptyProcesses.forEach((process) => {
+				if (map[process.projectId]) return;
+				projectIds.push(process.projectId);
+				map[process.projectId] = true;
+			});
+
+			socket.send(
+				JSON.stringify({
+					data: projectIds,
+					id: message.id,
+				})
+			);
+		}
+	}
 };
 function closeProject(id: number) {
 	ptyProcesses.forEach((process, terminalId) => {
 		if (process.projectId !== id) return;
 		killPtyProcess(terminalId);
 	});
-}
-export function getRunningProjects() {
-	const projectIds = [];
-	const map = {};
-	ptyProcesses.forEach((process) => {
-		if (map[process.projectId]) return;
-		projectIds.push(process.projectId);
-		map[process.projectId] = true;
-	});
-	return projectIds;
 }

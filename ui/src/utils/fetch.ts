@@ -1,16 +1,36 @@
-import { ClientRequest } from 'soxtend/client';
 import { ApiError } from './error';
-import { client } from './socket';
+import { ws } from './socket';
 
-export const fetchSocket = async <T>(
-	url: string,
-	{ method = 'get', body = {} }: ClientRequest & { method: 'get' | 'put' | 'post' | 'delete' | 'patch' }
-): Promise<T> => {
+type JSONValue = string | number | boolean | null | JSONObject | JSONArray;
+interface JSONObject {
+	[key: string]: JSONValue;
+}
+interface JSONArray extends Array<JSONValue> {}
+
+let id = -1;
+let store: Record<number, any> = {};
+
+ws.addEventListener('message', ({ detail }) => {
 	try {
-		const result = client[method](url, {
-			body,
+		if (typeof detail === 'string') {
+			const message = JSON.parse(detail);
+			if (store[message.id]) {
+				if (message.error) store[message.id].reject(new ApiError(message.error, 500));
+				else store[message.id].resolve(message.data);
+				delete store[message.id];
+			}
+		}
+	} catch (e) {}
+});
+export const fetchSocket = async <T>(name: string, { data = {}, namespace = '', forget = false }): Promise<T> => {
+	try {
+		ws.send(JSON.stringify({ name, namespace, data, id: ++id }));
+		// ws.send(encodeClientMessage(name, namespace, data, id++));
+		// @ts-ignore
+		if (forget) return;
+		return new Promise((resolve, reject) => {
+			store[id] = { resolve, reject };
 		});
-		return (await result).data as unknown as T;
 	} catch (e) {
 		// @ts-ignore
 		if (typeof e === 'object' && e !== null) throw new ApiError(e.data, e.status);

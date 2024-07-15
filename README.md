@@ -4,7 +4,7 @@
 	<img src="icons/super-terminal.png" />
 </p>
 
-1. Do you find **opening terminal after reboot** boring?
+1. Do you find **opening the terminal after reboot** boring?
 2. Do you **work on multiple folders**, like monorepo or full stack projects, in parallel?
 3. Do you **need environment variables** always in some project?
 4. Is running a project requires you to **run multiple commands** in different folders and you wanna automate that?

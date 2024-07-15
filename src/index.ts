@@ -3,9 +3,7 @@ import fs from 'fs';
 import http, { Server } from 'http';
 import https from 'https';
 import path from 'path';
-import { WebSocket } from 'ws';
 import { SoxtendServer } from 'soxtend/server';
-import { Router } from 'soxtend/router';
 import { InMemoryMessageDistributor } from 'soxtend/inMemoryDistributor';
 import { AppDataSource } from './data-source';
 import { TerminalLog } from './entity/TerminalLog';
@@ -14,19 +12,13 @@ import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
 import { addTerminalRoutes } from './routes/terminal';
 import { initShellHistory, shellHistory } from './utils/shellHistory';
 import { getConfig } from './utils/config';
-// import ON_DEATH from 'death'; //this is intentionally ugly
-// import { ptyProcesses } from './utils/pty';
-
+import WebSocket from 'ws';
 export function main(port: number, host: string) {
-	// fs.writeFileSync(path.join(__dirname, '.created_on_first_exec'), 'Hey there!');
-
 	const app = express();
-
 	const { finalConfig } = getConfig();
-	// process.stdin.setRawMode(true);
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
-		app.use(express.static(path.join(__dirname, '..', 'ui/dist')));
+		app.use(express.static(path.join(__dirname, '..', 'ui', 'dist')));
 	}
 	let httpServer: Server;
 	if (finalConfig.KEY && finalConfig.CERT && !process.env.DEVELOPMENT) {
@@ -54,9 +46,30 @@ export function main(port: number, host: string) {
 
 				distributor: new InMemoryMessageDistributor(),
 			});
-			const router = new Router(server);
 			server.addListener('connection', (socket) => {
 				socket.joinGroup('global');
+				socket.on('message', (message: WebSocket.Data) => {
+					let parsed: {
+						namespace: string;
+						name: string;
+						data: any;
+						id?: number;
+					};
+					if (message instanceof Buffer) parsed = JSON.parse(message.toString());
+					else return;
+					switch (parsed.namespace) {
+						case 'project':
+							addProjectRoutes(server, socket, parsed);
+							break;
+						case 'terminal':
+							addTerminalRoutes(server, socket, parsed);
+							break;
+						case 'shell-script':
+							addProjectSchellScriptRoutes(server, socket, parsed);
+							break;
+						default:
+					}
+				});
 			});
 			server.addListener('ready', () => {
 				const p = port || finalConfig.PORT;
@@ -66,49 +79,26 @@ export function main(port: number, host: string) {
 				});
 
 				const { rawWebSocketServer } = server;
-				// restify.addEventListener('connection', ({ socket }) => {
-				// 	socket.project = socket.socket.groups[0];
-				// 	socket.socket.send(JSON.stringify({ put: '/fresh-connection' }));
-				// });
 				httpServer.on('upgrade', function upgrade(request, socket, head) {
-					// This function is not defined on purpose. Implement it with your own logic.
-					// authenticate(request, function next(err, client) {
-					// 	if (err || !client) {
-					// 		socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-					// 		socket.destroy();
-					// 		return;
-					// 	}
-
 					rawWebSocketServer.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
 						server.rawWebSocketServer.emit('connection', ws, request);
 					});
-					// });
 				});
-				// whatever comes to below route should be passed to pty process
 
-				addProjectRoutes(router);
-				addTerminalRoutes(router);
-				addProjectSchellScriptRoutes(router);
 				async function cleanup() {
-					// var date = new Date();
-					// date.setDate(date.getDate() - 7);
 					const qb = AppDataSource.getRepository(TerminalLog).createQueryBuilder('terminal_log');
-					const unnecessaryRows = qb
-						// .where('createdAt < :date', {
-						// 	date,
-						// })
-						.where(
-							'terminal_log.id NOT IN' +
-								qb
-									.subQuery()
-									.select(['id'])
-									.from(TerminalLog, 'terminal_log')
-									.orderBy('createdAt', 'DESC')
-									.limit(1000)
-									.groupBy('terminalId')
-									.addGroupBy('id')
-									.getQuery()
-						);
+					const unnecessaryRows = qb.where(
+						'terminal_log.id NOT IN' +
+							qb
+								.subQuery()
+								.select(['id'])
+								.from(TerminalLog, 'terminal_log')
+								.orderBy('createdAt', 'DESC')
+								.limit(1000)
+								.groupBy('terminalId')
+								.addGroupBy('id')
+								.getQuery()
+					);
 					const [selectQuery, params] = unnecessaryRows
 						.select(['terminalId', 'log', 'createdAt'])
 
@@ -127,15 +117,5 @@ export function main(port: number, host: string) {
 			});
 		})
 		.catch((error) => console.log(error));
-
-	// ON_DEATH((signal, err) => {
-	// 	Object.values(ptyProcesses).forEach(({ process: pty }) => {
-	// 		console.log('KILLING');
-	// 		// process.platform === 'win32' ? pty.kill() : pty.kill('SIGKILL');
-	// 	});
-	// 	process.exit();
-
-	// 	//clean up code here
-	// });
 }
 export { getConfig };

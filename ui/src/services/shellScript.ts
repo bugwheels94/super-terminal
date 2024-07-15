@@ -26,9 +26,12 @@ export const getTerminalScriptExecutionQueryKey = (terminalId: number, scriptId:
 
 export const usePatchProjectScript = (projectId: number, scriptId: number) => {
 	return useMutationPlus<null, PatchShellScript>(getProjectScriptQueryKey(projectId), (body) =>
-		fetchSocket(`/projects/${projectId}/scripts/${scriptId}`, {
-			method: 'patch',
-			body: body as any,
+		fetchSocket(`patch:script`, {
+			data: {
+				scriptId,
+				projectId,
+				script: body,
+			},
 		})
 	);
 };
@@ -37,10 +40,10 @@ export const useGetProjectScripts = (projectId: number) => {
 		getProjectScriptQueryKey(projectId),
 		async () => {
 			try {
-				const d = fetchSocket<ShellScript[]>(`/projects/${projectId}/scripts`, {
-					method: 'get',
+				const d = fetchSocket<ShellScript[]>(`get:scripts`, {
+					data: projectId,
 				});
-				return await d;
+				return d;
 			} catch (e) {
 				console.log(e);
 			}
@@ -52,17 +55,21 @@ export const useGetProjectScripts = (projectId: number) => {
 };
 export const usePostProjectScript = (projectId: number) => {
 	return useMutationPlus<null, PostShellScript>(getProjectScriptQueryKey(projectId), (body) =>
-		fetchSocket(`/projects/${projectId}/scripts`, {
-			method: 'post',
-			body,
+		fetchSocket(`post:script`, {
+			data: {
+				projectId,
+				...body,
+			},
 		})
 	);
 };
 export const useCloneProjectScript = (projectId: number, scriptId: number) => {
-	return useMutationPlus<null, PostShellScript>(getProjectScriptCopyQueryKey(projectId, scriptId), (body) =>
-		fetchSocket(`/projects/${projectId}/scripts/${scriptId}/copies`, {
-			method: 'post',
-			body,
+	return useMutationPlus<null, PostShellScript>(getProjectScriptCopyQueryKey(projectId, scriptId), () =>
+		fetchSocket(`clone:script`, {
+			data: {
+				scriptId: scriptId,
+				projectId,
+			},
 		})
 	);
 };
@@ -70,17 +77,20 @@ export const usePostProjectScriptExecution = (terminalId: number, scriptId: numb
 	return useMutationPlus<null, Record<string, unknown>>(
 		getTerminalScriptExecutionQueryKey(terminalId, scriptId),
 		(body) =>
-			fetchSocket(`/terminals/${terminalId}/scripts/${scriptId}/executions`, {
-				method: 'post',
-				body,
+			fetchSocket(`execute:script`, {
+				data: {
+					scriptId,
+					terminalId,
+					parameters: body,
+				},
 			})
 	);
 };
 
 export const useDeleteProjectScript = (projectId: number, scriptId: number) => {
 	return useMutationPlus(getProjectScriptQueryKey(projectId, scriptId), () =>
-		fetchSocket(`/projects/${projectId}/scripts/${scriptId}`, {
-			method: 'delete',
+		fetchSocket(`delete:script`, {
+			data: { scriptId, projectId },
 		})
 	);
 };

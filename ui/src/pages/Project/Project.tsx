@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense, useEffect, useReducer, useRef, useState } from 'react';
+import { lazy, ReactNode, Suspense, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import 'winbox/dist/css/winbox.min.css';
 import 'xterm/css/xterm.css';
 import { createContext } from 'react';
@@ -14,13 +14,15 @@ import {
 	useGetProject,
 	getProjectsQueryKey,
 } from '../../services/project';
-import { MyTerminal } from '../MyTerminal/MyTerminal';
+import { MyTerminal, MyTerminalHandle } from '../MyTerminal/MyTerminal';
 import './Project.css';
 import { useQueryClient } from 'react-query';
-import { client } from '../../utils/socket';
+import { ws } from '../../utils/socket';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import ProjectForm from './Form';
+import Drawer from '../components/Drawer';
+import { AutoComplete } from 'antd';
 const ContextMenu = lazy(() => import('./ContextMenu'));
 
 // const Draggable = (({ children }: { children: ReactNode }) => {}) as any
@@ -140,7 +142,6 @@ function Project2() {
 function ProjectPage({ project, projectId }: { project: Project; projectId: number }) {
 	const [projectFormOpen, setProjectFormOpen] = useState(false);
 	const [mainCommandCounter, setMainCommandCounter] = useState(0);
-	const [triggerArrangeTerminals, setTriggerArrangeTerminals] = useState(0);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { mutate: patchProject, error } = usePatchProject(project.id, {
@@ -170,90 +171,143 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 	}, [project.slug]);
 
 	useEffect(() => {
-		const listeners = client.addServerResponseListenerFor
-			.delete(`/projects/:projectId/running-status`, (request) => {
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData('/running-projects') as number[];
-				queryClient.setQueryData(
-					'/running-projects',
-					oldData.filter((d) => d !== projectId)
-				);
-			})
-			.post(`/projects/:projectId/running-status`, (request) => {
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData('/running-projects') as number[];
-				queryClient.setQueryData(
-					'/running-projects',
-					oldData.includes(projectId) ? oldData : oldData.concat([projectId])
-				);
-			})
-			.patch('/projects/:projectId', (_, response) => {
-				if (!response.data) return;
-				queryClient.setQueryData(getProjectQueryKey(project.id), response.data);
-				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
-				queryClient.setQueryData(
-					getProjectsQueryKey(),
-					oldData.map((p) => (p.id !== response.data.id ? p : response.data))
-				);
-			})
-			.delete('/projects/:projectId', (_, response) => {
-				if (!response.data) return;
-				const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
-				queryClient.setQueryData(
-					getProjectsQueryKey(),
-					oldData.filter((p) => p.id !== response.data)
-				);
-			})
-			.post('/projects/:projectId/terminals', (request, response) => {
-				if (!response.data) return;
+		function listener({ detail }: { detail: any }) {
+			let message: any = {};
+			try {
+				message = JSON.parse(detail);
+			} catch (e) {}
+			if (!message.name || !message.name.startsWith('response|')) return;
 
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-				queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
-			})
-			.post('/projects/:projectId/terminals/:terminalId/copies', (request, response) => {
-				if (!response.data) return;
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-				queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, response.data]);
-			})
-			.patch('/projects/:projectId/terminals/:terminalId', (request, response) => {
-				if (!response.data) return;
-				const projectId = Number(request.params.projectId);
+			// Use replace method with a regular expression
+			const name = message.name.replace(/^response\|/, '');
 
-				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-				queryClient.setQueryData(
-					getTerminalQueryKey(projectId),
-					oldData.map((terminal) => {
-						if (terminal.id === Number(request.params.terminalId)) {
-							return { ...terminal, ...response.data };
-						}
-						return terminal;
-					})
-				);
-			})
-			.delete('/projects/:projectId/terminals/:terminalId', (request) => {
-				const projectId = Number(request.params.projectId);
-				const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
-				queryClient.setQueryData(
-					getTerminalQueryKey(projectId),
-					oldData.filter((terminal) => {
-						if (Number(request.params.terminalId) === terminal.id) {
-							return false;
-						}
-						return true;
-					})
-				);
-			});
+			switch (name) {
+				case `close:running-projects`: {
+					const projectId = Number(message.data);
+					const oldData = queryClient.getQueryData('/running-projects') as number[];
+					queryClient.setQueryData(
+						'/running-projects',
+						oldData.filter((d) => d !== projectId)
+					);
+					break;
+				}
+				case `post:running-projects`: {
+					const projectId = Number(message.data);
+					const oldData = (queryClient.getQueryData('/running-projects') as number[]) || [];
+					queryClient.setQueryData(
+						'/running-projects',
+						oldData.includes(projectId) ? oldData : oldData.concat([projectId])
+					);
+					break;
+				}
+				case 'patch:project': {
+					queryClient.setQueryData(getProjectQueryKey(project.id), message.data);
+					const oldData = queryClient.getQueryData(getProjectsQueryKey()) as Project[];
+					queryClient.setQueryData(
+						getProjectsQueryKey(),
+						oldData.map((p) => (p.id !== message.data.id ? p : message.data))
+					);
+					break;
+				}
+				case 'delete:project': {
+					queryClient.setQueryData(
+						getProjectsQueryKey(),
+						(queryClient.getQueryData(getProjectsQueryKey()) as Project[]).filter((p) => p.id !== message.data)
+					);
+					break;
+				}
+				case 'post:terminal': {
+					const projectId = Number(message.data.projectId);
+					const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+					queryClient.setQueryData(getTerminalQueryKey(projectId), [...oldData, message.data.terminal]);
+					break;
+				}
+				case 'patch:terminal': {
+					const projectId = Number(message.data.projectId);
 
+					const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+					queryClient.setQueryData(
+						getTerminalQueryKey(projectId),
+						oldData.map((terminal) => {
+							if (terminal.id === Number(message.data.terminalId)) {
+								return { ...terminal, ...message.data.terminal };
+							}
+							return terminal;
+						})
+					);
+					break;
+				}
+				case 'delete:terminal': {
+					const projectId = Number(message.data.projectId);
+					const oldData = queryClient.getQueryData(getTerminalQueryKey(projectId)) as Terminal[];
+					queryClient.setQueryData(
+						getTerminalQueryKey(projectId),
+						oldData.filter((terminal) => {
+							if (Number(message.data.terminalId) === terminal.id) {
+								return false;
+							}
+							return true;
+						})
+					);
+					break;
+				}
+			}
+		}
+		ws.addEventListener('message', listener);
 		return () => {
-			listeners.stopListening();
+			ws.removeEventListener('message', listener);
 		};
 	}, [queryClient, project.id]);
+	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+	useEffect(() => {
+		window.addEventListener('keydown', (event) => {
+			// disable ctrol + F
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyF') return event.preventDefault();
+			// disable browser command pallete
+			if ((event.ctrlKey || event.metaKey) && event.code === 'KeyP' && event.shiftKey) {
+				event.preventDefault();
+				// setCommandPaletteOpen(true);
+			}
+			// console.log(e);
+		});
+	}, []);
+	const maxZIndex = useMemo(
+		() =>
+			(terminals || []).reduce((max, item) => {
+				const z = item.z || -Infinity;
+				return z > max ? z || -Infinity : max;
+			}, -Infinity),
+		[terminals]
+	);
+	const childRefs = useRef<(MyTerminalHandle | null)[]>(Array(0).fill(null));
 
+	const rearrangeTerminals = () => {
+		childRefs.current.forEach((comp) => {
+			comp?.rearrange();
+		});
+		// if (childRefs.current[index]) {
+		// 	childRefs.current[index]?.rearrange();
+		// }
+	};
 	if (!projectId) return null;
+	let terminalPrecedingCount = 0;
 	return (
 		<>
+			<Drawer title={'Run Commands'} open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)}>
+				<AutoComplete
+					className="autocomplete"
+					popupClassName="certain-category-search-dropdown"
+					popupMatchSelectWidth={500}
+					options={[
+						{ value: 'Burns Bay Road', label: 'hehe' },
+						{ value: 'Downing Street', label: 'hehe' },
+						{ value: 'Wall Street', label: 'hehe' },
+					]}
+					size="large"
+				>
+					<input></input>
+				</AutoComplete>
+			</Drawer>
 			<ProjectForm
 				onOpenChange={setProjectFormOpen}
 				open={projectFormOpen}
@@ -267,9 +321,10 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 				<Suspense>
 					<ContextMenu
 						project={project}
-						setTriggerArrangeTerminals={setTriggerArrangeTerminals}
+						rearrangeTerminals={rearrangeTerminals}
 						setMainCommandCounter={setMainCommandCounter}
 						setProjectFormOpen={setProjectFormOpen}
+						maxZIndex={maxZIndex}
 					/>
 				</Suspense>
 			)}
@@ -277,17 +332,23 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 			<div ref={ref} className="App"></div>
 			{ref.current &&
 				terminals?.map((terminal, index) => {
+					if (!terminal.minimized) {
+						terminalPrecedingCount++;
+					}
 					return (
 						<MyTerminal
+							commandToExecute=""
+							maxZIndex={maxZIndex}
+							setCommandToExecute={() => {}}
 							key={terminal.id}
 							mainCommandCounter={mainCommandCounter}
 							projectId={project.id}
 							project={project}
 							element={ref.current as HTMLDivElement}
 							terminal={terminal}
-							terminalsCount={terminals.length}
-							terminalOrder={index}
-							triggerArrangeTerminals={triggerArrangeTerminals}
+							ref={(el) => (childRefs.current[index] = el)}
+							terminalsCount={terminals.filter((t) => !t.minimized).length}
+							terminalOrder={terminalPrecedingCount}
 						/>
 					);
 				})}

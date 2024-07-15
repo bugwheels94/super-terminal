@@ -1,7 +1,8 @@
-import { Drawer, Input, Slider, Select, Button, Form, Alert } from 'antd';
+import { Input, Slider, Select, Button, Form, Alert } from 'antd';
 import { PatchProjectRequest, PostProjectRequest, Project } from '../../services/project';
 import { useMemo } from 'react';
 import { ApiError } from '../../utils/error';
+import { Drawer } from '../components/Drawer';
 const rules = [
 	{
 		message: 'Parameter Name can only contain alphabets, numbers, -, _',
@@ -74,13 +75,7 @@ const ProjectForm = ({
 		return options;
 	}, []);
 	return (
-		<Drawer
-			title={project ? 'Edit Project' : 'Create New Project'}
-			placement="right"
-			onClose={() => onOpenChange(false)}
-			open={open}
-			size="large"
-		>
+		<Drawer title={project ? 'Edit Project' : 'Create New Project'} onClose={() => onOpenChange(false)} open={open}>
 			{open && (
 				<Form
 					requiredMark={false}

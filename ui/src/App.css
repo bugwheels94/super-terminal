@@ -2,9 +2,15 @@
 	text-align: center;
 	flex-grow: 1;
 	position: relative;
+	z-index: 0;
 }
 .ant-row.ant-form-item-row {
 	border: solid 1px #efefef;
 	border-radius: 1rem;
 	padding: 1rem;
+}
+input {
+	width: 100%;
+	padding: 1rem;
+	box-sizing: border-box;
 }
