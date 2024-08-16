@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Password Form</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				margin: 0;
+				background-color: #f4f4f4;
+			}
+			.container {
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+				padding: 20px;
+				width: 300px;
+				text-align: center;
+			}
+			.container h1 {
+				margin-bottom: 20px;
+			}
+			.container input[type='password'] {
+				width: calc(100% - 20px);
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				margin-bottom: 20px;
+			}
+			.container button {
+				background-color: #007bff;
+				border: none;
+				color: #fff;
+				padding: 10px 15px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 16px;
+			}
+			.container button:hover {
+				background-color: #0056b3;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Enter Password</h1>
+			<form id="passwordForm" action="/password" method="post">
+				<input type="password" name="password" required />
+				<br />
+				<button type="submit">Submit</button>
+			</form>
+		</div>
+
+		<script>
+			document.getElementById('passwordForm').onsubmit = function (event) {
+				event.preventDefault(); // Prevent the form from submitting the traditional way
+
+				fetch(this.action, {
+					method: 'POST',
+					body: new URLSearchParams(new FormData(this)),
+				})
+					.then((response) => {
+						if (response.ok) {
+							window.location.reload(); // Reload the page on success
+						} else {
+							alert('Failed to submit password');
+						}
+					})
+					.catch((error) => {
+						console.error('Error:', error);
+						alert('An error occurred');
+					});
+
+				return false; // Prevent the default form submission
+			};
+		</script>
+	</body>
+</html>

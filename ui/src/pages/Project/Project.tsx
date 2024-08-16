@@ -2,7 +2,7 @@ import { lazy, ReactNode, Suspense, useEffect, useMemo, useReducer, useRef, useS
 import 'winbox/dist/css/winbox.min.css';
 import 'xterm/css/xterm.css';
 import { createContext } from 'react';
-
+import WebSocket from 'isomorphic-ws';
 import { getTerminalQueryKey, Terminal, useGetTerminals } from '../../services/terminals';
 import {
 	usePutProject,
@@ -171,10 +171,10 @@ function ProjectPage({ project, projectId }: { project: Project; projectId: numb
 	}, [project.slug]);
 
 	useEffect(() => {
-		function listener({ detail }: { detail: any }) {
+		function listener({ detail }: CustomEvent<WebSocket.Data>) {
 			let message: any = {};
 			try {
-				message = JSON.parse(detail);
+				message = JSON.parse(detail as string);
 			} catch (e) {}
 			if (!message.name || !message.name.startsWith('response|')) return;
 

@@ -63,6 +63,8 @@
 		"babel": "^6.23.0",
 		"babel-plugin-const-enum": "^1.2.0",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
+		"body-parser": "^1.20.2",
+		"cookie-parser": "^1.4.6",
 		"define-lazy-prop": "^3.0.0",
 		"electron": "^30.0.0",
 		"fast-glob": "^3.2.12",
