@@ -3,5 +3,6 @@
 	"CERT": "",
 	"KEY": "",
 	"UI": "",
-	"HOST": "127.0.0.1"
+	"HOST": "127.0.0.1",
+	"AUTH_PASSWORD": "password"
 }

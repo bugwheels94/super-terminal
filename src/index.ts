@@ -11,14 +11,26 @@ import { addProjectRoutes } from './routes/project';
 import { addProjectSchellScriptRoutes } from './routes/projectShellScript';
 import { addTerminalRoutes } from './routes/terminal';
 import { initShellHistory, shellHistory } from './utils/shellHistory';
+import cookieParser from 'cookie-parser';
+import bodyParser from 'body-parser';
 import { getConfig } from './utils/config';
 import WebSocket from 'ws';
 export function main(port: number, host: string) {
 	const app = express();
+	app.use(cookieParser());
+	app.use(bodyParser.urlencoded({ extended: false }));
 	const { finalConfig } = getConfig();
 	const isProduction = process.env.NODE_ENV === 'production';
 	if (isProduction || 1) {
-		app.use(express.static(path.join(__dirname, '..', 'ui', 'dist')));
+		app.post('/password', (req, res) => {
+			res.cookie('password', req.body.password);
+			res.send();
+		});
+		app.use((req, res, next) => {
+			if (req.cookies.password === finalConfig.AUTH_PASSWORD) {
+				next();
+			} else res.sendFile(path.join(__dirname, '..', 'ui', 'dist', '401.html'));
+		}, express.static(path.join(__dirname, '..', 'ui', 'dist')));
 	}
 	let httpServer: Server;
 	if (finalConfig.KEY && finalConfig.CERT && !process.env.DEVELOPMENT) {
