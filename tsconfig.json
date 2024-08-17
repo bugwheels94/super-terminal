@@ -30,6 +30,7 @@
 		"lib": ["esnext", "dom"],
 		"typeRoots": ["@types", "src/types"],
 		"emitDeclarationOnly": true,
+
 		"noEmit": false,
 		"declarationDir": "./dist/types",
 		"experimentalDecorators": true
