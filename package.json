@@ -57,7 +57,7 @@
 		"@semantic-release/npm": "^11.0.2",
 		"@types/js-yaml": "^4.0.5",
 		"@types/lodash": "^4.14.185",
-		"@types/node": "^16.11.10",
+		"@types/node": "^20.15.0",
 		"@types/sqlite3": "^3.1.8",
 		"@types/tcp-port-used": "^1.0.1",
 		"babel": "^6.23.0",

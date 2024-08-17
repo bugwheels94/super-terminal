@@ -30,7 +30,6 @@
 		"lib": ["esnext", "dom"],
 		"typeRoots": ["@types", "src/types"],
 		"emitDeclarationOnly": true,
-		"types": ["node"],
 
 		"noEmit": false,
 		"declarationDir": "./dist/types",
