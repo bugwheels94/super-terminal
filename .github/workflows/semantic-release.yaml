@@ -126,7 +126,7 @@ jobs:
   mac-arm64:
     name: release-mac-arm64
     needs: [ui, semantic-release-version-retrieval]
-    runs-on: flyci-macos-large-latest-m1
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
