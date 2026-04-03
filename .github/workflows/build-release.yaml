@@ -1,0 +1,126 @@
+name: Build & Upload Assets
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-tauri:
+    name: tauri-${{ matrix.artifact }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust-targets: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+            artifact: mac-arm64
+          - platform: macos-13
+            rust-targets: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+            artifact: mac-x64
+          - platform: ubuntu-22.04
+            rust-targets: ''
+            args: ''
+            artifact: ubuntu
+          - platform: windows-latest
+            rust-targets: ''
+            args: ''
+            artifact: windows
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm install --legacy-peer-deps
+      - name: Set version from tag (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: npm --no-git-tag-version version "${GITHUB_REF_NAME#v}"
+      - name: Set version from tag (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: npm --no-git-tag-version version ($env:GITHUB_REF_NAME -replace '^v','')
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.release.tag_name }}
+          releaseName: ${{ github.event.release.name }}
+          releaseId: ${{ github.event.release.id }}
+          args: ${{ matrix.args }}
+
+  build-server:
+    name: server-${{ matrix.artifact }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            artifact: mac-arm64
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            artifact: mac-x64
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact: linux-x64
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: windows-x64
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build UI
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+      - name: Set Cargo version (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: sed -i.bak "s/^version = \".*\" # x-release-please-version/version = \"${GITHUB_REF_NAME#v}\" # x-release-please-version/" crates/super-terminal/Cargo.toml
+      - name: Set Cargo version (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v',''
+          (Get-Content crates/super-terminal/Cargo.toml) -replace '^version = ".*" # x-release-please-version', "version = `"$version`" # x-release-please-version" | Set-Content crates/super-terminal/Cargo.toml
+      - name: Build server binary
+        run: cargo build --release --target ${{ matrix.target }} -p super-terminal
+      - name: Package binary (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: |
+          mkdir -p dist-server
+          cp target/${{ matrix.target }}/release/super-terminal dist-server/
+          cd dist-server && tar czf ../super-terminal-server-${{ matrix.target }}.tar.gz super-terminal
+      - name: Package binary (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-server
+          Copy-Item "target/${{ matrix.target }}/release/super-terminal.exe" "dist-server/"
+          Compress-Archive -Path "dist-server/super-terminal.exe" -DestinationPath "super-terminal-server-${{ matrix.target }}.zip"
+      - name: Upload server binary to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.event.release.tag_name }} super-terminal-server-* --clobber

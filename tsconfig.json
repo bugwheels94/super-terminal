@@ -1,42 +1,25 @@
 {
-	"compilerOptions": {
-		"incremental": true,
-		"target": "es2021",
-		"outDir": "dist",
-		"rootDir": "src",
-		"moduleResolution": "node16",
-		"module": "Node16",
-		"declaration": true,
-		"inlineSourceMap": true,
-		"esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
-		"resolveJsonModule": true /* Include modules imported with .json extension. */,
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
 
-		/* Additional Checks */
-		"noUnusedLocals": true /* Report errors on unused locals. */,
-		"noUnusedParameters": true /* Report errors on unused parameters. */,
-		"noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
-		"noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
 
-		/* Debugging Options */
-		"traceResolution": false /* Report module resolution log messages. */,
-		"listEmittedFiles": false /* Print names of generated files part of the compilation. */,
-		"listFiles": false /* Print names of files part of the compilation. */,
-		"pretty": true /* Stylize errors and messages using color and context. */,
-
-		/* Experimental Options */
-		// "experimentalDecorators": true /* Enables experimental support for ES7 decorators. */,
-		// "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
-
-		"lib": ["esnext", "dom"],
-		"typeRoots": ["@types", "src/types"],
-		"emitDeclarationOnly": true,
-
-		"noEmit": false,
-		"declarationDir": "./dist/types",
-		"experimentalDecorators": true
-	},
-	"compileOnSave": false,
-	// "include": ["./src/**/*"],
-	"files": ["src/index.ts", "src/run-server.ts"]
-	// "exclude": ["node_modules"]
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

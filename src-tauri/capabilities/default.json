@@ -1,0 +1,8 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Super Terminal",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

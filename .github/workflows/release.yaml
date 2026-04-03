@@ -1,0 +1,30 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+      - next
+      - alpha
+      - next-major
+      - beta
+      - '*.x'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  semantic-release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g semantic-release @semantic-release/github @semantic-release/npm
+      - run: semantic-release
+        env:
+          HUSKY: 0
+          NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

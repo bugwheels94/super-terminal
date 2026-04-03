@@ -1,0 +1,79 @@
+.terminal-panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex: 1;
+	overflow: hidden;
+	border: solid 1px #c0c0c0;
+	background: #f7f7f7;
+}
+.terminal-title-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 8px;
+	background: #e0e0e0;
+	font-size: 13px;
+	user-select: none;
+	flex-shrink: 0;
+}
+.terminal-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.terminal-actions {
+	display: flex;
+	gap: 4px;
+}
+.terminal-actions button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	font-size: 14px;
+	display: inline-flex;
+	align-items: center;
+}
+.terminal-actions button:hover {
+	background: #ccc;
+	border-radius: 3px;
+}
+.terminal-body {
+	flex: 1;
+	overflow: hidden;
+	position: relative;
+}
+.xterm {
+	flex-grow: 1;
+}
+.searchBar {
+	position: absolute;
+	display: flex;
+	min-width: 150px;
+	padding: 3px;
+	top: 0;
+	right: 0;
+	z-index: 100;
+	border: solid 1px #efefef;
+	background-color: #efefef;
+}
+.searchBar > input {
+	flex-grow: 1;
+	border: solid 1px #dedede;
+	outline: none;
+}
+.searchBar > button {
+	outline: none;
+	border: none;
+	border-top: none;
+	background: none;
+	display: inline-flex;
+	align-items: center;
+	padding: 1px;
+	border-bottom: none;
+	border-radius: 0px;
+}
+.searchBar > button:last-child {
+	margin-left: 4px;
+}

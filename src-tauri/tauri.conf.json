@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/niccokunzmann/tauri/refs/heads/dev/crates/tauri-cli/config.schema.json",
+  "productName": "Super Terminal",
+  "version": "../package.json",
+  "identifier": "com.super-terminal.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
