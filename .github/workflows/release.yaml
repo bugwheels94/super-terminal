@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   semantic-release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       new_release_published: ${{ steps.release.outputs.new_release_published }}
       new_release_version: ${{ steps.release.outputs.new_release_version }}
@@ -47,11 +47,11 @@ jobs:
             rust-targets: aarch64-apple-darwin
             args: --target aarch64-apple-darwin
             artifact: mac-arm64
-          - platform: macos-13
+          - platform: macos-15-large
             rust-targets: x86_64-apple-darwin
             args: --target x86_64-apple-darwin
             artifact: mac-x64
-          - platform: ubuntu-22.04
+          - platform: ubuntu-latest
             rust-targets: ''
             args: ''
             artifact: ubuntu
@@ -72,7 +72,7 @@ jobs:
         with:
           targets: ${{ matrix.rust-targets }}
       - name: Install system dependencies (Ubuntu)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
@@ -106,10 +106,10 @@ jobs:
           - platform: macos-latest
             target: aarch64-apple-darwin
             artifact: mac-arm64
-          - platform: macos-13
+          - platform: macos-15-large
             target: x86_64-apple-darwin
             artifact: mac-x64
-          - platform: ubuntu-22.04
+          - platform: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact: linux-x64
           - platform: windows-latest
