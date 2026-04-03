@@ -57,10 +57,10 @@ jobs:
             artifact: windows
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.semantic-release.outputs.tag_name }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - uses: dtolnay/rust-toolchain@stable
@@ -90,8 +90,8 @@ jobs:
           releaseName: Super Terminal ${{ needs.semantic-release.outputs.new_release_version }}
           args: ${{ matrix.args }}
 
-  build-server:
-    name: server-${{ matrix.artifact }}
+  build-headless:
+    name: headless-${{ matrix.artifact }}
     needs: semantic-release
     if: needs.semantic-release.outputs.new_release_published == 'true'
     strategy:
@@ -109,10 +109,10 @@ jobs:
             artifact: windows-x64
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.semantic-release.outputs.tag_name }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - uses: dtolnay/rust-toolchain@stable
@@ -135,97 +135,109 @@ jobs:
           (Get-Content crates/super-terminal/Cargo.toml) -replace '^version = ".*" # x-release-please-version', "version = `"$env:VERSION`" # x-release-please-version" | Set-Content crates/super-terminal/Cargo.toml
         env:
           VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
-      - name: Build server binary
+      - name: Build headless binary
         run: cargo build --release --target ${{ matrix.target }} -p super-terminal
       - name: Package binary (Unix)
         if: matrix.platform != 'windows-latest'
         run: |
-          mkdir -p dist-server
-          cp target/${{ matrix.target }}/release/super-terminal dist-server/
-          cd dist-server && tar czf ../super-terminal-server-${{ matrix.target }}.tar.gz super-terminal
+          mkdir -p dist-headless
+          cp target/${{ matrix.target }}/release/super-terminal dist-headless/super-terminal-headless
+          cd dist-headless && tar czf ../super-terminal-headless-${{ matrix.target }}.tar.gz super-terminal-headless
       - name: Package binary (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path dist-server
-          Copy-Item "target/${{ matrix.target }}/release/super-terminal.exe" "dist-server/"
-          Compress-Archive -Path "dist-server/super-terminal.exe" -DestinationPath "super-terminal-server-${{ matrix.target }}.zip"
-      - name: Upload server binary to release
+          New-Item -ItemType Directory -Force -Path dist-headless
+          Copy-Item "target/${{ matrix.target }}/release/super-terminal.exe" "dist-headless/super-terminal-headless.exe"
+          Compress-Archive -Path "dist-headless/super-terminal-headless.exe" -DestinationPath "super-terminal-headless-${{ matrix.target }}.zip"
+      - name: Upload headless binary to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ needs.semantic-release.outputs.tag_name }} super-terminal-server-* --clobber
+        run: gh release upload ${{ needs.semantic-release.outputs.tag_name }} super-terminal-headless-* --clobber
 
   update-homebrew:
     name: update-homebrew
-    needs: [semantic-release, build-server]
+    needs: [semantic-release, build-tauri, build-headless]
     runs-on: ubuntu-latest
     steps:
-      - name: Download macOS arm64 binary from release
+      - name: Download release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download ${{ needs.semantic-release.outputs.tag_name }} \
             --repo bugwheels94/super-terminal \
-            --pattern "super-terminal-server-aarch64-apple-darwin.tar.gz" \
-            --dir .
-      - name: Download Linux binary from release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            --pattern "super-terminal-headless-*.tar.gz" \
+            --pattern "*.dmg" \
+            --dir assets
+      - name: Generate formulae and cask
         run: |
-          gh release download ${{ needs.semantic-release.outputs.tag_name }} \
-            --repo bugwheels94/super-terminal \
-            --pattern "super-terminal-server-x86_64-unknown-linux-gnu.tar.gz" \
-            --dir .
-      - name: Generate formula
-        run: |
-          MAC_ARM64_SHA=$(shasum -a 256 super-terminal-server-aarch64-apple-darwin.tar.gz | awk '{print $1}')
-          LINUX_SHA=$(shasum -a 256 super-terminal-server-x86_64-unknown-linux-gnu.tar.gz | awk '{print $1}')
           VERSION=${{ needs.semantic-release.outputs.new_release_version }}
+          TAG=${{ needs.semantic-release.outputs.tag_name }}
 
-          cat > super-terminal.rb << 'FORMULA'
-          class SuperTerminal < Formula
-            desc "Terminal management server with PTY support, WebSocket protocol, and SQLite persistence"
+          HEADLESS_MAC_ARM64_SHA=$(shasum -a 256 assets/super-terminal-headless-aarch64-apple-darwin.tar.gz | awk '{print $1}')
+          HEADLESS_LINUX_SHA=$(shasum -a 256 assets/super-terminal-headless-x86_64-unknown-linux-gnu.tar.gz | awk '{print $1}')
+
+          DMG_FILE=$(ls assets/*.dmg | head -1)
+          DMG_SHA=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+          DMG_NAME=$(basename "$DMG_FILE")
+
+          mkdir -p output/Formula output/Casks
+
+          cat > output/Formula/super-terminal-headless.rb << EOF
+          class SuperTerminalHeadless < Formula
+            desc "Headless terminal management server with PTY, WebSocket, and SQLite"
             homepage "https://github.com/bugwheels94/super-terminal"
-            version "VERSION_PLACEHOLDER"
+            version "${VERSION}"
             license "MIT"
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/bugwheels94/super-terminal/releases/download/vVERSION_PLACEHOLDER/super-terminal-server-aarch64-apple-darwin.tar.gz"
-                sha256 "MAC_ARM64_SHA_PLACEHOLDER"
+                url "https://github.com/bugwheels94/super-terminal/releases/download/${TAG}/super-terminal-headless-aarch64-apple-darwin.tar.gz"
+                sha256 "${HEADLESS_MAC_ARM64_SHA}"
               end
             end
 
             on_linux do
               if Hardware::CPU.intel?
-                url "https://github.com/bugwheels94/super-terminal/releases/download/vVERSION_PLACEHOLDER/super-terminal-server-x86_64-unknown-linux-gnu.tar.gz"
-                sha256 "LINUX_SHA_PLACEHOLDER"
+                url "https://github.com/bugwheels94/super-terminal/releases/download/${TAG}/super-terminal-headless-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "${HEADLESS_LINUX_SHA}"
               end
             end
 
             def install
-              bin.install "super-terminal"
+              bin.install "super-terminal-headless"
             end
 
             test do
-              assert_match "super-terminal", shell_output("#{bin}/super-terminal --help")
+              assert_match "super-terminal", shell_output("#{bin}/super-terminal-headless --help")
             end
           end
-          FORMULA
+          EOF
 
-          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" super-terminal.rb
-          sed -i "s/MAC_ARM64_SHA_PLACEHOLDER/$MAC_ARM64_SHA/g" super-terminal.rb
-          sed -i "s/LINUX_SHA_PLACEHOLDER/$LINUX_SHA/g" super-terminal.rb
-      - name: Push formula to tap
+          cat > output/Casks/super-terminal.rb << EOF
+          cask "super-terminal" do
+            version "${VERSION}"
+            sha256 "${DMG_SHA}"
+
+            url "https://github.com/bugwheels94/super-terminal/releases/download/${TAG}/${DMG_NAME}"
+            name "Super Terminal"
+            desc "Terminal management desktop app"
+            homepage "https://github.com/bugwheels94/super-terminal"
+
+            app "Super Terminal.app"
+          end
+          EOF
+      - name: Push to tap
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git clone https://x-access-token:${PAT_TOKEN}@github.com/bugwheels94/homebrew-super-terminal.git tap
-          mkdir -p tap/Formula
-          cp super-terminal.rb tap/Formula/super-terminal.rb
+          mkdir -p tap/Formula tap/Casks
+          cp output/Formula/super-terminal-headless.rb tap/Formula/super-terminal-headless.rb
+          cp output/Casks/super-terminal.rb tap/Casks/super-terminal.rb
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/super-terminal.rb
-          git commit -m "Update super-terminal to ${{ needs.semantic-release.outputs.new_release_version }}"
+          git add Formula/ Casks/
+          git commit -m "Update to ${{ needs.semantic-release.outputs.new_release_version }}"
           git push
