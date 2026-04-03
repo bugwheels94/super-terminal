@@ -21,7 +21,7 @@ pub struct Config {
 }
 
 fn default_port() -> u16 {
-    5055
+    3879
 }
 fn default_host() -> String {
     "127.0.0.1".to_string()
@@ -58,10 +58,10 @@ impl Config {
         };
 
         // Environment variable overrides
-        if let Ok(host) = std::env::var("HOST") {
+        if let Ok(host) = std::env::var("SUPER_TERMINAL_HOST") {
             config.host = host;
         }
-        if let Ok(port) = std::env::var("PORT") {
+        if let Ok(port) = std::env::var("SUPER_TERMINAL_PORT") {
             if let Ok(p) = port.parse() {
                 config.port = p;
             }
