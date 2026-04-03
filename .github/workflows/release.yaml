@@ -131,7 +131,8 @@ jobs:
           npm run build
       - name: Set Cargo version (Unix)
         if: matrix.platform != 'windows-latest'
-        run: sed -i.bak "s/^version = \".*\" # x-release-please-version/version = \"$VERSION\" # x-release-please-version/" crates/super-terminal/Cargo.toml
+        run: |
+          sed -i.bak 's/^version = ".*" # x-release-please-version/version = "'"$VERSION"'" # x-release-please-version/' crates/super-terminal/Cargo.toml
         env:
           VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
       - name: Set Cargo version (Windows)
