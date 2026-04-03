@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "commit": "cz",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.95.0",
@@ -29,10 +31,12 @@
     "@vitejs/plugin-react": "^4.2.1",
     "antd": "^6.3.3",
     "browserify-fs": "^1.0.0",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.57.0",
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "husky": "^9.1.7",
     "isomorphic-ws": "^4.0.1",
     "process": "^0.11.10",
     "ramda": "^0.28.0",
@@ -52,5 +56,10 @@
     "xterm-addon-unicode11": "^0.6.0",
     "xterm-addon-web-links": "^0.9.0",
     "xterm-addon-webgl": "^0.16.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }

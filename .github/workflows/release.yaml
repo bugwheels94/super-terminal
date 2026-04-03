@@ -17,14 +17,148 @@ permissions:
 jobs:
   semantic-release:
     runs-on: ubuntu-22.04
+    outputs:
+      new_release_published: ${{ steps.release.outputs.new_release_published }}
+      new_release_version: ${{ steps.release.outputs.new_release_version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install -g semantic-release @semantic-release/github @semantic-release/npm
-      - run: semantic-release
+      - run: npm install -g semantic-release @semantic-release/github @semantic-release/npm @semantic-release/exec
+      - name: Run semantic-release
+        id: release
+        run: semantic-release
         env:
           HUSKY: 0
           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_BOT_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-tauri:
+    name: tauri-${{ matrix.artifact }}
+    needs: semantic-release
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust-targets: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+            artifact: mac-arm64
+          - platform: macos-13
+            rust-targets: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+            artifact: mac-x64
+          - platform: ubuntu-22.04
+            rust-targets: ''
+            args: ''
+            artifact: ubuntu
+          - platform: windows-latest
+            rust-targets: ''
+            args: ''
+            artifact: windows
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.semantic-release.outputs.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm install --legacy-peer-deps
+      - name: Set version (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: npm --no-git-tag-version version $VERSION
+        env:
+          VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
+      - name: Set version (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: npm --no-git-tag-version version $env:VERSION
+        env:
+          VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ needs.semantic-release.outputs.tag_name }}
+          releaseName: Super Terminal ${{ needs.semantic-release.outputs.new_release_version }}
+          args: ${{ matrix.args }}
+
+  build-server:
+    name: server-${{ matrix.artifact }}
+    needs: semantic-release
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            artifact: mac-arm64
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            artifact: mac-x64
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact: linux-x64
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: windows-x64
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.semantic-release.outputs.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build UI
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+      - name: Set Cargo version (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: sed -i.bak "s/^version = \".*\" # x-release-please-version/version = \"$VERSION\" # x-release-please-version/" crates/super-terminal/Cargo.toml
+        env:
+          VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
+      - name: Set Cargo version (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          (Get-Content crates/super-terminal/Cargo.toml) -replace '^version = ".*" # x-release-please-version', "version = `"$env:VERSION`" # x-release-please-version" | Set-Content crates/super-terminal/Cargo.toml
+        env:
+          VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
+      - name: Build server binary
+        run: cargo build --release --target ${{ matrix.target }} -p super-terminal
+      - name: Package binary (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: |
+          mkdir -p dist-server
+          cp target/${{ matrix.target }}/release/super-terminal dist-server/
+          cd dist-server && tar czf ../super-terminal-server-${{ matrix.target }}.tar.gz super-terminal
+      - name: Package binary (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-server
+          Copy-Item "target/${{ matrix.target }}/release/super-terminal.exe" "dist-server/"
+          Compress-Archive -Path "dist-server/super-terminal.exe" -DestinationPath "super-terminal-server-${{ matrix.target }}.zip"
+      - name: Upload server binary to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ needs.semantic-release.outputs.tag_name }} super-terminal-server-* --clobber
