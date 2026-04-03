@@ -22,8 +22,8 @@ jobs:
       new_release_version: ${{ steps.release.outputs.new_release_version }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - run: npm install -g semantic-release @semantic-release/github @semantic-release/npm @semantic-release/exec
@@ -154,3 +154,78 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ needs.semantic-release.outputs.tag_name }} super-terminal-server-* --clobber
+
+  update-homebrew:
+    name: update-homebrew
+    needs: [semantic-release, build-server]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS arm64 binary from release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ needs.semantic-release.outputs.tag_name }} \
+            --repo bugwheels94/super-terminal \
+            --pattern "super-terminal-server-aarch64-apple-darwin.tar.gz" \
+            --dir .
+      - name: Download Linux binary from release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ needs.semantic-release.outputs.tag_name }} \
+            --repo bugwheels94/super-terminal \
+            --pattern "super-terminal-server-x86_64-unknown-linux-gnu.tar.gz" \
+            --dir .
+      - name: Generate formula
+        run: |
+          MAC_ARM64_SHA=$(shasum -a 256 super-terminal-server-aarch64-apple-darwin.tar.gz | awk '{print $1}')
+          LINUX_SHA=$(shasum -a 256 super-terminal-server-x86_64-unknown-linux-gnu.tar.gz | awk '{print $1}')
+          VERSION=${{ needs.semantic-release.outputs.new_release_version }}
+
+          cat > super-terminal.rb << 'FORMULA'
+          class SuperTerminal < Formula
+            desc "Terminal management server with PTY support, WebSocket protocol, and SQLite persistence"
+            homepage "https://github.com/bugwheels94/super-terminal"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/bugwheels94/super-terminal/releases/download/vVERSION_PLACEHOLDER/super-terminal-server-aarch64-apple-darwin.tar.gz"
+                sha256 "MAC_ARM64_SHA_PLACEHOLDER"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel?
+                url "https://github.com/bugwheels94/super-terminal/releases/download/vVERSION_PLACEHOLDER/super-terminal-server-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "LINUX_SHA_PLACEHOLDER"
+              end
+            end
+
+            def install
+              bin.install "super-terminal"
+            end
+
+            test do
+              assert_match "super-terminal", shell_output("#{bin}/super-terminal --help")
+            end
+          end
+          FORMULA
+
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" super-terminal.rb
+          sed -i "s/MAC_ARM64_SHA_PLACEHOLDER/$MAC_ARM64_SHA/g" super-terminal.rb
+          sed -i "s/LINUX_SHA_PLACEHOLDER/$LINUX_SHA/g" super-terminal.rb
+      - name: Push formula to tap
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git clone https://x-access-token:${PAT_TOKEN}@github.com/bugwheels94/homebrew-super-terminal.git tap
+          mkdir -p tap/Formula
+          cp super-terminal.rb tap/Formula/super-terminal.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/super-terminal.rb
+          git commit -m "Update super-terminal to ${{ needs.semantic-release.outputs.new_release_version }}"
+          git push
