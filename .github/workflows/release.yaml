@@ -208,6 +208,14 @@ jobs:
               bin.install "super-terminal-headless"
             end
 
+            service do
+              run [opt_bin/"super-terminal-headless"]
+              keep_alive true
+              working_dir var
+              log_path var/"log/super-terminal-headless.log"
+              error_log_path var/"log/super-terminal-headless.log"
+            end
+
             test do
               assert_match "super-terminal", shell_output("#{bin}/super-terminal-headless --help")
             end
