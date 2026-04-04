@@ -3,7 +3,7 @@ pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "super_terminal=info".into()),
+                .unwrap_or_else(|_| "super_terminal=info,tauri_plugin_sessions=info".into()),
         )
         .init();
 

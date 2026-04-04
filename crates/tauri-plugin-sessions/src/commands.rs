@@ -2,6 +2,7 @@ use crate::error::{Error, Result};
 use crate::models::{Session, SessionType};
 use crate::storage;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Child;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager, State};
@@ -14,7 +15,7 @@ pub struct SessionsState {
 pub enum RunningSession {
     Local,
     Http,
-    Ssh { child: Child },
+    Ssh { child: Child, askpass_dir: Option<PathBuf> },
 }
 
 impl SessionsState {
@@ -124,7 +125,7 @@ pub fn delete_session(
         if let Some(mut entry) = running.remove(&id) {
             match &mut entry {
                 RunningSession::Local => {},
-                RunningSession::Ssh { child } => crate::ssh::kill_tunnel(child),
+                RunningSession::Ssh { child, askpass_dir } => crate::ssh::kill_tunnel(child, askpass_dir.as_ref()),
                 RunningSession::Http => {},
             }
         }
@@ -139,6 +140,7 @@ pub async fn connect_session(
     app: AppHandle,
     state: State<'_, SessionsState>,
     id: String,
+    password: Option<String>,
 ) -> std::result::Result<String, Error> {
     let (label, url, session_type, session_name) = {
         let sessions = state.sessions.read().unwrap();
@@ -192,10 +194,19 @@ pub async fn connect_session(
         }
 
         SessionType::Ssh { ssh_host, ssh_port, remote_port, local_port, identity_file } => {
-            crate::ssh::setup_remote(ssh_host, *ssh_port, *remote_port, identity_file.as_deref())?;
-            let child = crate::ssh::spawn_tunnel(ssh_host, *ssh_port, *remote_port, *local_port, identity_file.as_deref())?;
+            let pw = password.as_deref();
+            let actual_remote_port = crate::ssh::setup_remote(ssh_host, *ssh_port, *remote_port, identity_file.as_deref(), pw)?;
+            let (child, askpass_dir) = crate::ssh::spawn_tunnel(ssh_host, *ssh_port, actual_remote_port, *local_port, identity_file.as_deref(), pw)?;
 
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            // Wait until tunnel is ready (up to 15 seconds)
+            let addr = format!("127.0.0.1:{}", local_port);
+            for i in 0..30 {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if std::net::TcpStream::connect(&addr).is_ok() {
+                    tracing::info!("Tunnel ready after {}ms", (i + 1) * 500);
+                    break;
+                }
+            }
 
             let _window = tauri::WebviewWindowBuilder::new(
                 &app,
@@ -208,7 +219,7 @@ pub async fn connect_session(
             .build()?;
 
             let mut running = state.running.write().unwrap();
-            running.insert(id, RunningSession::Ssh { child });
+            running.insert(id, RunningSession::Ssh { child, askpass_dir });
         }
     }
 

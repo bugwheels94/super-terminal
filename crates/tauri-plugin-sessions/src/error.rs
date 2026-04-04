@@ -19,6 +19,9 @@ pub enum Error {
     #[error("SSH error: {0}")]
     Ssh(String),
 
+    #[error("SSH authentication failed: {0}")]
+    SshAuth(String),
+
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
 }
@@ -28,6 +31,14 @@ impl Serialize for Error {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(2))?;
+        match self {
+            Error::SshAuth(_) => map.serialize_entry("kind", "ssh_auth")?,
+            Error::Ssh(_) => map.serialize_entry("kind", "ssh")?,
+            _ => map.serialize_entry("kind", "other")?,
+        }
+        map.serialize_entry("message", &self.to_string())?;
+        map.end()
     }
 }

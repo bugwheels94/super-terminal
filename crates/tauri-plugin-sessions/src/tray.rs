@@ -124,9 +124,18 @@ pub fn connect_or_focus_sync(
         }
 
         crate::models::SessionType::Ssh { ref ssh_host, ssh_port, remote_port, local_port, ref identity_file } => {
-            crate::ssh::setup_remote(ssh_host, *ssh_port, *remote_port, identity_file.as_deref())?;
-            let child = crate::ssh::spawn_tunnel(ssh_host, *ssh_port, *remote_port, *local_port, identity_file.as_deref())?;
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            let actual_remote_port = crate::ssh::setup_remote(ssh_host, *ssh_port, *remote_port, identity_file.as_deref(), None)?;
+            let (child, askpass_dir) = crate::ssh::spawn_tunnel(ssh_host, *ssh_port, actual_remote_port, *local_port, identity_file.as_deref(), None)?;
+
+            // Wait until tunnel is ready (up to 15 seconds)
+            let addr = format!("127.0.0.1:{}", local_port);
+            for i in 0..30 {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                if std::net::TcpStream::connect(&addr).is_ok() {
+                    tracing::info!("Tunnel ready after {}ms", (i + 1) * 500);
+                    break;
+                }
+            }
 
             let _window = tauri::WebviewWindowBuilder::new(
                 app, &label, tauri::WebviewUrl::External(url.parse().unwrap()),
@@ -137,7 +146,7 @@ pub fn connect_or_focus_sync(
             .build()?;
 
             let mut running = state.running.write().unwrap();
-            running.insert(session_id.to_string(), crate::commands::RunningSession::Ssh { child });
+            running.insert(session_id.to_string(), crate::commands::RunningSession::Ssh { child, askpass_dir });
         }
     }
 

@@ -1,5 +1,5 @@
 use crate::commands::SessionsState;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Manager, Wry};
 
 /// Build the app menu bar with a Sessions submenu and register event handler.
@@ -39,7 +39,18 @@ fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<Wry>> {
         sessions_submenu = sessions_submenu.item(&item);
     }
 
+    let edit_submenu = SubmenuBuilder::new(app, "Edit")
+        .item(&PredefinedMenuItem::undo(app, None)?)
+        .item(&PredefinedMenuItem::redo(app, None)?)
+        .separator()
+        .item(&PredefinedMenuItem::cut(app, None)?)
+        .item(&PredefinedMenuItem::copy(app, None)?)
+        .item(&PredefinedMenuItem::paste(app, None)?)
+        .item(&PredefinedMenuItem::select_all(app, None)?)
+        .build()?;
+
     let menu = MenuBuilder::new(app)
+        .item(&edit_submenu)
         .item(&sessions_submenu.build()?)
         .build()?;
 

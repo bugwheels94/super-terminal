@@ -53,6 +53,7 @@ export default function SessionForm({ initial, onSave, onCancel }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted, type:', type, 'sshHost:', sshHost);
     let sessionType: SessionType;
     switch (type) {
       case 'local':
@@ -69,6 +70,7 @@ export default function SessionForm({ initial, onSave, onCancel }: Props) {
         };
         break;
     }
+    console.log('sessionType payload:', JSON.stringify(sessionType));
     onSave({ name, sessionType });
   };
 
