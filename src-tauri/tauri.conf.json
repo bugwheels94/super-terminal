@@ -4,15 +4,15 @@
   "version": "../package.json",
   "identifier": "com.super-terminal.desktop",
   "build": {
-    "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "frontendDist": "../crates/tauri-plugin-sessions/ui/dist",
+    "devUrl": "http://localhost:1421",
+    "beforeDevCommand": "npm run dev --prefix crates/tauri-plugin-sessions/ui -- --port 1421",
+    "beforeBuildCommand": "npm run build && npm install --prefix crates/tauri-plugin-sessions/ui && npm run build --prefix crates/tauri-plugin-sessions/ui"
   },
   "app": {
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; connect-src 'self' ws: wss: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

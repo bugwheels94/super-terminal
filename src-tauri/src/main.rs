@@ -10,11 +10,10 @@ pub fn run() {
     let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_sessions::init())
         .setup(move |app| {
+            // Start the local backend server
             let config = super_terminal::Config::load().unwrap_or_default();
-            let port = config.port;
-
-            // Spawn the super-terminal server in background
             std::thread::spawn(move || {
                 rt.block_on(async {
                     if let Err(e) = super_terminal::start_server(config).await {
@@ -23,17 +22,15 @@ pub fn run() {
                 });
             });
 
-            // Wait for server to be ready
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            let url = format!("http://127.0.0.1:{}", port);
+            // Open sessions UI
             let _window = tauri::WebviewWindowBuilder::new(
                 app,
-                "main",
-                tauri::WebviewUrl::External(url.parse().unwrap()),
+                "sessions-settings",
+                tauri::WebviewUrl::App("index.html".into()),
             )
-            .title("Super Terminal")
-            .inner_size(1200.0, 800.0)
-            .min_inner_size(800.0, 600.0)
+            .title("Super Terminal — Sessions")
+            .inner_size(600.0, 400.0)
+            .resizable(true)
             .build()?;
 
             Ok(())

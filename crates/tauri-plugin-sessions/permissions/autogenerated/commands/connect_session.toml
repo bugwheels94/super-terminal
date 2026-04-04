@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-connect-session"
+description = "Enables the connect_session command without any pre-configured scope."
+commands.allow = ["connect_session"]
+
+[[permission]]
+identifier = "deny-connect-session"
+description = "Denies the connect_session command without any pre-configured scope."
+commands.deny = ["connect_session"]

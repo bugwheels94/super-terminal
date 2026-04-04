@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 super-terminal = { path = "../crates/super-terminal" }
+tauri-plugin-sessions = { path = "../crates/tauri-plugin-sessions" }
 tauri = { version = "2", features = [] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"

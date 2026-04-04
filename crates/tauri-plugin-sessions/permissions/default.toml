@@ -1,0 +1,9 @@
+[default]
+description = "Default permissions for the sessions plugin"
+permissions = [
+    "allow-list-sessions",
+    "allow-create-session",
+    "allow-update-session",
+    "allow-delete-session",
+    "allow-connect-session",
+]

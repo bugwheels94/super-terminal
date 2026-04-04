@@ -2143,6 +2143,72 @@
           "type": "string",
           "const": "core:window:deny-unminimize",
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the sessions plugin\n#### This default permission set includes:\n\n- `allow-list-sessions`\n- `allow-create-session`\n- `allow-update-session`\n- `allow-delete-session`\n- `allow-connect-session`",
+          "type": "string",
+          "const": "sessions:default",
+          "markdownDescription": "Default permissions for the sessions plugin\n#### This default permission set includes:\n\n- `allow-list-sessions`\n- `allow-create-session`\n- `allow-update-session`\n- `allow-delete-session`\n- `allow-connect-session`"
+        },
+        {
+          "description": "Enables the connect_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:allow-connect-session",
+          "markdownDescription": "Enables the connect_session command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:allow-create-session",
+          "markdownDescription": "Enables the create_session command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:allow-delete-session",
+          "markdownDescription": "Enables the delete_session command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:allow-list-sessions",
+          "markdownDescription": "Enables the list_sessions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:allow-update-session",
+          "markdownDescription": "Enables the update_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the connect_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:deny-connect-session",
+          "markdownDescription": "Denies the connect_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:deny-create-session",
+          "markdownDescription": "Denies the create_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:deny-delete-session",
+          "markdownDescription": "Denies the delete_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:deny-list-sessions",
+          "markdownDescription": "Denies the list_sessions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "sessions:deny-update-session",
+          "markdownDescription": "Denies the update_session command without any pre-configured scope."
         }
       ]
     },

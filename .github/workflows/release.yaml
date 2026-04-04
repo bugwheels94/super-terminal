@@ -102,7 +102,7 @@ jobs:
             target: aarch64-apple-darwin
             artifact: mac-arm64
           - platform: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
             artifact: linux-x64
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
@@ -118,6 +118,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Install musl tools (Linux)
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
       - name: Build UI
         run: |
           npm install --legacy-peer-deps
@@ -175,7 +178,7 @@ jobs:
           TAG=${{ needs.semantic-release.outputs.tag_name }}
 
           HEADLESS_MAC_ARM64_SHA=$(shasum -a 256 assets/super-terminal-headless-aarch64-apple-darwin.tar.gz | awk '{print $1}')
-          HEADLESS_LINUX_SHA=$(shasum -a 256 assets/super-terminal-headless-x86_64-unknown-linux-gnu.tar.gz | awk '{print $1}')
+          HEADLESS_LINUX_SHA=$(shasum -a 256 assets/super-terminal-headless-x86_64-unknown-linux-musl.tar.gz | awk '{print $1}')
 
           DMG_FILE=$(ls assets/*.dmg | head -1)
           DMG_SHA=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
@@ -199,7 +202,7 @@ jobs:
 
             on_linux do
               if Hardware::CPU.intel?
-                url "https://github.com/bugwheels94/super-terminal/releases/download/${TAG}/super-terminal-headless-x86_64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/bugwheels94/super-terminal/releases/download/${TAG}/super-terminal-headless-x86_64-unknown-linux-musl.tar.gz"
                 sha256 "${HEADLESS_LINUX_SHA}"
               end
             end
