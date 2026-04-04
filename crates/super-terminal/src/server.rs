@@ -15,7 +15,7 @@ use tower_http::services::ServeDir;
 use tracing::{error, info};
 
 #[derive(Embed)]
-#[folder = "../../ui/dist/"]
+#[folder = "../../dist/"]
 struct UiAssets;
 
 use crate::cleanup;
